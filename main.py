@@ -11,9 +11,9 @@ from utils import load_img, resize_img, sanitize_field_name
 
 
 class FilterCheck(BaseModel):
-    """A single filter check result with its condition and evaluation."""
+    """A single filter check result with its description and evaluation."""
 
-    condition: str
+    description: str
     is_valid: bool
 
 
@@ -44,41 +44,20 @@ def analyze_product(product: ProductInput) -> list[FilterCheck]:
         device="auto",
     )
 
-    def get_unique_field_name(text: str, existing_fields: set) -> str:
-        """Generate a unique field name for a filter text."""
-        base_name = sanitize_field_name(text)
-        field_name = base_name
-        counter = 1
-        while field_name in existing_fields:
-            field_name = f"{base_name}_{counter}"
-            counter += 1
-        return field_name
-
-    existing_fields = set()
-    field_mapping = {}
-
-    for filter_text in product.filters:
-        field_name = get_unique_field_name(filter_text, existing_fields)
-        field_mapping[field_name] = filter_text
-        existing_fields.add(field_name)
+    prompt = f"""
+        Analyze this product image and description:
+        - Image: <image>
+        - Description: {product.description}
+    """
+    print(f"Prompt: \n{prompt}")
 
     field_definitions = {
-        field_name: (bool, Field(description=filter_text))
-        for field_name, filter_text in field_mapping.items()
-    }
-
-    fields_text = "\n".join(
-        f"\t{i}. {filter_text}'"
+        sanitize_field_name(filter_text): (
+            bool,
+            Field(title=f"Filter {i}", description=filter_text),
+        )
         for i, filter_text in enumerate(product.filters, start=1)
-    )
-
-    prompt = f"""
-    Analyze this product image and description. Respond with JSON containing boolean values for each filter.
-    - Image: <image>
-    - Description: {product.description}
-
-    Fill in the following fields with True or False: \n{fields_text}"""
-    print(f"Prompt: \n{prompt}")
+    }
 
     dynamic_schema: type[BaseModel] = create_model("DynamicSchema", **field_definitions)
     print(f"DynamicSchema: {json.dumps(dynamic_schema.model_json_schema(), indent=2)}")
@@ -87,9 +66,11 @@ def analyze_product(product: ProductInput) -> list[FilterCheck]:
     response = generator(prompt, [product.image])
 
     results = []
-    for field_name, filter_text in field_mapping.items():
+    for field_name, (_, filter_field) in field_definitions.items():
         is_valid = getattr(response, field_name)
-        results.append(FilterCheck(condition=filter_text, is_valid=is_valid))
+        results.append(
+            FilterCheck(description=filter_field.description, is_valid=is_valid)
+        )
 
     return results
 
@@ -97,7 +78,7 @@ def analyze_product(product: ProductInput) -> list[FilterCheck]:
 def demo():
     """Run a demo of the product filtering system."""
     product = ProductInput(
-        image_url_or_path="guitar.jpg",
+        image_url_or_path="guitar_in_case.jpg",
         description="Squier by Fender Acoustic Guitar, Natural Finish, Mahogany",
         filters=[
             "the guitar is red",
@@ -114,8 +95,8 @@ def demo():
         ],
     )
 
-    result = ProductFilterResults(results=analyze_product(product))
-    print("Result:", result.model_dump_json(indent=2))
+    results = ProductFilterResults(results=analyze_product(product))
+    print("Result:", results.model_dump_json(indent=2))
 
 
 if __name__ == "__main__":

@@ -15,7 +15,7 @@ def load_img(image_url_or_path: str) -> Image.Image:
     return Image.open(fp).convert("RGB")
 
 
-def resize_img(image: Image.Image, max_size: int = 512) -> Image.Image:
+def resize_img(image: Image.Image, max_size: int = 1024) -> Image.Image:
     """Resize an image while maintaining its aspect ratio."""
     if max(image.size) > max_size:
         ratio = max_size / max(image.size)
