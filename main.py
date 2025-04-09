@@ -1,3 +1,4 @@
+import json
 from dataclasses import dataclass, field
 
 import torch
@@ -66,8 +67,6 @@ def analyze_product(product: ProductInput) -> list[FilterCheck]:
         for field_name, filter_text in field_mapping.items()
     }
 
-    DynamicFilterResponse = create_model("DynamicFilterResponse", **field_definitions)
-
     fields_text = "\n".join(
         f"\t{i}. {filter_text}'"
         for i, filter_text in enumerate(product.filters, start=1)
@@ -77,10 +76,14 @@ def analyze_product(product: ProductInput) -> list[FilterCheck]:
     Analyze this product image and description. Respond with JSON containing boolean values for each filter.
     - Image: <image>
     - Description: {product.description}
-    - Filters: \n{fields_text}"""
-    print(f"Prompt:\n{prompt}")
 
-    generator = generate.json(model, DynamicFilterResponse)
+    Fill in the following fields with True or False: \n{fields_text}"""
+    print(f"Prompt: \n{prompt}")
+
+    dynamic_schema: type[BaseModel] = create_model("DynamicSchema", **field_definitions)
+    print(f"DynamicSchema: {json.dumps(dynamic_schema.model_json_schema(), indent=2)}")
+
+    generator = generate.json(model, dynamic_schema)
     response = generator(prompt, [product.image])
 
     results = []
