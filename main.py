@@ -3,10 +3,10 @@ from dataclasses import dataclass, field
 import torch
 from outlines import generate, models
 from PIL import Image
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, create_model
 from transformers import AutoModelForImageTextToText
 
-from utils import load_img, resize_img
+from utils import load_img, resize_img, sanitize_field_name
 
 
 class FilterCheck(BaseModel):
@@ -22,23 +22,16 @@ class ProductFilterResults(BaseModel):
     results: list[FilterCheck]
 
 
-class BooleanResponse(BaseModel):
-    """Simple model for receiving boolean responses from the model."""
-
-    values: list[bool] = Field(..., min_length=1)
-
-
 @dataclass
 class ProductInput:
     image_url_or_path: str
     description: str
     filters: list[str]
     image: Image.Image = field(init=False)
-    max_size: int = 512
 
     def __post_init__(self):
         image = load_img(self.image_url_or_path)
-        self.image = resize_img(image, self.max_size)
+        self.image = resize_img(image)
 
 
 def analyze_product(product: ProductInput) -> list[FilterCheck]:
@@ -50,25 +43,50 @@ def analyze_product(product: ProductInput) -> list[FilterCheck]:
         device="auto",
     )
 
-    filters_text = "\n".join(
-        f"\t{i+1}. {filter_text}"
+    def get_unique_field_name(text: str, existing_fields: set) -> str:
+        """Generate a unique field name for a filter text."""
+        base_name = sanitize_field_name(text)
+        field_name = base_name
+        counter = 1
+        while field_name in existing_fields:
+            field_name = f"{base_name}_{counter}"
+            counter += 1
+        return field_name
+
+    existing_fields = set()
+    field_mapping = {}
+
+    for filter_text in product.filters:
+        field_name = get_unique_field_name(filter_text, existing_fields)
+        field_mapping[field_name] = filter_text
+        existing_fields.add(field_name)
+
+    field_definitions = {
+        field_name: (bool, Field(description=filter_text))
+        for field_name, filter_text in field_mapping.items()
+    }
+
+    DynamicFilterResponse = create_model("DynamicFilterResponse", **field_definitions)
+
+    fields_text = "\n".join(
+        f"\t{i}. {filter_text}'"
         for i, filter_text in enumerate(product.filters, start=1)
     )
 
     prompt = f"""
-    Analyze this product image and description. Respond with a list of true/false values corresponding to each filter.
+    Analyze this product image and description. Respond with JSON containing boolean values for each filter.
     - Image: <image>
     - Description: {product.description}
-    - Filters: \n{filters_text}"""
+    - Filters: \n{fields_text}"""
     print(f"Prompt:\n{prompt}")
 
-    generator = generate.json(model, BooleanResponse)
-    bool_response: BooleanResponse = generator(prompt, [product.image])
+    generator = generate.json(model, DynamicFilterResponse)
+    response = generator(prompt, [product.image])
 
-    results = [
-        FilterCheck(condition=desc, is_valid=val)
-        for desc, val in zip(product.filters, bool_response.values, strict=True)
-    ]
+    results = []
+    for field_name, filter_text in field_mapping.items():
+        is_valid = getattr(response, field_name)
+        results.append(FilterCheck(condition=filter_text, is_valid=is_valid))
 
     return results
 
@@ -80,6 +98,7 @@ def demo():
         description="Squier by Fender Acoustic Guitar, Natural Finish, Mahogany",
         filters=[
             "the guitar is red",
+            "the guitar is natural",
             "the guitar is electro-acoustic",
             "the guitar is a Fender",
             "this is a piano",
@@ -87,11 +106,13 @@ def demo():
             "the guitar is a bass",
             "the guitar is a 6-string guitar",
             "the guitar has no pickguard",
+            "the guitar has a pickguard",
+            "the guitar has a cutaway",
         ],
     )
 
     result = ProductFilterResults(results=analyze_product(product))
-    print(result)
+    print("Result:", result.model_dump_json(indent=2))
 
 
 if __name__ == "__main__":

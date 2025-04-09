@@ -1,3 +1,4 @@
+import re
 from io import BytesIO
 from urllib.request import urlopen
 
@@ -14,9 +15,18 @@ def load_img(image_url_or_path: str) -> Image.Image:
     return Image.open(fp).convert("RGB")
 
 
-def resize_img(image: Image.Image, max_size: int) -> Image.Image:
+def resize_img(image: Image.Image, max_size: int = 512) -> Image.Image:
+    """Resize an image while maintaining its aspect ratio."""
     if max(image.size) > max_size:
         ratio = max_size / max(image.size)
         new_size = tuple(int(dim * ratio) for dim in image.size)
         return image.resize(new_size, Image.Resampling.LANCZOS)
     return image
+
+
+def sanitize_field_name(text: str) -> str:
+    """Convert a filter text into a valid Python identifier for use as a field name."""
+    field_name = re.sub(r"[^a-zA-Z0-9]", "_", text.lower())
+    if not field_name[0].isalpha():
+        field_name = "f_" + field_name
+    return re.sub(r"_+", "_", field_name)
