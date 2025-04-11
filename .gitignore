@@ -11,3 +11,4 @@ wheels/
 
 # Other
 uv.lock
+.env
