@@ -15,13 +15,6 @@ from utils import image_to_base64, load_img, resize_img, sanitize_text
 load_dotenv()
 
 
-class FilterCheck(BaseModel):
-    """A single filter check result with its description and evaluation."""
-
-    description: str
-    is_valid: bool
-
-
 @dataclass
 class ProductInput:
     image_url_or_path: str
@@ -118,31 +111,3 @@ class ProductAnalyzer:
         schema = self._create_filter_schema(product.filters)
         response = self.predict(prompt, product.image, schema)
         return response
-
-
-def demo():
-    """Run a demo of the product filtering system."""
-    product = ProductInput(
-        image_url_or_path="guitar.jpg",
-        description="Squier by Fender Acoustic Guitar, Natural Finish, Mahogany",
-        filters=[
-            "the guitar is red",
-            "the guitar is natural",
-            "the guitar is electro-acoustic",
-            "the guitar is a Fender",
-            "this is a piano",
-            "the guitar is in a case",
-            "the guitar is a bass",
-            "the guitar is a 6-string guitar",
-            "the guitar has no pickguard",
-            "the guitar has a pickguard",
-            "the guitar has a cutaway",
-        ],
-    )
-    analyzer = ProductAnalyzer(use_local=False)
-    response = analyzer.analyze_product(product)
-    print(response.model_dump_json(indent=2))
-
-
-if __name__ == "__main__":
-    demo()

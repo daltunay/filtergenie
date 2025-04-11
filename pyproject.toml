@@ -7,10 +7,12 @@ requires-python = ">=3.12"
 dependencies = [
     "accelerate>=1.6.0",
     "datasets>=3.5.0",
+    "fastapi[standard]>=0.115.12",
     "openai>=1.72.0",
     "outlines>=0.2.3",
     "pillow>=11.1.0",
     "python-dotenv>=1.1.0",
     "sentencepiece>=0.2.0",
+    "structlog>=25.2.0",
     "transformers>=4.51.1",
 ]
