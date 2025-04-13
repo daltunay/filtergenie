@@ -18,7 +18,6 @@ def test_guitar_example():
     ]
     logger.debug("Resolved image paths", paths=guitar_image_paths)
 
-    # Validate all images exist
     for img_path in guitar_image_paths:
         if not os.path.exists(img_path):
             logger.error("Image not found", path=img_path)
@@ -56,34 +55,23 @@ def test_guitar_example():
     )
     logger.debug("Full payload", payload=payload)
 
-    try:
-        logger.info("Sending request to API", endpoint=f"{API_URL}/analyze")
-        response = requests.post(f"{API_URL}/analyze", json=payload)
-        logger.info(
-            "Request completed",
-            status_code=response.status_code,
-            response_time=response.elapsed.total_seconds(),
-        )
+    logger.info("Sending request to API", endpoint=f"{API_URL}/analyze")
+    response = requests.post(f"{API_URL}/analyze", json=payload)
+    logger.info(
+        "Request completed",
+        status_code=response.status_code,
+        response_time=response.elapsed.total_seconds(),
+    )
 
-        if response.status_code == 200:
-            result = response.json()
-            logger.info(
-                "Analysis successful",
-                result_size=len(result),
-                filters_analyzed=len(result),
-            )
-            logger.debug("Analysis results", result=result)
-            print(json.dumps(result, indent=2))
-        else:
-            logger.error(
-                "API request failed",
-                status_code=response.status_code,
-                response=response.text,
-            )
-    except Exception as e:
-        logger.exception("Error sending request", error=str(e))
-    finally:
-        logger.info("Guitar example test completed")
+    result = response.json()
+    logger.info(
+        "Analysis successful",
+        result_size=len(result),
+        filters_analyzed=len(result),
+    )
+    logger.debug("Analysis results", result=result)
+    print(json.dumps(result, indent=2))
+    logger.info("Guitar example test completed")
 
 
 if __name__ == "__main__":
