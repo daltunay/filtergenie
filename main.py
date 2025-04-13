@@ -52,19 +52,21 @@ class ProductAnalyzer:
             self.model = self._create_local_model()
             self.predict = self._predict_local
         else:
-            self.model = OpenAI(
-                base_url=os.getenv("GEMINI_BASE_URL"),
-                api_key=os.getenv("GEMINI_API_KEY"),
-            )
+            self.model = self._create_openai_model()
             self.predict = self._predict_openai
 
-    def _create_local_model(self) -> models.TransformersVision:
+    def _create_local_model(
+        self,
+        model_name: str = "HuggingFaceTB/SmolVLM-Instruct",
+        dtype: torch.dtype = torch.bfloat16,
+        device: str = "auto",
+    ) -> models.TransformersVision:
         """Create a local VLM model."""
         return models.transformers_vision(
-            model_name="HuggingFaceTB/SmolVLM-Instruct",
+            model_name=model_name,
             model_class=AutoModelForImageTextToText,
-            model_kwargs={"torch_dtype": torch.bfloat16},
-            device="auto",
+            model_kwargs={"torch_dtype": dtype},
+            device=device,
         )
 
     def _predict_local(
@@ -73,6 +75,14 @@ class ProductAnalyzer:
         """Run prediction using local model."""
         generator = generate.json(self.model, schema)
         return generator(prompt, images)
+
+    def _create_openai_model(self, model_name: str = "gemini-2.0-flash") -> OpenAI:
+        """Create an OpenAI model."""
+        self.model_name = model_name
+        return OpenAI(
+            base_url=os.getenv("GEMINI_BASE_URL"),
+            api_key=os.getenv("GEMINI_API_KEY"),
+        )
 
     def _predict_openai(
         self, prompt: str, images: list[Image.Image], schema: type[BaseModel]
@@ -87,7 +97,7 @@ class ProductAnalyzer:
         ]
 
         response = self.model.beta.chat.completions.parse(
-            model="gemini-2.0-flash",
+            model=self.model_name,
             messages=[{"role": "user", "content": content}],
             response_format=schema,
         )
