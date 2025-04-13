@@ -8,7 +8,7 @@ app = FastAPI(
     version="0.1.0",
 )
 
-analyzer = ProductAnalyzer(use_local=False)
+analyzer = ProductAnalyzer(use_local=True)
 
 
 @app.post("/analyze", response_model=dict[str, bool])
@@ -16,8 +16,9 @@ async def analyze_product(product_input: dict):
     """Analyze a product against provided filters."""
     try:
         product = ProductInput(
-            image_url_or_path=product_input.get("image_url", ""),
+            title=product_input.get("title", ""),
             description=product_input.get("description", ""),
+            image_urls_or_paths=product_input.get("image_urls_or_paths", []),
             filters=product_input.get("filters", []),
         )
 

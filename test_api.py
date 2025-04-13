@@ -12,14 +12,19 @@ def test_guitar_example():
     """Test the API with the guitar example."""
     logger.info("Starting guitar example test")
 
-    guitar_image_path = os.path.abspath("guitar.jpg")
-    logger.debug("Resolved image path", path=guitar_image_path)
+    guitar_image_paths = [
+        os.path.abspath("guitar_1.jpg"),
+        os.path.abspath("guitar_2.jpg"),
+    ]
+    logger.debug("Resolved image paths", paths=guitar_image_paths)
 
-    if not os.path.exists(guitar_image_path):
-        logger.error("Image not found", path=guitar_image_path)
-        return
+    # Validate all images exist
+    for img_path in guitar_image_paths:
+        if not os.path.exists(img_path):
+            logger.error("Image not found", path=img_path)
+            return
 
-    logger.info("Found image file", path=guitar_image_path)
+    logger.info("Found all image files", count=len(guitar_image_paths))
 
     filters = [
         "the guitar is red",
@@ -36,15 +41,18 @@ def test_guitar_example():
     ]
 
     payload = {
-        "image_url": guitar_image_path,
+        "title": "Squier by Fender Acoustic Guitar",
         "description": "Squier by Fender Acoustic Guitar, Natural Finish, Mahogany",
+        "image_urls_or_paths": guitar_image_paths,
         "filters": filters,
     }
 
     logger.info(
         "Prepared request payload",
+        title=payload["title"],
         description=payload["description"],
         filter_count=len(filters),
+        image_count=len(guitar_image_paths),
     )
     logger.debug("Full payload", payload=payload)
 
@@ -62,7 +70,7 @@ def test_guitar_example():
             logger.info(
                 "Analysis successful",
                 result_size=len(result),
-                filters_analyzed=len(result.get("results", [])),
+                filters_analyzed=len(result),
             )
             logger.debug("Analysis results", result=result)
             print(json.dumps(result, indent=2))

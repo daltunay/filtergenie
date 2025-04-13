@@ -17,14 +17,17 @@ load_dotenv()
 
 @dataclass
 class ProductInput:
-    image_url_or_path: str
+    title: str
     description: str
+    image_urls_or_paths: list[str]
     filters: list[str]
-    image: Image.Image = field(init=False)
+    images: list[Image.Image] = field(init=False)
 
     def __post_init__(self):
-        image = load_img(self.image_url_or_path)
-        self.image = resize_img(image)
+        self.images = []
+        for img_path in self.image_urls_or_paths:
+            image = load_img(img_path)
+            self.images.append(resize_img(image))
 
 
 class ProductAnalyzer:
@@ -32,9 +35,10 @@ class ProductAnalyzer:
 
     PROMPT_TEMPLATE = dedent(
         """
-        Analyze this product image and description:
-        - Image: <image>
+        Analyze this product with the following details:
+        - Title: {title}
         - Description: {description}
+        - Images: {images}
 
         For each of the following filters, determine if it applies to this product.
         """
@@ -64,34 +68,31 @@ class ProductAnalyzer:
         )
 
     def _predict_local(
-        self, prompt: str, image: Image.Image, schema: type[BaseModel]
+        self, prompt: str, images: list[Image.Image], schema: type[BaseModel]
     ) -> BaseModel:
         """Run prediction using local model."""
         generator = generate.json(self.model, schema)
-        return generator(prompt, [image])
+        return generator(prompt, images)
 
     def _predict_openai(
-        self, prompt: str, image: Image.Image, schema: type[BaseModel]
+        self, prompt: str, images: list[Image.Image], schema: type[BaseModel]
     ) -> BaseModel:
         """Run prediction using OpenAI API."""
-        image_data_url = image_to_base64(image)
-        return (
-            self.model.beta.chat.completions.parse(
-                model="gemini-2.0-flash",
-                messages=[
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": prompt},
-                            {"type": "image_url", "image_url": {"url": image_data_url}},
-                        ],
-                    }
-                ],
-                response_format=schema,
-            )
-            .choices[0]
-            .message.parsed
+        content = [
+            {"type": "text", "text": prompt},
+            *[
+                {"type": "image_url", "image_url": {"url": image_to_base64(image)}}
+                for image in images
+            ],
+        ]
+
+        response = self.model.beta.chat.completions.parse(
+            model="gemini-2.0-flash",
+            messages=[{"role": "user", "content": content}],
+            response_format=schema,
         )
+
+        return response.choices[0].message.parsed
 
     @staticmethod
     def _create_filter_schema(filters: list[str]) -> type[BaseModel]:
@@ -107,7 +108,11 @@ class ProductAnalyzer:
 
     def analyze_product(self, product: ProductInput) -> BaseModel:
         """Analyze a single product against its filters."""
-        prompt = self.PROMPT_TEMPLATE.format(description=product.description)
-        schema = self._create_filter_schema(product.filters)
-        response = self.predict(prompt, product.image, schema)
+        prompt = self.PROMPT_TEMPLATE.format(
+            title=product.title,
+            description=product.description,
+            images="<image>" * len(product.images),
+        )
+        DynamicSchema = self._create_filter_schema(product.filters)
+        response = self.predict(prompt, product.images, DynamicSchema)
         return response
