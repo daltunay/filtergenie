@@ -17,6 +17,9 @@ class ScrapedProduct:
 class BaseScraper(ABC):
     """Abstract base class for all website scrapers."""
 
+    HEADLESS_MODE = True
+    PLAYWRIGHT_TIMEOUT = 30_000
+
     def scrape(self, url: str) -> ScrapedProduct:
         """Main method to scrape a product from a given URL."""
         soup = self.fetch_page(url)

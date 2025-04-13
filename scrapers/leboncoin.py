@@ -1,18 +1,16 @@
 from urllib.parse import urlparse
 
 import structlog
-from base import BaseScraper
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
+
+from .base import BaseScraper
 
 logger = structlog.get_logger(__name__)
 
 
 class LeboncoinScraper(BaseScraper):
     """Scraper for leboncoin.fr product pages."""
-
-    HEADLESS_MODE = True
-    PLAYWRIGHT_TIMEOUT = 30_000
 
     @staticmethod
     def can_handle_url(url: str) -> bool:
