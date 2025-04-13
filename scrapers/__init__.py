@@ -1,10 +1,12 @@
 from .base import BaseScraper, ScrapedProduct
+from .ebay import EbayScraper
 from .leboncoin import LeboncoinScraper
 from .vinted import VintedScraper
 
 SCRAPERS = [
     LeboncoinScraper,
     VintedScraper,
+    EbayScraper,
 ]
 
 
