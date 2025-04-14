@@ -12,11 +12,11 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="E-commerce scraper tool")
     parser.add_argument("url", help="URL to scrape")
     parser.add_argument(
-        "--max-items",
+        "--max-products",
         "-m",
         type=int,
         default=5,
-        help="Maximum number of items to scrape from search results",
+        help="Maximum number of products to scrape from search results",
     )
     return parser.parse_args()
 
@@ -28,19 +28,20 @@ def main() -> None:
     page_type = get_page_type(args.url)
 
     if page_type == "product":
-        logger.info("Scraping product page", url=args.url)
+        logger.bind(url=args.url, page_type=page_type)
+        logger.info("Scraping product page")
         result = scrape_product(args.url)
-        logger.info("Scraped product", result=result)
+        logger.info("Scraped product", **result.model_dump())
 
     elif page_type == "search":
-        logger.info(
-            "Scraping search results page", url=args.url, max_items=args.max_items
-        )
-        results = scrape_search_results(args.url, max_items=args.max_items)
-        logger.info("Scraped search results", results=results)
+        logger.bind(url=args.url, page_type=page_type, max_products=args.max_products)
+        logger.info("Scraping search results page")
+        results = scrape_search_results(args.url, max_products=args.max_products)
+        for i, result in enumerate(results, start=1):
+            logger.info("Scraped product", product_number=i, **result.model_dump())
 
     else:
-        logger.error("Unknown page type or unsupported domain", url=args.url)
+        logger.error("Unknown page type or unsupported domain")
 
 
 if __name__ == "__main__":

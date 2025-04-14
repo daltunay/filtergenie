@@ -5,18 +5,10 @@ from urllib.parse import urlparse
 import structlog
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
-from pydantic import BaseModel
+
+from analyzer import Product, ProductImage
 
 logger = structlog.get_logger(__name__)
-
-
-class ScrapedProduct(BaseModel):
-    """Class to hold product data scraped from websites."""
-
-    url: str
-    title: str
-    description: str
-    image_urls: list[str]
 
 
 class BaseScraper(ABC):
@@ -43,7 +35,7 @@ class BaseScraper(ABC):
         self.playwright.stop()
 
     # Primary public methods
-    def get_product_from_url(self, product_url: str) -> ScrapedProduct:
+    def get_product_from_url(self, product_url: str) -> Product:
         """Main method to scrape a product from a given URL."""
         soup = self.fetch_page(product_url)
 
@@ -61,25 +53,24 @@ class BaseScraper(ABC):
 
         try:
             image_urls = self.extract_product_images(soup)
+            images = [ProductImage(url_or_path=url) for url in image_urls]
         except Exception as e:
             logger.error("Error extracting images", exception=str(e))
-            image_urls = []
+            images = []
 
-        return ScrapedProduct(
+        return Product(
             url=product_url,
             title=title,
             description=description,
-            image_urls=image_urls,
+            images=images,
         )
 
-    def get_products_from_url(
-        self, search_url: str, max_items: int = 5
-    ) -> list[ScrapedProduct]:
+    def get_products_from_url(self, search_url: str, max_products: int = 5) -> list[Product]:
         """Main method to scrape search results from a given URL."""
         soup = self.fetch_page(search_url)
         product_urls = self.extract_product_urls(soup)
-        products: list[ScrapedProduct] = []
-        for url in product_urls[:max_items]:
+        products: list[Product] = []
+        for url in product_urls[:max_products]:
             product = self.get_product_from_url(url)
             products.append(product)
         return products
@@ -112,7 +103,7 @@ class BaseScraper(ABC):
         """Determine if the URL is a product page or a search page."""
         parsed_url = urlparse(url)
 
-        for page_type, patterns in cls.PAGE_TYPE_PATTERNS.items():
+        for page_type, patterns in cls.PAGE_TYPE_PATTERNS.products():
             for pattern in patterns:
                 if pattern in parsed_url.path.lower():
                     return page_type

@@ -38,4 +38,4 @@ def sanitize_text(text: str) -> str:
     field_name = re.sub(r"[^a-zA-Z0-9]", "_", text.lower())
     if not field_name[0].isalpha():
         field_name = "f_" + field_name
-    return re.sub(r"_+", "_", field_name)
+    return re.sub(r"_+", "_", field_name).strip("_")

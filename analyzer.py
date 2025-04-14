@@ -2,6 +2,7 @@ import os
 from textwrap import dedent
 from typing import TYPE_CHECKING
 
+import structlog
 from PIL.Image import Image
 from pydantic import BaseModel, Field, create_model
 
@@ -15,11 +16,13 @@ if TYPE_CHECKING:
     except ImportError:
         pass
 
+logger = structlog.get_logger(__name__)
 
-class ItemImage(BaseModel):
-    url_or_path: str
-    image: Image = Field(default=None)
-    base64: str = Field(default=None)
+
+class ProductImage(BaseModel):
+    url_or_path: str = Field(default=None)
+    image: Image = Field(default=None, repr=False, exclude=True, init=False)
+    base64: str = Field(default=None, repr=False, exclude=True, init=False)
 
     model_config = {"arbitrary_types_allowed": True}
 
@@ -28,35 +31,23 @@ class ItemImage(BaseModel):
         self.base64 = image_to_base64(self.image)
 
 
-class ItemFilter(BaseModel):
-    description: str
+class ProductFilter(BaseModel):
+    description: str = Field(default=None)
     value: bool | None = Field(default=None, init=False)
-    name: str = Field(default=None)
+    name: str = Field(default=None, init=False)
 
     def model_post_init(self, __context):
         self.name = sanitize_text(self.description)
 
 
-class Item(BaseModel):
+class Product(BaseModel):
     """Class to hold product data scraped from websites."""
 
-    url: str
-    title: str
-    description: str
-    images: list[ItemImage]
-    filters: list[ItemFilter] = Field(default_factory=list)
-
-    def __str__(self):
-        import json
-
-        repr_dict = {
-            "url": self.url,
-            "title": self.title,
-            "description": self.description,
-            "images": [image.url_or_path for image in self.images],
-            "filters": {filter_.description: filter_.value for filter_ in self.filters},
-        }
-        return json.dumps(repr_dict, indent=2)
+    url: str = Field(default=None)
+    title: str = Field(default=None)
+    description: str = Field(default=None)
+    images: list[ProductImage] = Field(default_factory=list)
+    filters: list[ProductFilter] = Field(default_factory=list)
 
 
 class DynamicSchema(BaseModel):
@@ -107,7 +98,7 @@ class ProductAnalyzer:
         )
 
     def _predict_local(
-        self, prompt: str, images: list[ItemImage], schema: type[DynamicSchema]
+        self, prompt: str, images: list[ProductImage], schema: type[DynamicSchema]
     ) -> DynamicSchema:
         """Run prediction using local model."""
         from outlines import generate
@@ -129,12 +120,15 @@ class ProductAnalyzer:
         )
 
     def _predict_openai(
-        self, prompt: str, images: list[ItemImage], schema: type[DynamicSchema]
+        self, prompt: str, images: list[ProductImage], schema: type[DynamicSchema]
     ) -> DynamicSchema:
         """Run prediction using OpenAI API."""
-        content = [{"type": "text", "text": prompt}] + [
-            {"type": "image_url", "image_url": {"url": image.base64}}
-            for image in images
+        content = [
+            {"type": "text", "text": prompt},
+            *[
+                {"type": "image_url", "image_url": {"url": image.base64}}
+                for image in images
+            ],
         ]
 
         response = self.model.beta.chat.completions.parse(
@@ -147,7 +141,7 @@ class ProductAnalyzer:
 
     @staticmethod
     def _create_filter_schema(
-        filters: list[ItemFilter],
+        filters: list[ProductFilter],
     ) -> type[DynamicSchema]:
         """Create a Pydantic model schema based on filters list."""
         field_definitions = {
@@ -159,39 +153,39 @@ class ProductAnalyzer:
         }
         return create_model("DynamicSchema", **field_definitions)
 
-    def analyze_item(self, item: Item) -> Item:
-        """Analyze a single item and update its filters with results."""
+    def analyze_product(self, product: Product) -> Product:
+        """Analyze a single product and update its filters with results."""
 
         prompt = self.PROMPT_TEMPLATE.format(
-            title=item.title,
-            description=item.description,
-            images="<image>" * len(item.images),
+            title=product.title,
+            description=product.description,
+            images="<image>" * len(product.images),
         )
 
-        DynamicSchema = self._create_filter_schema(item.filters)
-        response = self.predict(prompt, item.images, DynamicSchema)
+        DynamicSchema = self._create_filter_schema(product.filters)
+        response = self.predict(prompt, product.images, DynamicSchema)
 
-        for filter_ in item.filters:
+        for filter_ in product.filters:
             filter_.value = getattr(response, filter_.name)
 
-        return item
+        return product
 
 
 if __name__ == "__main__":
-    item = Item(
+    product = Product(
         url="https://example.com/product/123",
         title="Guitar",
         description="A beautiful guitar.",
         images=[
-            ItemImage(url_or_path="guitar_1.jpg"),
-            ItemImage(url_or_path="guitar_2.jpg"),
+            ProductImage(url_or_path="guitar_1.jpg"),
+            ProductImage(url_or_path="guitar_2.jpg"),
         ],
         filters=[
-            ItemFilter(description="Is it a guitar?"),
-            ItemFilter(description="Is it a bass guitar?"),
+            ProductFilter(description="Is it a guitar?"),
+            ProductFilter(description="Is it a bass guitar?"),
         ],
     )
-    print(item)
+    logger.info("Analyzing product", **product.model_dump())
     analyzer = ProductAnalyzer(use_local=False)
-    analyzed_item = analyzer.analyze_item(item)
-    print(analyzed_item)
+    analyzed_product = analyzer.analyze_product(product)
+    logger.info("Results", **analyzed_product.model_dump())

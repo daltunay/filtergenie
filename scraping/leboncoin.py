@@ -49,7 +49,7 @@ class LeboncoinScraper(BaseScraper):
     @staticmethod
     def extract_product_urls(soup: BeautifulSoup) -> list[str]:
         ad_articles = soup.find_all(
-            "article", attrs={"data-test-id": "ad", "data-qa-id": "aditem_container"}
+            "article", attrs={"data-test-id": "ad", "data-qa-id": "adproduct_container"}
         )
 
         product_urls = []
