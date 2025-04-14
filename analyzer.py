@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 import structlog
 from PIL.Image import Image
-from pydantic import BaseModel, Field, create_model
+from pydantic import Base64Str, BaseModel, Field, FilePath, HttpUrl, create_model
 
 from utils import image_to_base64, load_img, resize_img, sanitize_text
 
@@ -18,14 +18,14 @@ if TYPE_CHECKING:
 
 
 class ProductImage(BaseModel):
-    url_or_path: str = Field(default=None)
+    url_or_path: HttpUrl | FilePath = Field(default=None)
     image: Image = Field(default=None, repr=False, exclude=True, init=False)
-    base64: str = Field(default=None, repr=False, exclude=True, init=False)
+    base64: Base64Str = Field(default=None, repr=False, exclude=True, init=False)
 
     model_config = {"arbitrary_types_allowed": True}
 
     def model_post_init(self, __context):
-        self.image = resize_img(load_img(self.url_or_path))
+        self.image = resize_img(load_img(self.url_or_path.__str__()))
         self.base64 = image_to_base64(self.image)
 
 
@@ -41,7 +41,7 @@ class ProductFilter(BaseModel):
 class Product(BaseModel):
     """Class to hold product data scraped from websites."""
 
-    url: str = Field(default=None)
+    url: HttpUrl = Field(default=None)
     title: str = Field(default=None)
     description: str = Field(default=None)
     images: list[ProductImage] = Field(default_factory=list)

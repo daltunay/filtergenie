@@ -22,3 +22,8 @@ local = [
     "sentencepiece>=0.2.0",
     "transformers>=4.51.2",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+]
