@@ -7,11 +7,23 @@ logger = structlog.get_logger(__name__)
 
 
 class LeboncoinScraper(BaseScraper):
-    """Scraper for leboncoin.fr product pages."""
+    """Scraper for leboncoin."""
 
     SUPPORTED_DOMAINS = ["leboncoin.fr"]
 
-    def extract_title(self, soup: BeautifulSoup) -> str:
+    PAGE_TYPE_PATTERNS = {
+        "product": {
+            "path_patterns": ["/a/"],
+            "query_params": [],
+        },
+        "search": {
+            "path_patterns": ["/recherche", "/c/"],
+            "query_params": ["text="],
+        },
+    }
+
+    @staticmethod
+    def extract_product_title(soup: BeautifulSoup) -> str:
         title_elem = soup.find(
             "h1",
             class_="text-headline-1-expanded",
@@ -19,14 +31,16 @@ class LeboncoinScraper(BaseScraper):
         )
         return title_elem.text.strip()
 
-    def extract_description(self, soup: BeautifulSoup) -> str:
+    @staticmethod
+    def extract_product_description(soup: BeautifulSoup) -> str:
         desc_container = soup.find(
             "div", attrs={"data-qa-id": "adview_description_container"}
         )
         desc_elem = desc_container.find("p")
         return desc_elem.text.strip()
 
-    def extract_images(self, soup: BeautifulSoup) -> list[str]:
+    @staticmethod
+    def extract_product_images(soup: BeautifulSoup) -> list[str]:
         image_urls = []
         gallery_section = soup.find(
             "section", attrs={"aria-label": "Aller à la galerie de photos"}
@@ -38,14 +52,18 @@ class LeboncoinScraper(BaseScraper):
 
         return image_urls
 
+    @staticmethod
+    def extract_search_results(soup: BeautifulSoup) -> list[str]:
+        ad_articles = soup.find_all(
+            "article", attrs={"data-test-id": "ad", "data-qa-id": "aditem_container"}
+        )
 
-if __name__ == "__main__":
-    import argparse
+        product_urls = []
 
-    parser = argparse.ArgumentParser(description="Scrape a Leboncoin product page.")
-    parser.add_argument("url", type=str, help="The URL of the Leboncoin product page")
-    args = parser.parse_args()
+        for article in ad_articles:
+            anchor = article.find("a")
+            relative_url = anchor["href"].strip("/")
+            product_url = f"https://www.leboncoin.fr/{relative_url}"
+            product_urls.append(product_url)
 
-    scraper = LeboncoinScraper()
-    product = scraper.scrape(args.url)
-    print(product)
+        return product_urls
