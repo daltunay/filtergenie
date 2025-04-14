@@ -16,8 +16,6 @@ if TYPE_CHECKING:
     except ImportError:
         pass
 
-logger = structlog.get_logger(__name__)
-
 
 class ProductImage(BaseModel):
     url_or_path: str = Field(default=None)
@@ -72,6 +70,8 @@ class ProductAnalyzer:
 
     def __init__(self, use_local: bool = False):
         """Initialize the analyzer with either a local VLM model or OpenAI."""
+        self.log = structlog.get_logger()
+
         if use_local:
             self.model = self._create_local_model()
             self.predict = self._predict_local
@@ -185,7 +185,6 @@ if __name__ == "__main__":
             ProductFilter(description="Is it a bass guitar?"),
         ],
     )
-    logger.info("Analyzing product", **product.model_dump())
     analyzer = ProductAnalyzer(use_local=False)
     analyzed_product = analyzer.analyze_product(product)
-    logger.info("Results", **analyzed_product.model_dump())
+    print(analyzed_product)

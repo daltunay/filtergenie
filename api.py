@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import HttpUrl
 
 from analyzer import Product, ProductAnalyzer
-from scraping import scrape_product
+from scrape import scrape_product
 
 app = FastAPI(
     title="Product Filter API",

@@ -1,9 +1,6 @@
-import structlog
 from bs4 import BeautifulSoup
 
-from .base import BaseScraper
-
-logger = structlog.get_logger(__name__)
+from ..base import BaseScraper
 
 
 class LeboncoinScraper(BaseScraper):
@@ -49,7 +46,7 @@ class LeboncoinScraper(BaseScraper):
     @staticmethod
     def extract_product_urls(soup: BeautifulSoup) -> list[str]:
         ad_articles = soup.find_all(
-            "article", attrs={"data-test-id": "ad", "data-qa-id": "adproduct_container"}
+            "article", attrs={"data-test-id": "ad", "data-qa-id": "aditem_container"}
         )
 
         product_urls = []

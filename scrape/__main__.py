@@ -4,7 +4,7 @@ import structlog
 
 from . import get_page_type, scrape_product, scrape_search_results
 
-logger = structlog.get_logger(__name__)
+log = structlog.get_logger()
 
 
 def parse_args() -> argparse.Namespace:
@@ -28,20 +28,20 @@ def main() -> None:
     page_type = get_page_type(args.url)
 
     if page_type == "product":
-        logger.bind(url=args.url, page_type=page_type)
-        logger.info("Scraping product page")
+        log.bind(url=args.url, page_type=page_type)
+        log.info("Scraping product page")
         result = scrape_product(args.url)
-        logger.info("Scraped product", **result.model_dump())
+        log.info("Scraped product", **result.model_dump())
 
     elif page_type == "search":
-        logger.bind(url=args.url, page_type=page_type, max_products=args.max_products)
-        logger.info("Scraping search results page")
+        log.bind(url=args.url, page_type=page_type, max_products=args.max_products)
+        log.info("Scraping search results page")
         results = scrape_search_results(args.url, max_products=args.max_products)
         for i, result in enumerate(results, start=1):
-            logger.info("Scraped product", product_number=i, **result.model_dump())
+            log.info("Scraped product", product_number=i, **result.model_dump())
 
     else:
-        logger.error("Unknown page type or unsupported domain")
+        log.error("Unknown page type or unsupported domain")
 
 
 if __name__ == "__main__":

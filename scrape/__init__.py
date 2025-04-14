@@ -1,15 +1,19 @@
+import structlog
+
 from analyzer import Product
 
 from .base import BaseScraper
-from .ebay import EbayScraper
-from .leboncoin import LeboncoinScraper
-from .vinted import VintedScraper
+from .websites.ebay import EbayScraper
+from .websites.leboncoin import LeboncoinScraper
+from .websites.vinted import VintedScraper
 
 SCRAPERS: list[BaseScraper] = [
     LeboncoinScraper,
     VintedScraper,
     EbayScraper,
 ]
+
+log = structlog.get_logger()
 
 
 def get_scraper_class_for_url(url: str) -> type[BaseScraper] | None:

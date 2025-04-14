@@ -1,9 +1,6 @@
-import structlog
 from bs4 import BeautifulSoup
 
-from .base import BaseScraper
-
-logger = structlog.get_logger(__name__)
+from ..base import BaseScraper
 
 
 class VintedScraper(BaseScraper):

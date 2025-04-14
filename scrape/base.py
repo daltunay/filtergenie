@@ -8,8 +8,6 @@ from playwright.sync_api import sync_playwright
 
 from analyzer import Product, ProductImage
 
-logger = structlog.get_logger(__name__)
-
 
 class BaseScraper(ABC):
     """Abstract base class for all website scrapers."""
@@ -26,6 +24,7 @@ class BaseScraper(ABC):
     # Initialization and cleanup
     def __init__(self):
         """Initialize the scraper with Playwright and browser instances."""
+        self.log = structlog.get_logger(scraper=self.__class__.__name__)
         self.playwright = sync_playwright().start()
         self.browser = self.playwright.firefox.launch(headless=self.HEADLESS_MODE)
 
@@ -42,20 +41,20 @@ class BaseScraper(ABC):
         try:
             title = self.extract_product_title(soup)
         except Exception as e:
-            logger.error("Error extracting title", exception=str(e))
+            self.log.error("Error extracting title", exception=str(e))
             title = ""
 
         try:
             description = self.extract_product_description(soup)
         except Exception as e:
-            logger.error("Error extracting description", exception=str(e))
+            self.log.error("Error extracting description", exception=str(e))
             description = ""
 
         try:
             image_urls = self.extract_product_images(soup)
             images = [ProductImage(url_or_path=url) for url in image_urls]
         except Exception as e:
-            logger.error("Error extracting images", exception=str(e))
+            self.log.error("Error extracting images", exception=str(e))
             images = []
 
         return Product(
@@ -65,7 +64,9 @@ class BaseScraper(ABC):
             images=images,
         )
 
-    def get_products_from_url(self, search_url: str, max_products: int = 5) -> list[Product]:
+    def get_products_from_url(
+        self, search_url: str, max_products: int = 5
+    ) -> list[Product]:
         """Main method to scrape search results from a given URL."""
         soup = self.fetch_page(search_url)
         product_urls = self.extract_product_urls(soup)
@@ -78,7 +79,9 @@ class BaseScraper(ABC):
     # Implementation methods
     def fetch_page(self, url: str) -> BeautifulSoup:
         """Fetch the page content using the instance browser and return a BeautifulSoup object."""
-        logger.info(f"Fetching {self.__class__.__name__} page with Playwright", url=url)
+        self.log.info(
+            f"Fetching {self.__class__.__name__} page with Playwright", url=url
+        )
 
         page = self.browser.new_page()
         page.goto(url)
@@ -103,7 +106,7 @@ class BaseScraper(ABC):
         """Determine if the URL is a product page or a search page."""
         parsed_url = urlparse(url)
 
-        for page_type, patterns in cls.PAGE_TYPE_PATTERNS.products():
+        for page_type, patterns in cls.PAGE_TYPE_PATTERNS.items():
             for pattern in patterns:
                 if pattern in parsed_url.path.lower():
                     return page_type
