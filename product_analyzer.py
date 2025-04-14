@@ -1,0 +1,197 @@
+import os
+from textwrap import dedent
+from typing import TYPE_CHECKING
+
+from PIL.Image import Image
+from pydantic import BaseModel, Field, create_model
+
+from utils import image_to_base64, load_img, resize_img, sanitize_text
+
+if TYPE_CHECKING:
+    from openai import OpenAI
+
+    try:
+        from outlines.models import TransformersVision
+    except ImportError:
+        pass
+
+
+class ItemImage(BaseModel):
+    url_or_path: str
+    image: Image = Field(default=None)
+    base64: str = Field(default=None)
+
+    model_config = {"arbitrary_types_allowed": True}
+
+    def model_post_init(self, __context):
+        self.image = resize_img(load_img(self.url_or_path))
+        self.base64 = image_to_base64(self.image)
+
+
+class ItemFilter(BaseModel):
+    description: str
+    value: bool | None = Field(default=None, init=False)
+    name: str = Field(default=None)
+
+    def model_post_init(self, __context):
+        self.name = sanitize_text(self.description)
+
+
+class Item(BaseModel):
+    """Class to hold product data scraped from websites."""
+
+    url: str
+    title: str
+    description: str
+    images: list[ItemImage]
+    filters: list[ItemFilter] = Field(default_factory=list)
+
+    def __str__(self):
+        import json
+
+        repr_dict = {
+            "url": self.url,
+            "title": self.title,
+            "description": self.description,
+            "images": [image.url_or_path for image in self.images],
+            "filters": {filter_.description: filter_.value for filter_ in self.filters},
+        }
+        return json.dumps(repr_dict, indent=2)
+
+
+class DynamicSchema(BaseModel):
+    """Placeholder for dynamic schema generation. For type hinting only."""
+
+    ...
+
+
+class ProductAnalyzer:
+    """A class to analyze products against filters with a reusable model."""
+
+    PROMPT_TEMPLATE = dedent(
+        """
+        Analyze this product with the following details:
+        - Title: {title}
+        - Description: {description}
+        - Images: {images}
+
+        For each of the following filters, determine if it applies to this product.
+        """
+    )
+
+    def __init__(self, use_local: bool = False):
+        """Initialize the analyzer with either a local VLM model or OpenAI."""
+        if use_local:
+            self.model = self._create_local_model()
+            self.predict = self._predict_local
+        else:
+            self.model = self._create_openai_model()
+            self.predict = self._predict_openai
+
+    def _create_local_model(
+        self,
+        model_name: str = "HuggingFaceTB/SmolVLM-Instruct",
+        dtype: str = "bfloat16",
+        device: str = "auto",
+    ) -> "TransformersVision":
+        """Create a local VLM."""
+        import torch
+        from outlines import models
+        from transformers import AutoModelForImageTextToText
+
+        return models.transformers_vision(
+            model_name=model_name,
+            model_class=AutoModelForImageTextToText,
+            model_kwargs={"torch_dtype": getattr(torch, dtype)},
+            device=device,
+        )
+
+    def _predict_local(
+        self, prompt: str, images: list[ItemImage], schema: type[DynamicSchema]
+    ) -> DynamicSchema:
+        """Run prediction using local model."""
+        from outlines import generate
+
+        generator = generate.json(self.model, schema)
+        return generator(prompt, [image.image for image in images])
+
+    def _create_openai_model(self, model_name: str = "gemini-2.0-flash") -> "OpenAI":
+        """Create an OpenAI model."""
+        from dotenv import load_dotenv
+        from openai import OpenAI
+
+        load_dotenv()
+
+        self.model_name = model_name
+        return OpenAI(
+            base_url=os.getenv("GEMINI_BASE_URL"),
+            api_key=os.getenv("GEMINI_API_KEY"),
+        )
+
+    def _predict_openai(
+        self, prompt: str, images: list[ItemImage], schema: type[DynamicSchema]
+    ) -> DynamicSchema:
+        """Run prediction using OpenAI API."""
+        content = [{"type": "text", "text": prompt}] + [
+            {"type": "image_url", "image_url": {"url": image.base64}}
+            for image in images
+        ]
+
+        response = self.model.beta.chat.completions.parse(
+            model=self.model_name,
+            messages=[{"role": "user", "content": content}],
+            response_format=schema,
+        )
+
+        return response.choices[0].message.parsed
+
+    @staticmethod
+    def _create_filter_schema(
+        filters: list[ItemFilter],
+    ) -> type[DynamicSchema]:
+        """Create a Pydantic model schema based on filters list."""
+        field_definitions = {
+            filter_.name: (
+                bool,
+                Field(title=f"Filter {i}", description=filter_.description),
+            )
+            for i, filter_ in enumerate(filters, start=1)
+        }
+        return create_model("DynamicSchema", **field_definitions)
+
+    def analyze_item(self, item: Item) -> Item:
+        """Analyze a single item and update its filters with results."""
+
+        prompt = self.PROMPT_TEMPLATE.format(
+            title=item.title,
+            description=item.description,
+            images="<image>" * len(item.images),
+        )
+
+        DynamicSchema = self._create_filter_schema(item.filters)
+        response = self.predict(prompt, item.images, DynamicSchema)
+
+        for filter_ in item.filters:
+            filter_.value = getattr(response, filter_.name)
+
+        return item
+
+
+if __name__ == "__main__":
+    item = Item(
+        url="https://example.com/product/123",
+        title="Guitar",
+        description="A beautiful guitar.",
+        images=[
+            ItemImage(url_or_path="guitar_1.jpg"),
+            ItemImage(url_or_path="guitar_2.jpg"),
+        ],
+        filters=[
+            ItemFilter(description="Is it a guitar?"),
+            ItemFilter(description="Is it a bass guitar?"),
+        ],
+    )
+    print(item)
+    analyzer = ProductAnalyzer(use_local=False)
+    analyzed_item = analyzer.analyze_item(item)
+    print(analyzed_item)

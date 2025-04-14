@@ -26,14 +26,14 @@ class BaseScraper(ABC):
     HEADLESS_MODE: bool = True
     SUPPORTED_DOMAINS: list[str] = []
 
-    PAGE_TYPE_PATTERNS: dict[str, dict[str, list[str]]] = {
-        "product": {"path_patterns": [], "query_params": []},
-        "search": {"path_patterns": [], "query_params": []},
+    PAGE_TYPE_PATTERNS: dict[str, list[str]] = {
+        "product": [],
+        "search": [],
     }
 
     # Initialization and cleanup
     def __init__(self):
-        """Initialize the scraper with browser instance."""
+        """Initialize the scraper with Playwright and browser instances."""
         self.playwright = sync_playwright().start()
         self.browser = self.playwright.firefox.launch(headless=self.HEADLESS_MODE)
 
@@ -43,41 +43,44 @@ class BaseScraper(ABC):
         self.playwright.stop()
 
     # Primary public methods
-    def scrape_product(self, product_url: str) -> ScrapedProduct:
+    def get_product_from_url(self, product_url: str) -> ScrapedProduct:
         """Main method to scrape a product from a given URL."""
         soup = self.fetch_page(product_url)
 
         try:
             title = self.extract_product_title(soup)
         except Exception as e:
-            logger.error("Error extracting title", error=str(e))
+            logger.error("Error extracting title", exception=str(e))
             title = ""
 
         try:
             description = self.extract_product_description(soup)
         except Exception as e:
-            logger.error("Error extracting description", error=str(e))
+            logger.error("Error extracting description", exception=str(e))
             description = ""
 
         try:
             image_urls = self.extract_product_images(soup)
         except Exception as e:
-            logger.error("Error extracting images", error=str(e))
+            logger.error("Error extracting images", exception=str(e))
             image_urls = []
 
         return ScrapedProduct(
-            url=product_url, title=title, description=description, image_urls=image_urls
+            url=product_url,
+            title=title,
+            description=description,
+            image_urls=image_urls,
         )
 
-    def scrape_search(
+    def get_products_from_url(
         self, search_url: str, max_items: int = 5
     ) -> list[ScrapedProduct]:
         """Main method to scrape search results from a given URL."""
         soup = self.fetch_page(search_url)
-        product_urls = self.extract_search_results(soup)
+        product_urls = self.extract_product_urls(soup)
         products: list[ScrapedProduct] = []
         for url in product_urls[:max_items]:
-            product = self.scrape_product(url)
+            product = self.get_product_from_url(url)
             products.append(product)
         return products
 
@@ -110,12 +113,8 @@ class BaseScraper(ABC):
         parsed_url = urlparse(url)
 
         for page_type, patterns in cls.PAGE_TYPE_PATTERNS.items():
-            for pattern in patterns["path_patterns"]:
+            for pattern in patterns:
                 if pattern in parsed_url.path.lower():
-                    return page_type
-
-            for param in patterns["query_params"]:
-                if param in parsed_url.query.lower():
                     return page_type
 
         return None
@@ -141,6 +140,6 @@ class BaseScraper(ABC):
 
     @staticmethod
     @abstractmethod
-    def extract_search_results(soup: BeautifulSoup) -> list[str]:
+    def extract_product_urls(soup: BeautifulSoup) -> list[str]:
         """Extract product URLs from the search results page."""
         pass

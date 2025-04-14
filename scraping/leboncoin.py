@@ -12,14 +12,8 @@ class LeboncoinScraper(BaseScraper):
     SUPPORTED_DOMAINS = ["leboncoin.fr"]
 
     PAGE_TYPE_PATTERNS = {
-        "product": {
-            "path_patterns": ["/a/"],
-            "query_params": [],
-        },
-        "search": {
-            "path_patterns": ["/recherche", "/c/"],
-            "query_params": ["text="],
-        },
+        "product": ["/ad/"],
+        "search": ["/recherche", "/c/"],
     }
 
     @staticmethod
@@ -53,7 +47,7 @@ class LeboncoinScraper(BaseScraper):
         return image_urls
 
     @staticmethod
-    def extract_search_results(soup: BeautifulSoup) -> list[str]:
+    def extract_product_urls(soup: BeautifulSoup) -> list[str]:
         ad_articles = soup.find_all(
             "article", attrs={"data-test-id": "ad", "data-qa-id": "aditem_container"}
         )

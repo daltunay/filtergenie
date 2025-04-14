@@ -12,14 +12,8 @@ class EbayScraper(BaseScraper):
     SUPPORTED_DOMAINS = ["ebay.com", "ebay.fr"]
 
     PAGE_TYPE_PATTERNS = {
-        "product": {
-            "path_patterns": [],
-            "query_params": ["itm="],
-        },
-        "search": {
-            "path_patterns": ["/sch/", "/b/", "/browse/"],
-            "query_params": ["_nkw=", "_sacat=", "lh_"],
-        },
+        "product": ["/itm/"],
+        "search": ["/sch/", "/b/"],
     }
 
     @staticmethod
@@ -43,5 +37,5 @@ class EbayScraper(BaseScraper):
         return image_urls
 
     @staticmethod
-    def extract_search_results(soup: BeautifulSoup) -> list[str]:
+    def extract_product_urls(soup: BeautifulSoup) -> list[str]:
         raise NotImplementedError("TODO")

@@ -12,14 +12,8 @@ class VintedScraper(BaseScraper):
     SUPPORTED_DOMAINS = ["vinted.fr", "vinted.com"]
 
     PAGE_TYPE_PATTERNS = {
-        "product": {
-            "path_patterns": ["/items/"],
-            "query_params": [],
-        },
-        "search": {
-            "path_patterns": ["/catalog"],
-            "query_params": ["search_text=", "catalog="],
-        },
+        "product": ["/items/"],
+        "search": ["/catalog"],
     }
 
     @staticmethod
@@ -43,5 +37,5 @@ class VintedScraper(BaseScraper):
         return image_urls
 
     @staticmethod
-    def extract_search_results(soup: BeautifulSoup) -> list[str]:
+    def extract_product_urls(soup: BeautifulSoup) -> list[str]:
         raise NotImplementedError("TODO")
