@@ -1,18 +1,20 @@
 import os
 from dataclasses import dataclass, field
 from textwrap import dedent
+from typing import TYPE_CHECKING
 
-import torch
-from dotenv import load_dotenv
-from openai import OpenAI
-from outlines import generate, models
 from PIL import Image
 from pydantic import BaseModel, Field, create_model
-from transformers import AutoModelForImageTextToText
 
 from utils import image_to_base64, load_img, resize_img, sanitize_text
 
-load_dotenv()
+if TYPE_CHECKING:
+    from openai import OpenAI
+
+    try:
+        from outlines.models import TransformersVision
+    except ImportError:
+        pass
 
 
 @dataclass
@@ -30,6 +32,12 @@ class ProductInput:
             self.images.append(resize_img(image))
 
 
+class DynamicSchema(BaseModel):
+    """Placeholder for dynamic schema generation. For type hinting only."""
+
+    ...
+
+
 class ProductAnalyzer:
     """A class to analyze products against filters with a reusable model."""
 
@@ -44,7 +52,7 @@ class ProductAnalyzer:
         """
     )
 
-    def __init__(self, use_local: bool = True):
+    def __init__(self, use_local: bool = False):
         """Initialize the analyzer with either a local VLM model or OpenAI."""
         self.use_local = use_local
 
@@ -58,26 +66,37 @@ class ProductAnalyzer:
     def _create_local_model(
         self,
         model_name: str = "HuggingFaceTB/SmolVLM-Instruct",
-        dtype: torch.dtype = torch.bfloat16,
+        dtype: str = "bfloat16",
         device: str = "auto",
-    ) -> models.TransformersVision:
+    ) -> "TransformersVision":
         """Create a local VLM model."""
+        import torch
+        from outlines import models
+        from transformers import AutoModelForImageTextToText
+
         return models.transformers_vision(
             model_name=model_name,
             model_class=AutoModelForImageTextToText,
-            model_kwargs={"torch_dtype": dtype},
+            model_kwargs={"torch_dtype": getattr(torch, dtype)},
             device=device,
         )
 
     def _predict_local(
-        self, prompt: str, images: list[Image.Image], schema: type[BaseModel]
-    ) -> BaseModel:
+        self, prompt: str, images: list[Image.Image], schema: type[DynamicSchema]
+    ) -> DynamicSchema:
         """Run prediction using local model."""
+        from outlines import generate
+
         generator = generate.json(self.model, schema)
         return generator(prompt, images)
 
-    def _create_openai_model(self, model_name: str = "gemini-2.0-flash") -> OpenAI:
+    def _create_openai_model(self, model_name: str = "gemini-2.0-flash") -> "OpenAI":
         """Create an OpenAI model."""
+        from dotenv import load_dotenv
+        from openai import OpenAI
+
+        load_dotenv()
+
         self.model_name = model_name
         return OpenAI(
             base_url=os.getenv("GEMINI_BASE_URL"),
@@ -85,8 +104,8 @@ class ProductAnalyzer:
         )
 
     def _predict_openai(
-        self, prompt: str, images: list[Image.Image], schema: type[BaseModel]
-    ) -> BaseModel:
+        self, prompt: str, images: list[Image.Image], schema: type[DynamicSchema]
+    ) -> DynamicSchema:
         """Run prediction using OpenAI API."""
         content = [
             {"type": "text", "text": prompt},
@@ -105,7 +124,7 @@ class ProductAnalyzer:
         return response.choices[0].message.parsed
 
     @staticmethod
-    def _create_filter_schema(filters: list[str]) -> type[BaseModel]:
+    def _create_filter_schema(filters: list[str]) -> type[DynamicSchema]:
         """Create a Pydantic model schema based on a list of filters."""
         field_definitions = {
             sanitize_text(filter_text): (
@@ -116,7 +135,7 @@ class ProductAnalyzer:
         }
         return create_model("DynamicSchema", **field_definitions)
 
-    def analyze_product(self, product: ProductInput) -> BaseModel:
+    def analyze_product(self, product: ProductInput) -> DynamicSchema:
         """Analyze a single product against its filters."""
         prompt = self.PROMPT_TEMPLATE.format(
             title=product.title,
