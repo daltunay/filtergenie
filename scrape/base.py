@@ -25,8 +25,10 @@ class BaseScraper(ABC):
     async def __init__(self):
         """Initialize the scraper with Playwright and browser instances."""
         self.log = structlog.get_logger(scraper=self.__class__.__name__)
+        self.log.debug("Initializing scraper")
         self.playwright = await async_playwright().start()
         self.browser = await self.playwright.firefox.launch(headless=self.HEADLESS_MODE)
+        self.log.debug("Browser launched", headless=self.HEADLESS_MODE)
 
     @classmethod
     async def create(cls):
@@ -37,54 +39,92 @@ class BaseScraper(ABC):
 
     async def close(self):
         """Close the browser and Playwright instance."""
+        self.log.debug("Closing scraper resources")
         await self.browser.close()
         await self.playwright.stop()
 
     @classmethod
     def get_vendor_name(cls) -> str:
         """Extract vendor name from the scraper class name."""
-        return cls.__name__.replace("Scraper", "").lower()
+        vendor = cls.__name__.replace("Scraper", "").lower()
+        return vendor
 
     @cached
     async def scrape_product_detail(self, url: str) -> Product:
         """Main method to scrape a product from a given URL."""
+        self.log.debug("Scraping product details", url_snippet=url[:30])
+        start_time = __import__("time").time()
         soup = await self.fetch_page(url)
 
         try:
             title = self.extract_product_title(soup)
         except Exception as e:
-            self.log.error("Error extracting title", exception=str(e))
+            self.log.error("Error extracting title", exception=str(e), exc_info=True)
             title = ""
 
         try:
             description = self.extract_product_description(soup)
         except Exception as e:
-            self.log.error("Error extracting description", exception=str(e))
+            self.log.error(
+                "Error extracting description", exception=str(e), exc_info=True
+            )
             description = ""
 
         try:
             image_urls = self.extract_product_images(soup)
+            self.log.debug(f"Found {len(image_urls)} images")
             images = [ProductImage(url_or_path=url) for url in image_urls]
         except Exception as e:
-            self.log.error("Error extracting images", exception=str(e))
+            self.log.error("Error extracting images", exception=str(e), exc_info=True)
             images = []
 
-        return Product(
+        duration = __import__("time").time() - start_time
+        product = Product(
             url=url,
             title=title,
             description=description,
             images=images,
         )
 
+        if duration > 5:  # Only log slower operations at INFO level
+            self.log.info(
+                "Product scraped",
+                duration_seconds=round(duration, 2),
+                title=title[:30] + ("..." if len(title) > 30 else ""),
+                image_count=len(images),
+            )
+        else:
+            self.log.debug(
+                "Product scraped",
+                duration_seconds=round(duration, 2),
+                image_count=len(images),
+            )
+
+        return product
+
     async def scrape_search_results(
         self, url: str, max_products: int = 5
     ) -> list[Product]:
         """Main method to scrape search results from a given URL."""
+        self.log.info(
+            "Scraping search results", url_snippet=url[:30], max_products=max_products
+        )
+        start_time = __import__("time").time()
+
         soup = await self.fetch_page(url)
         product_urls = self.extract_product_urls(soup)[:max_products]
+        self.log.debug(f"Found {len(product_urls)} product URLs")
 
+        # Use asyncio.gather for parallel scraping
         products = await asyncio.gather(
             *[self.scrape_product_detail(url) for url in product_urls]
+        )
+
+        duration = __import__("time").time() - start_time
+        self.log.info(
+            "Search results scraped",
+            product_count=len(products),
+            duration_seconds=round(duration, 2),
         )
 
         return products
@@ -92,14 +132,22 @@ class BaseScraper(ABC):
     @cached
     async def fetch_page(self, url: str) -> BeautifulSoup:
         """Fetch the page content using the instance browser and return a BeautifulSoup object."""
-        self.log.info(
-            f"Fetching {self.__class__.__name__} page with Playwright", url=url
-        )
+        self.log.debug(f"Fetching page", url_snippet=url[:30])
+        start_time = __import__("time").time()
 
         page = await self.browser.new_page()
         await page.goto(url)
         html_content = await page.content()
         await page.close()
+
+        duration = __import__("time").time() - start_time
+        self.log.debug(
+            "Page fetched",
+            url_snippet=url[:30],
+            content_length=len(html_content),
+            duration_seconds=round(duration, 2),
+        )
+
         return BeautifulSoup(html_content, "html.parser")
 
     @classmethod

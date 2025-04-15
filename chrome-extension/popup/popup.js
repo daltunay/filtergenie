@@ -17,11 +17,7 @@ const appState = {
   currentVendor: null,
   currentHostname: "",
   lastResults: null,
-  defaultFilters: window.DEFAULT_FILTERS || [
-    "Is this in excellent condition?",
-    "Is this a good deal?",
-    "Does this look authentic?",
-  ],
+  defaultFilters: window.DEFAULT_FILTERS || [],
 
   async init() {
     await this.detectCurrentSite();

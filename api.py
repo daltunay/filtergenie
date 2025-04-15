@@ -1,17 +1,18 @@
 import asyncio
+import hashlib
 import os
 
+import structlog
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from analyzer import ProductAnalyzer, ProductFilter
-from cache import cached, clear_cache
-from scrape import (
-    get_product_id_from_url,
-    scrape_product,
-)
+from cache import _cache, cached, clear_cache
+from scrape import get_product_id_from_url, scrape_product
+
+log = structlog.get_logger(name="api")
 
 app = FastAPI(
     title="Product Filter API",
@@ -106,15 +107,29 @@ async def get_product(product_url: str):
 async def analyze_product_endpoint(product_url: str, request: AnalysisRequest):
     """Analyze a product against the provided filters."""
     try:
+        log.debug(
+            "Analyzing product",
+            url_snippet=product_url[:30],
+            num_filters=len(request.filters),
+        )
+
         product = await scrape_product(product_url)
         if not product:
+            log.warning("Product not found", url=product_url)
             raise HTTPException(status_code=404, detail="Product not found")
 
         product.filters = [
             ProductFilter(description=filter_desc) for filter_desc in request.filters
         ]
 
-        analyzed_product = analyzer.analyze_product(product)
+        analyzed_product = await analyzer.analyze_product(product)
+
+        if analyzed_product.matches_filters:
+            log.info(
+                "Product matched filters",
+                product_id=analyzed_product.id,
+                url_snippet=product_url[:30],
+            )
 
         return {
             "id": analyzed_product.id,
@@ -127,6 +142,7 @@ async def analyze_product_endpoint(product_url: str, request: AnalysisRequest):
             ],
         }
     except Exception as e:
+        log.error("Analysis error", url=product_url, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=500, detail=f"Error analyzing product: {str(e)}"
         ) from e
@@ -135,26 +151,93 @@ async def analyze_product_endpoint(product_url: str, request: AnalysisRequest):
 async def analyze_product_safely(url: str, filters: list[str], product_id: int):
     """Analyze a product and handle exceptions gracefully for batch processing."""
     try:
-        analyzed_product = await analyze_product_endpoint(
-            url, AnalysisRequest(filters=filters)
+        sorted_filters = sorted(filters)
+        url_snippet = url[:50]
+        cache_key = (
+            f"analyze_safely:{product_id}:{url_snippet}:{','.join(sorted_filters)}"
         )
+        cache_hash = hashlib.md5(cache_key.encode(), usedforsecurity=False).hexdigest()
 
-        return {
+        if cache_hash in _cache:
+            log.debug(
+                "Using cached analysis result",
+                product_id=product_id,
+                url_snippet=url[:30],
+            )
+            return _cache[cache_hash]
+
+        product = await scrape_product(url)
+        if not product:
+            log.warning(
+                "Product not found during batch processing", url_snippet=url[:30]
+            )
+            return None
+
+        if product.id != product_id:
+            log.warning(
+                "Product ID mismatch",
+                expected=product_id,
+                actual=product.id,
+                url_snippet=url[:30],
+            )
+            product_id = product.id
+
+        product.filters = [ProductFilter(description=f) for f in sorted_filters]
+
+        analyzer_key = f"analyzer:{product.id}:{url_snippet}:{','.join(sorted_filters)}"
+        analyzer_hash = hashlib.md5(
+            analyzer_key.encode(), usedforsecurity=False
+        ).hexdigest()
+
+        if analyzer_hash in _cache:
+            log.debug(
+                "Using cached analyzer result",
+                product_id=product.id,
+                url_snippet=url[:30],
+            )
+            analyzed_product = _cache[analyzer_hash]
+        else:
+            log.debug(
+                "Analyzing product",
+                product_id=product.id,
+                url_snippet=url[:30],
+                filter_count=len(product.filters),
+            )
+            analyzed_product = await analyzer.analyze_product(product)
+            _cache[analyzer_hash] = analyzed_product
+
+        result = {
             "url": str(url),
-            "id": product_id,
-            "title": analyzed_product["title"],
-            "matches_filters": analyzed_product["matches_filters"],
-            "filters": analyzed_product["filters"],
+            "id": product.id,
+            "title": analyzed_product.title,
+            "matches_filters": analyzed_product.matches_filters,
+            "filters": [
+                {"description": f.description, "value": f.value}
+                for f in analyzed_product.filters
+            ],
         }
-    except Exception:
+
+        _cache[cache_hash] = result
+
+        return result
+    except Exception as e:
+        log.error(
+            "Product analysis failed", url_snippet=url[:30], error=str(e), exc_info=True
+        )
         return None
 
 
 @app.post("/extension/filter", response_model=ExtensionResponse)
+@cached
 async def extension_filter(request: BatchFilterRequest):
-    """Simplified endpoint for Chrome extension integration, using cached sub-operations."""
+    """Simplified endpoint for Chrome extension integration, using parallel analysis."""
     try:
         product_urls = request.product_urls[: request.max_products]
+        log.info(
+            "Batch request received",
+            num_urls=len(product_urls),
+            filters=request.filters,
+        )
 
         if not product_urls:
             return {"products": []}
@@ -165,13 +248,25 @@ async def extension_filter(request: BatchFilterRequest):
             if product_id:
                 tasks.append(analyze_product_safely(url, request.filters, product_id))
 
+        start_time = __import__("time").time()
         results = await asyncio.gather(*tasks)
+        duration = __import__("time").time() - start_time
 
         valid_results = [result for result in results if result is not None]
+        matched_results = [r for r in valid_results if r["matches_filters"]]
+
+        log.info(
+            "Batch analysis complete",
+            total=len(product_urls),
+            successful=len(valid_results),
+            matched=len(matched_results),
+            duration_seconds=round(duration, 2),
+        )
 
         return {"products": valid_results}
 
     except Exception as e:
+        log.error("Batch filter error", error=str(e), exc_info=True)
         raise HTTPException(
             status_code=500, detail=f"Error filtering products: {str(e)}"
         ) from e
