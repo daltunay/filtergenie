@@ -39,4 +39,22 @@ class VintedScraper(BaseScraper):
 
     @staticmethod
     def extract_product_urls(soup: BeautifulSoup) -> list[str]:
-        raise NotImplementedError("TODO")
+        product_urls = []
+        
+        # Look for catalog items in search results
+        catalog_items = soup.select('.feed-grid__item .feed-grid__item__content a, .catalog-grid .catalog-grid__item a')
+        
+        for item in catalog_items:
+            href = item.get('href')
+            if href and '/items/' in href:
+                # Make absolute URL if it's relative
+                if href.startswith('/'):
+                    product_url = f"https://www.vinted.fr{href}"
+                elif href.startswith('http'):
+                    product_url = href
+                else:
+                    product_url = f"https://www.vinted.fr/{href}"
+                    
+                product_urls.append(product_url)
+                
+        return product_urls
