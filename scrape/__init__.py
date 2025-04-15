@@ -3,9 +3,9 @@ import structlog
 from analyzer import Product
 
 from .base import BaseScraper
-from .websites.ebay import EbayScraper
-from .websites.leboncoin import LeboncoinScraper
-from .websites.vinted import VintedScraper
+from .vendors.ebay import EbayScraper
+from .vendors.leboncoin import LeboncoinScraper
+from .vendors.vinted import VintedScraper
 
 SCRAPERS: list[BaseScraper] = [
     LeboncoinScraper,
@@ -21,6 +21,26 @@ def get_scraper_class_for_url(url: str) -> type[BaseScraper] | None:
     for scraper_class in SCRAPERS:
         if scraper_class.can_handle_url(url):
             return scraper_class
+    return None
+
+
+def get_vendor_for_url(url: str) -> str | None:
+    """Determine the vendor for a given URL without creating a scraper instance."""
+    scraper_class = get_scraper_class_for_url(url)
+    if scraper_class:
+        return scraper_class.get_vendor_name()
+    return None
+
+
+def get_product_id_from_url(url: str) -> int | None:
+    """Extract the product ID from a URL without creating a scraper instance."""
+    scraper_class = get_scraper_class_for_url(url)
+    if scraper_class:
+        try:
+            return scraper_class.extract_product_id(url)
+        except Exception:
+            log.exception(f"Failed to extract product ID from URL: {url}")
+            return None
     return None
 
 

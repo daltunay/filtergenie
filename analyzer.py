@@ -1,6 +1,6 @@
 import os
+import typing as tp
 from textwrap import dedent
-from typing import TYPE_CHECKING
 
 import structlog
 from PIL.Image import Image
@@ -10,7 +10,7 @@ from pydantic.types import Base64Str, FilePath
 
 from utils import image_to_base64, load_img, resize_img, sanitize_text
 
-if TYPE_CHECKING:
+if tp.TYPE_CHECKING:
     from openai import OpenAI
 
     try:
@@ -32,9 +32,9 @@ class ProductImage(BaseModel):
 
 
 class ProductFilter(BaseModel):
-    description: str = Field(default=None)
+    description: str = Field(default="")
     value: bool | None = Field(default=None, init=False)
-    name: str = Field(default=None, init=False)
+    name: str = Field(default="", init=False)
 
     def model_post_init(self, __context):
         self.name = sanitize_text(self.description)
@@ -43,15 +43,23 @@ class ProductFilter(BaseModel):
 class Product(BaseModel):
     """Class to hold product data scraped from websites."""
 
-    id: int = Field(default=None, init=False)
-    url: HttpUrl = Field(default=None)
-    title: str = Field(default=None)
-    description: str = Field(default=None)
+    id: int | None = Field(default=None, init=False)
+    vendor: tp.Literal["ebay", "leboncoin", "vinted"] | None = Field(
+        default=None, init=False
+    )
+    url: HttpUrl | None = Field(default=None)
+    title: str = Field(default="")
+    description: str = Field(default="")
     images: list[ProductImage] = Field(default_factory=list)
     filters: list[ProductFilter] = Field(default_factory=list)
 
     def model_post_init(self, __context):
-        self.url = HttpUrl(self.url.__str__().split("?")[0])
+        if self.url is not None:
+            from scrape import get_product_id_from_url, get_vendor_for_url
+
+            self.url = HttpUrl(self.url.__str__().split("?")[0])
+            self.vendor = get_vendor_for_url(self.url.__str__())
+            self.id = get_product_id_from_url(self.url.__str__())
 
 
 class DynamicSchema(BaseModel):

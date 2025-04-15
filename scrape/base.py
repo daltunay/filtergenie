@@ -33,16 +33,15 @@ class BaseScraper(ABC):
         self.browser.close()
         self.playwright.stop()
 
-    # Primary public methods
-    def scrape_product_detail(self, product_url: str) -> Product:
-        """Main method to scrape a product from a given URL."""
-        soup = self.fetch_page(product_url)
+    @classmethod
+    def get_vendor_name(cls) -> str:
+        """Extract vendor name from the scraper class name."""
+        return cls.__name__.replace("Scraper", "").lower()
 
-        try:
-            id_ = self.extract_product_id(product_url)
-        except Exception as e:
-            self.log.error("Error extracting product ID", exception=str(e))
-            id_ = None
+    # Primary public methods
+    def scrape_product_detail(self, url: str) -> Product:
+        """Main method to scrape a product from a given URL."""
+        soup = self.fetch_page(url)
 
         try:
             title = self.extract_product_title(soup)
@@ -64,18 +63,17 @@ class BaseScraper(ABC):
             images = []
 
         return Product(
-            id=id_,
-            url=product_url,
+            url=url,
             title=title,
             description=description,
             images=images,
         )
 
     def scrape_search_results(
-        self, search_url: str, max_products: int = 5
+        self, url: str, max_products: int = 5
     ) -> list[Product]:
         """Main method to scrape search results from a given URL."""
-        soup = self.fetch_page(search_url)
+        soup = self.fetch_page(url)
         product_urls = self.extract_product_urls(soup)
         products: list[Product] = []
         for url in product_urls[:max_products]:
