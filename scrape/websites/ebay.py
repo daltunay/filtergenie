@@ -15,7 +15,7 @@ class EbayScraper(BaseScraper):
 
     @staticmethod
     def extract_product_title(soup: BeautifulSoup) -> str:
-        title_elem = soup.find("h1", class_="x-product-title__mainTitle")
+        title_elem = soup.find("h1", class_="x-item-title__mainTitle")
         title_span = title_elem.find("span", class_="ux-textspans")
         return title_span.text.strip()
 

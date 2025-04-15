@@ -4,7 +4,9 @@ from typing import TYPE_CHECKING
 
 import structlog
 from PIL.Image import Image
-from pydantic import Base64Str, BaseModel, Field, FilePath, HttpUrl, create_model
+from pydantic import BaseModel, Field, create_model
+from pydantic.networks import HttpUrl
+from pydantic.types import Base64Str, FilePath
 
 from utils import image_to_base64, load_img, resize_img, sanitize_text
 
@@ -46,6 +48,9 @@ class Product(BaseModel):
     description: str = Field(default=None)
     images: list[ProductImage] = Field(default_factory=list)
     filters: list[ProductFilter] = Field(default_factory=list)
+
+    def model_post_init(self, __context):
+        self.url = HttpUrl(self.url.__str__().split("?")[0])
 
 
 class DynamicSchema(BaseModel):
