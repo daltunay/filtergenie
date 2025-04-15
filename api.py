@@ -1,17 +1,15 @@
 import asyncio
 import os
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse
-from pydantic import AnyHttpUrl, BaseModel
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
-from analyzer import Product, ProductAnalyzer, ProductFilter
+from analyzer import ProductAnalyzer, ProductFilter
 from cache import cached, clear_cache
 from scrape import (
-    get_page_type,
     get_product_id_from_url,
-    get_scraper,
     scrape_product,
 )
 
@@ -33,20 +31,37 @@ analyzer = ProductAnalyzer(
 )
 
 
-class FilterBadgeRequest(BaseModel):
-    filters: list[ProductFilter]
-    container_class: str | None = "smart-filter-results"
-
-
-class FilterRequest(BaseModel):
+class ProductRequest(BaseModel):
     url: str
+
+
+class ProductResponse(BaseModel):
+    id: int | None
+    url: str
+    title: str
+    vendor: str | None
+
+
+class AnalysisRequest(BaseModel):
     filters: list[str]
-    product_ids: list[int] | None = None
-    max_products: int = 5
 
 
-class ProductIdRequest(BaseModel):
-    urls: list[str]
+class AnalysisResponse(BaseModel):
+    id: int | None
+    url: str
+    title: str
+    matches_filters: bool
+    filters: list[dict]
+
+
+class BatchFilterRequest(BaseModel):
+    filters: list[str]
+    product_urls: list[str]
+    max_products: int = 10
+
+
+class ExtensionResponse(BaseModel):
+    products: list[dict]
 
 
 @app.get("/health")
@@ -62,158 +77,103 @@ async def clear_cache_endpoint():
     return {"status": "ok", "message": "Cache cleared"}
 
 
-@app.post("/extract/product_ids")
+@app.get("/product/{product_url:path}", response_model=ProductResponse)
 @cached
-async def extract_product_ids(request: ProductIdRequest):
-    """Extract product IDs from product URLs."""
+async def get_product(product_url: str):
+    """Scrape and return product information."""
     try:
-        result = {}
-        for url in request.urls:
-            product_id = get_product_id_from_url(url)
-            if product_id:
-                result[url] = product_id
-        return result
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Error extracting product IDs: {str(e)}"
-        ) from e
+        if not product_url.startswith(("http://", "https://")):
+            product_url = f"https://{product_url}"
 
-
-@app.post("/render/filter_badges", response_class=HTMLResponse)
-@cached
-async def render_filter_badges(request: FilterBadgeRequest):
-    """Generate HTML for filter badges."""
-    try:
-        # Create a simpler, more reliable badge container
-        container_class = request.container_class or "smart-filter-results"
-
-        html = f"""
-        <div class="{container_class}" style="
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            padding: 5px;
-            pointer-events: none;
-            z-index: 1000;
-        ">
-        """
-
-        # Create simple, compact badges
-        for i, filter_ in enumerate(request.filters):
-            bg_color = (
-                "rgba(46,204,113,0.9)" if filter_.value else "rgba(231,76,60,0.9)"
-            )
-            status = "✓" if filter_.value else "✗"
-
-            html += f"""
-            <div class="smart-filter-badge" style="
-                background-color: {bg_color};
-                border-radius: 4px;
-                padding: 3px 6px;
-                font-size: 12px;
-                color: white;
-                box-shadow: 0 1px 2px rgba(0,0,0,0.2);
-                max-width: 180px;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                pointer-events: auto;
-                font-weight: bold;
-            ">
-                {status} {filter_.description}
-            </div>
-            """
-
-        html += "</div>"
-        return html
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Error rendering badges: {str(e)}"
-        ) from e
-
-
-@app.post("/filter", response_model=dict)
-@cached
-async def filter_products(request: FilterRequest):
-    """Filter products based on specified criteria."""
-    try:
-        page_type = get_page_type(request.url)
-        if page_type != "search":
-            raise HTTPException(status_code=400, detail="URL must be a search page")
-
-        async with get_scraper(request.url) as scraper:
-            if not scraper:
-                raise HTTPException(
-                    status_code=400, detail="No suitable scraper for the URL"
-                )
-
-            soup = await scraper.fetch_page(request.url)
-            product_urls = scraper.extract_product_urls(soup)[: request.max_products]
-
-            if request.product_ids:
-                url_id_pairs = [
-                    (url, get_product_id_from_url(url)) for url in product_urls
-                ]
-                product_urls = [
-                    url for url, id in url_id_pairs if id in request.product_ids
-                ]
-
-            if not product_urls:
-                return {"products": [], "url_id_map": {}}
-
-            url_id_map = {url: get_product_id_from_url(url) for url in product_urls}
-
-            products = await asyncio.gather(
-                *[scraper.scrape_product_detail(url) for url in product_urls]
-            )
-
-            filtered_products = []
-            for product in products:
-                if product:
-                    product.filters = [
-                        ProductFilter(description=filter_desc)
-                        for filter_desc in request.filters
-                    ]
-                    analyzed_product = analyzer.analyze_product(product)
-                    filtered_products.append(analyzed_product)
-
-        return {"products": filtered_products, "url_id_map": url_id_map}
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Error filtering products: {str(e)}"
-        ) from e
-
-
-@app.get("/scrape/product", response_model=Product)
-@cached
-async def scrape_single_product(
-    url: AnyHttpUrl = Query(..., description="URL of the product to scrape")
-):
-    """Scrape a single product from a product page URL."""
-    try:
-        page_type = get_page_type(str(url))
-        if page_type != "product":
-            raise HTTPException(status_code=400, detail="URL must be a product page")
-
-        product = await scrape_product(str(url))
+        product = await scrape_product(product_url)
         if not product:
             raise HTTPException(status_code=404, detail="Product not found")
 
-        return product
-
-    except HTTPException:
-        raise
+        return {
+            "id": product.id,
+            "url": str(product.url),
+            "title": product.title,
+            "vendor": product.vendor,
+        }
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Error scraping product: {str(e)}"
+            status_code=500, detail=f"Error fetching product: {str(e)}"
+        ) from e
+
+
+@app.post("/product/analyze", response_model=AnalysisResponse)
+@cached
+async def analyze_product_endpoint(product_url: str, request: AnalysisRequest):
+    """Analyze a product against the provided filters."""
+    try:
+        product = await scrape_product(product_url)
+        if not product:
+            raise HTTPException(status_code=404, detail="Product not found")
+
+        product.filters = [
+            ProductFilter(description=filter_desc) for filter_desc in request.filters
+        ]
+
+        analyzed_product = analyzer.analyze_product(product)
+
+        return {
+            "id": analyzed_product.id,
+            "url": str(analyzed_product.url),
+            "title": analyzed_product.title,
+            "matches_filters": analyzed_product.matches_filters,
+            "filters": [
+                {"description": f.description, "value": f.value}
+                for f in analyzed_product.filters
+            ],
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error analyzing product: {str(e)}"
+        ) from e
+
+
+async def analyze_product_safely(url: str, filters: list[str], product_id: int):
+    """Analyze a product and handle exceptions gracefully for batch processing."""
+    try:
+        analyzed_product = await analyze_product_endpoint(
+            url, AnalysisRequest(filters=filters)
+        )
+
+        return {
+            "url": str(url),
+            "id": product_id,
+            "title": analyzed_product["title"],
+            "matches_filters": analyzed_product["matches_filters"],
+            "filters": analyzed_product["filters"],
+        }
+    except Exception:
+        return None
+
+
+@app.post("/extension/filter", response_model=ExtensionResponse)
+async def extension_filter(request: BatchFilterRequest):
+    """Simplified endpoint for Chrome extension integration, using cached sub-operations."""
+    try:
+        product_urls = request.product_urls[: request.max_products]
+
+        if not product_urls:
+            return {"products": []}
+
+        tasks = []
+        for url in product_urls:
+            product_id = get_product_id_from_url(url)
+            if product_id:
+                tasks.append(analyze_product_safely(url, request.filters, product_id))
+
+        results = await asyncio.gather(*tasks)
+
+        valid_results = [result for result in results if result is not None]
+
+        return {"products": valid_results}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error filtering products: {str(e)}"
         ) from e
 
 

@@ -7,8 +7,6 @@ import typing as tp
 
 import structlog
 
-# In-memory cache - note: this cache is only preserved for the lifetime of the API process.
-# If the API server is restarted, the cache will be reset.
 _cache = {}
 _logger = structlog.get_logger(name="cache")
 
@@ -16,14 +14,23 @@ _logger = structlog.get_logger(name="cache")
 def _make_key(func_name: str, *args, **kwargs) -> tuple[str, str]:
     """Create a unique key from function name and arguments."""
     try:
-        args_str = str(args)
-        kwargs_str = json.dumps(kwargs, sort_keys=True)
+
+        args_str = json.dumps(args, sort_keys=True)
+
+        processed_kwargs = {}
+        for k, v in kwargs.items():
+            if hasattr(v, "model_dump"):
+                processed_kwargs[k] = v.model_dump()
+            else:
+                processed_kwargs[k] = v
+
+        kwargs_str = json.dumps(processed_kwargs, sort_keys=True)
     except (TypeError, ValueError):
         args_str = repr(args)
         kwargs_str = repr(sorted(kwargs.items()))
 
     key_str = f"{func_name}:{args_str}:{kwargs_str}"
-    return key_str, hashlib.md5(key_str.encode()).hexdigest()
+    return key_str, hashlib.md5(key_str.encode(), usedforsecurity=False).hexdigest()
 
 
 def cached(func: tp.Callable) -> tp.Callable:
