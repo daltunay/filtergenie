@@ -14,6 +14,10 @@ class LeboncoinScraper(BaseScraper):
     }
 
     @staticmethod
+    def extract_product_id(url: str) -> int:
+        return int(url.split("/")[-1])
+
+    @staticmethod
     def extract_product_title(soup: BeautifulSoup) -> str:
         title_elem = soup.find(
             "h1",

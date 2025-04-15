@@ -9,9 +9,13 @@ class VintedScraper(BaseScraper):
     SUPPORTED_DOMAINS = ["vinted.fr", "vinted.com"]
 
     PAGE_TYPE_PATTERNS = {
-        "product": ["/products/"],
+        "product": ["/items/"],
         "search": ["/catalog"],
     }
+
+    @staticmethod
+    def extract_product_id(url: str) -> int:
+        return int(url.split("/")[-1].split("-")[0])
 
     @staticmethod
     def extract_product_title(soup: BeautifulSoup) -> str:
@@ -20,13 +24,13 @@ class VintedScraper(BaseScraper):
 
     @staticmethod
     def extract_product_description(soup: BeautifulSoup) -> str:
-        desc_container = soup.find("div", attrs={"productprop": "description"})
+        desc_container = soup.find("div", attrs={"itemprop": "description"})
         desc_text = desc_container.find("span", class_="web_ui__Text__text")
         return desc_text.text.strip()
 
     @staticmethod
     def extract_product_images(soup: BeautifulSoup) -> list[str]:
-        photos_container = soup.find("div", class_="product-photos")
+        photos_container = soup.find("div", class_="item-photos")
         img_elements = photos_container.find_all("img")
         image_urls = []
         for img in img_elements:

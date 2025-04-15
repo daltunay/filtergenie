@@ -39,6 +39,12 @@ class BaseScraper(ABC):
         soup = self.fetch_page(product_url)
 
         try:
+            id_ = self.extract_product_id(product_url)
+        except Exception as e:
+            self.log.error("Error extracting product ID", exception=str(e))
+            id_ = None
+
+        try:
             title = self.extract_product_title(soup)
         except Exception as e:
             self.log.error("Error extracting title", exception=str(e))
@@ -58,6 +64,7 @@ class BaseScraper(ABC):
             images = []
 
         return Product(
+            id=id_,
             url=product_url,
             title=title,
             description=description,
@@ -114,6 +121,12 @@ class BaseScraper(ABC):
         return None
 
     # Abstract methods that subclasses must implement
+    @staticmethod
+    @abstractmethod
+    def extract_product_id(url: str) -> int:
+        """Extract the product ID from the product URL."""
+        pass
+
     @staticmethod
     @abstractmethod
     def extract_product_title(soup: BeautifulSoup) -> str:

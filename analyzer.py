@@ -43,6 +43,7 @@ class ProductFilter(BaseModel):
 class Product(BaseModel):
     """Class to hold product data scraped from websites."""
 
+    id: int = Field(default=None, init=False)
     url: HttpUrl = Field(default=None)
     title: str = Field(default=None)
     description: str = Field(default=None)
@@ -178,7 +179,6 @@ class ProductAnalyzer:
 
 if __name__ == "__main__":
     product = Product(
-        url="https://example.com/product/123",
         title="Guitar",
         description="A beautiful guitar.",
         images=[
