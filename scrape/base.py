@@ -34,7 +34,7 @@ class BaseScraper(ABC):
         self.playwright.stop()
 
     # Primary public methods
-    def get_product_from_url(self, product_url: str) -> Product:
+    def scrape_product_detail(self, product_url: str) -> Product:
         """Main method to scrape a product from a given URL."""
         soup = self.fetch_page(product_url)
 
@@ -64,7 +64,7 @@ class BaseScraper(ABC):
             images=images,
         )
 
-    def get_products_from_url(
+    def scrape_search_results(
         self, search_url: str, max_products: int = 5
     ) -> list[Product]:
         """Main method to scrape search results from a given URL."""
@@ -72,7 +72,7 @@ class BaseScraper(ABC):
         product_urls = self.extract_product_urls(soup)
         products: list[Product] = []
         for url in product_urls[:max_products]:
-            product = self.get_product_from_url(url)
+            product = self.scrape_product_detail(url)
             products.append(product)
         return products
 

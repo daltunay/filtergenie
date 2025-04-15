@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import HttpUrl
 
 from analyzer import Product, ProductAnalyzer
-from scrape import get_page_type, scrape_product, scrape_search_results
+from scrape import get_page_type, scrape_product, scrape_search_page
 
 app = FastAPI(
     title="Product Filter API",
@@ -56,7 +56,7 @@ async def list_product_urls(url: HttpUrl, max_products: int = Query(10, ge=1, le
                 detail=f"URL is not a search page: {url}",
             )
 
-        products = scrape_search_results(url, max_products=max_products)
+        products = scrape_search_page(url, max_products=max_products)
         product_urls = [product.url for product in products]
 
         return product_urls

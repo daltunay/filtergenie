@@ -40,12 +40,12 @@ def scrape_product(url: str) -> Product | None:
     scraper = scraper_cls()
 
     try:
-        return scraper.get_product_from_url(url)
+        return scraper.scrape_product_detail(url)
     finally:
         scraper.close()
 
 
-def scrape_search_results(url: str, max_products: int = 5) -> list[Product]:
+def scrape_search_page(url: str, max_products: int = 5) -> list[Product]:
     """Scrape search results from the given URL (CLI use only)."""
     scraper_cls = get_scraper_class_for_url(url)
     if not scraper_cls:
@@ -53,6 +53,6 @@ def scrape_search_results(url: str, max_products: int = 5) -> list[Product]:
     scraper = scraper_cls()
 
     try:
-        return scraper.get_products_from_url(url, max_products=max_products)
+        return scraper.scrape_search_results(url, max_products=max_products)
     finally:
         scraper.close()
