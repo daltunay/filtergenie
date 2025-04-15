@@ -1,10 +1,11 @@
+import asyncio
 import typing as tp
 from abc import ABC, abstractmethod
 from urllib.parse import urlparse
 
 import structlog
 from bs4 import BeautifulSoup
-from playwright.sync_api import sync_playwright
+from playwright.async_api import async_playwright
 
 from analyzer import Product, ProductImage
 
@@ -12,7 +13,6 @@ from analyzer import Product, ProductImage
 class BaseScraper(ABC):
     """Abstract base class for all website scrapers."""
 
-    # Class attributes
     HEADLESS_MODE: bool = True
     SUPPORTED_DOMAINS: list[str] = []
 
@@ -21,27 +21,32 @@ class BaseScraper(ABC):
         "search": [],
     }
 
-    # Initialization and cleanup
-    def __init__(self):
+    async def __init__(self):
         """Initialize the scraper with Playwright and browser instances."""
         self.log = structlog.get_logger(scraper=self.__class__.__name__)
-        self.playwright = sync_playwright().start()
-        self.browser = self.playwright.firefox.launch(headless=self.HEADLESS_MODE)
+        self.playwright = await async_playwright().start()
+        self.browser = await self.playwright.firefox.launch(headless=self.HEADLESS_MODE)
 
-    def close(self):
+    @classmethod
+    async def create(cls):
+        """Factory method to properly create an async instance."""
+        instance = cls.__new__(cls)
+        await instance.__init__()
+        return instance
+
+    async def close(self):
         """Close the browser and Playwright instance."""
-        self.browser.close()
-        self.playwright.stop()
+        await self.browser.close()
+        await self.playwright.stop()
 
     @classmethod
     def get_vendor_name(cls) -> str:
         """Extract vendor name from the scraper class name."""
         return cls.__name__.replace("Scraper", "").lower()
 
-    # Primary public methods
-    def scrape_product_detail(self, url: str) -> Product:
+    async def scrape_product_detail(self, url: str) -> Product:
         """Main method to scrape a product from a given URL."""
-        soup = self.fetch_page(url)
+        soup = await self.fetch_page(url)
 
         try:
             title = self.extract_product_title(soup)
@@ -69,32 +74,31 @@ class BaseScraper(ABC):
             images=images,
         )
 
-    def scrape_search_results(
+    async def scrape_search_results(
         self, url: str, max_products: int = 5
     ) -> list[Product]:
         """Main method to scrape search results from a given URL."""
-        soup = self.fetch_page(url)
-        product_urls = self.extract_product_urls(soup)
-        products: list[Product] = []
-        for url in product_urls[:max_products]:
-            product = self.scrape_product_detail(url)
-            products.append(product)
+        soup = await self.fetch_page(url)
+        product_urls = self.extract_product_urls(soup)[:max_products]
+
+        products = await asyncio.gather(
+            *[self.scrape_product_detail(url) for url in product_urls]
+        )
+
         return products
 
-    # Implementation methods
-    def fetch_page(self, url: str) -> BeautifulSoup:
+    async def fetch_page(self, url: str) -> BeautifulSoup:
         """Fetch the page content using the instance browser and return a BeautifulSoup object."""
         self.log.info(
             f"Fetching {self.__class__.__name__} page with Playwright", url=url
         )
 
-        page = self.browser.new_page()
-        page.goto(url)
-        html_content = page.content()
-        page.close()
+        page = await self.browser.new_page()
+        await page.goto(url)
+        html_content = await page.content()
+        await page.close()
         return BeautifulSoup(html_content, "html.parser")
 
-    # Class methods
     @classmethod
     def can_handle_url(cls, url: str) -> bool:
         """Check if this scraper can handle the given URL based on supported domains."""
@@ -118,7 +122,6 @@ class BaseScraper(ABC):
 
         return None
 
-    # Abstract methods that subclasses must implement
     @staticmethod
     @abstractmethod
     def extract_product_id(url: str) -> int:

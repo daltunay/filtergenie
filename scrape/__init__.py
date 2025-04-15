@@ -1,3 +1,6 @@
+import typing as tp
+from contextlib import asynccontextmanager
+
 import structlog
 
 from analyzer import Product
@@ -7,7 +10,7 @@ from .vendors.ebay import EbayScraper
 from .vendors.leboncoin import LeboncoinScraper
 from .vendors.vinted import VintedScraper
 
-SCRAPERS: list[BaseScraper] = [
+SCRAPERS: list[type[BaseScraper]] = [
     LeboncoinScraper,
     VintedScraper,
     EbayScraper,
@@ -44,35 +47,26 @@ def get_product_id_from_url(url: str) -> int | None:
     return None
 
 
-def get_page_type(url: str) -> str | None:
-    """Determine if the URL is for a product or a search page."""
-    scraper_class = get_scraper_class_for_url(url)
-    if scraper_class:
-        return scraper_class.find_page_type(url)
-    return None
-
-
-def scrape_product(url: str) -> Product | None:
-    """Scrape a product from the given URL (CLI use only)."""
+@asynccontextmanager
+async def get_scraper(url: str) -> tp.AsyncIterator[BaseScraper | None]:
+    """Context manager to get and properly close a scraper for a URL."""
     scraper_cls = get_scraper_class_for_url(url)
     if not scraper_cls:
-        return None
-    scraper = scraper_cls()
+        yield None
+        return
+
+    scraper = scraper_cls.__new__(scraper_cls)
+    await scraper.__init__()
 
     try:
-        return scraper.scrape_product_detail(url)
+        yield scraper
     finally:
-        scraper.close()
+        await scraper.close()
 
 
-def scrape_search_page(url: str, max_products: int = 5) -> list[Product]:
-    """Scrape search results from the given URL (CLI use only)."""
-    scraper_cls = get_scraper_class_for_url(url)
-    if not scraper_cls:
-        return []
-    scraper = scraper_cls()
-
-    try:
-        return scraper.scrape_search_results(url, max_products=max_products)
-    finally:
-        scraper.close()
+async def scrape_product(url: str) -> Product | None:
+    """Scrape a product from the given URL."""
+    async with get_scraper(url) as scraper:
+        if not scraper:
+            return None
+        return await scraper.scrape_product_detail(url)
