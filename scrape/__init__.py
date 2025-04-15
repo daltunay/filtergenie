@@ -1,13 +1,18 @@
+import asyncio
+import typing as tp
+from contextlib import asynccontextmanager
+
 import structlog
 
 from analyzer import Product
+from cache import cached
 
 from .base import BaseScraper
 from .vendors.ebay import EbayScraper
 from .vendors.leboncoin import LeboncoinScraper
 from .vendors.vinted import VintedScraper
 
-SCRAPERS: list[BaseScraper] = [
+SCRAPERS: list[type[BaseScraper]] = [
     LeboncoinScraper,
     VintedScraper,
     EbayScraper,
@@ -52,27 +57,93 @@ def get_page_type(url: str) -> str | None:
     return None
 
 
-def scrape_product(url: str) -> Product | None:
-    """Scrape a product from the given URL (CLI use only)."""
+@asynccontextmanager
+async def get_scraper(url: str) -> tp.AsyncIterator[BaseScraper | None]:
+    """Context manager to get and properly close a scraper for a URL."""
     scraper_cls = get_scraper_class_for_url(url)
     if not scraper_cls:
-        return None
-    scraper = scraper_cls()
+        yield None
+        return
+
+    # Create the instance first
+    scraper = scraper_cls.__new__(scraper_cls)
+    # Then initialize it
+    await scraper.__init__()
 
     try:
-        return scraper.scrape_product_detail(url)
+        yield scraper
     finally:
-        scraper.close()
+        await scraper.close()
 
 
-def scrape_search_page(url: str, max_products: int = 5) -> list[Product]:
-    """Scrape search results from the given URL (CLI use only)."""
-    scraper_cls = get_scraper_class_for_url(url)
-    if not scraper_cls:
-        return []
-    scraper = scraper_cls()
+async def scrape_product(url: str) -> Product | None:
+    """Scrape a product from the given URL."""
+    async with get_scraper(url) as scraper:
+        if not scraper:
+            return None
+        return await scraper.scrape_product_detail(url)
+
+
+async def scrape_search_page(url: str, max_products: int = 5) -> list[Product]:
+    """Scrape search results from the given URL."""
+    async with get_scraper(url) as scraper:
+        if not scraper:
+            return []
+        return await scraper.scrape_search_results(url, max_products=max_products)
+
+
+async def scrape_batch(urls: list[str]) -> list[Product]:
+    """Scrape multiple URLs in batches using a single scraper per domain."""
+    results: list[Product] = []
+
+    url_by_scraper: dict[type[BaseScraper], list[str]] = {}
+    for url in urls:
+        scraper_cls = get_scraper_class_for_url(url)
+        if scraper_cls:
+            if scraper_cls not in url_by_scraper:
+                url_by_scraper[scraper_cls] = []
+            url_by_scraper[scraper_cls].append(url)
+
+    # Process each scraper's URLs in parallel
+    batch_results = await asyncio.gather(
+        *[
+            _process_scraper_batch(scraper_cls, urls)
+            for scraper_cls, urls in url_by_scraper.items()
+        ]
+    )
+
+    # Flatten results
+    for batch in batch_results:
+        results.extend(batch)
+
+    return results
+
+
+async def _process_scraper_batch(
+    scraper_cls: type[BaseScraper], urls: list[str]
+) -> list[Product]:
+    """Process a batch of URLs with a single scraper instance."""
+    batch_results = []
+
+    # Create the instance
+    scraper = scraper_cls.__new__(scraper_cls)
+    await scraper.__init__()
 
     try:
-        return scraper.scrape_search_results(url, max_products=max_products)
+        # Filter URLs to product pages only
+        product_urls = [
+            url for url in urls if scraper_cls.find_page_type(url) == "product"
+        ]
+
+        # Fetch all products in parallel
+        products = await asyncio.gather(
+            *[scraper.scrape_product_detail(url) for url in product_urls]
+        )
+
+        # Add non-None results to batch_results
+        batch_results.extend([p for p in products if p])
+
     finally:
-        scraper.close()
+        await scraper.close()
+
+    return batch_results

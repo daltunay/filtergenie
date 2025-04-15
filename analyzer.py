@@ -61,6 +61,11 @@ class Product(BaseModel):
             self.vendor = get_vendor_for_url(self.url.__str__())
             self.id = get_product_id_from_url(self.url.__str__())
 
+    @property
+    def matches_filters(self) -> bool:
+        """Check if the product matches all filters."""
+        return all(filter_.value for filter_ in self.filters)
+
 
 class DynamicSchema(BaseModel):
     """Placeholder for dynamic schema generation. For type hinting only."""
@@ -120,7 +125,9 @@ class ProductAnalyzer:
         generator = generate.json(self.model, schema)
         return generator(prompt, [image.image for image in images])
 
-    def _create_openai_model(self, model_name: str = "gemini-2.0-flash") -> "OpenAI":
+    def _create_openai_model(
+        self, model_name: str = "gemini-2.0-flash-lite"
+    ) -> "OpenAI":
         """Create an OpenAI model."""
         from dotenv import load_dotenv
         from openai import OpenAI

@@ -1,41 +1,52 @@
 import base64
+import io
 import re
-from io import BytesIO
-from urllib.request import urlopen
 
+import requests
 from PIL import Image
 
 
-def load_img(image_url_or_path: str) -> Image.Image:
-    """Load an image from a URL or file path."""
-    if image_url_or_path.startswith(("http://", "https://")):
-        with urlopen(image_url_or_path) as response:
-            fp = BytesIO(response.read())
-    else:
-        fp = image_url_or_path
-    return Image.open(fp).convert("RGB")
+def sanitize_text(text):
+    """Convert text to a valid attribute name."""
+    return re.sub(r"[^a-z0-9_]", "_", text.lower()).strip("_")
 
 
-def resize_img(image: Image.Image, max_size: int = 1024) -> Image.Image:
-    """Resize an image while maintaining its aspect ratio."""
-    if max(image.size) > max_size:
-        ratio = max_size / max(image.size)
-        new_size = tuple(int(dim * ratio) for dim in image.size)
-        return image.resize(new_size, Image.Resampling.LANCZOS)
-    return image
+def load_img(url_or_path):
+    """Load an image from a URL or local path."""
+    try:
+        if url_or_path.startswith(("http://", "https://")):
+            response = requests.get(url_or_path, stream=True)
+            response.raise_for_status()
+            return Image.open(io.BytesIO(response.content))
+        else:
+            return Image.open(url_or_path)
+    except Exception as e:
+        raise ValueError(f"Failed to load image from {url_or_path}: {e}") from e
 
 
-def image_to_base64(image: Image.Image, format: str = "JPEG") -> str:
-    """Convert a PIL Image to a base64 string for API usage."""
-    buffer = BytesIO()
-    image.save(buffer, format=format)
-    base64_image = base64.b64encode(buffer.getvalue()).decode("utf-8")
-    return f"data:image/{format.lower()};base64,{base64_image}"
+def resize_img(img, max_size=(512, 512)):
+    """Resize an image while maintaining aspect ratio."""
+    if img.width > max_size[0] or img.height > max_size[1]:
+        img.thumbnail(max_size)
+    return img
 
 
-def sanitize_text(text: str) -> str:
-    """Convert a filter text into a valid Python identifier for use as a field name."""
-    field_name = re.sub(r"[^a-zA-Z0-9]", "_", text.lower())
-    if not field_name[0].isalpha():
-        field_name = "f_" + field_name
-    return re.sub(r"_+", "_", field_name).strip("_")
+def image_to_base64(img):
+    """Convert an image to base64 encoding."""
+    buffer = io.BytesIO()
+    img.save(buffer, format="JPEG")
+    return (
+        f"data:image/jpeg;base64,{base64.b64encode(buffer.getvalue()).decode('utf-8')}"
+    )
+
+
+def extract_price(text):
+    """Extract price from text."""
+    price_pattern = r"(\d+(?:\s?\d+)*(?:,\d+)?)\s*(?:€|EUR)"
+    match = re.search(price_pattern, text)
+    if match:
+        price = match.group(1)
+        # Clean the price (remove spaces)
+        price = re.sub(r"\s", "", price)
+        return f"{price} €"
+    return None

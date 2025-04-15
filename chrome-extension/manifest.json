@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Smart Filter for LeBonCoin",
+  "version": "1.0",
+  "description": "Filter leboncoin.fr search results using AI",
+  "permissions": ["activeTab"],
+  "host_permissions": ["https://*.leboncoin.fr/*", "http://localhost:8000/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://*.leboncoin.fr/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}
