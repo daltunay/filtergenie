@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 from playwright.async_api import async_playwright
 
 from analyzer import Product, ProductImage
+from cache import cached
 
 
 class BaseScraper(ABC):
@@ -44,6 +45,7 @@ class BaseScraper(ABC):
         """Extract vendor name from the scraper class name."""
         return cls.__name__.replace("Scraper", "").lower()
 
+    @cached
     async def scrape_product_detail(self, url: str) -> Product:
         """Main method to scrape a product from a given URL."""
         soup = await self.fetch_page(url)
@@ -87,6 +89,7 @@ class BaseScraper(ABC):
 
         return products
 
+    @cached
     async def fetch_page(self, url: str) -> BeautifulSoup:
         """Fetch the page content using the instance browser and return a BeautifulSoup object."""
         self.log.info(

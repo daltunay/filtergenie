@@ -1,8 +1,15 @@
-// Background script for Smart Filter extension
+/**
+ * Smart E-commerce Filter - Background Script
+ *
+ * This script runs in the extension's background service worker.
+ * It handles:
+ * - Communication with the backend API
+ * - Tab state monitoring and icon management
+ * - Messaging between popup and content scripts
+ */
 
 const API_URL = "http://localhost:8000";
 
-// Message handler
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "filterProducts") {
     filterProducts(request)
@@ -14,15 +21,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           error: error.message || "Unknown error",
         });
       });
-    return true; // Keep channel open for async response
+    return true;
   }
 });
 
-// Filter products with a single API call
 async function filterProducts(request) {
   try {
-    // We'll still use the batch endpoint for the extension
-    // The API will internally use the cached endpoints
     const response = await fetch(`${API_URL}/extension/filter`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -45,3 +49,28 @@ async function filterProducts(request) {
     throw error;
   }
 }
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === "complete" && tab.url) {
+    const supportedDomains = ["leboncoin.fr", "vinted.fr", "ebay.fr"];
+    const isSupported = supportedDomains.some((domain) =>
+      tab.url.includes(domain),
+    );
+
+    chrome.action.setIcon({
+      tabId: tabId,
+      path: {
+        16: "icon16.png",
+        48: "icon48.png",
+        128: "icon128.png",
+      },
+    });
+
+    if (isSupported) {
+      chrome.action.setBadgeText({ tabId, text: "✓" });
+      chrome.action.setBadgeBackgroundColor({ tabId, color: "#10b981" });
+    } else {
+      chrome.action.setBadgeText({ tabId, text: "" });
+    }
+  }
+});
