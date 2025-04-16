@@ -229,26 +229,3 @@ class ProductAnalyzer:
             )
 
         return product
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    async def main():
-        product = Product(
-            title="Guitar",
-            description="A beautiful guitar.",
-            images=[
-                ProductImage(url_or_path="guitar_1.jpg"),
-                ProductImage(url_or_path="guitar_2.jpg"),
-            ],
-            filters=[
-                ProductFilter(description="Is it a guitar?"),
-                ProductFilter(description="Is it a bass guitar?"),
-            ],
-        )
-        analyzer = ProductAnalyzer(use_local=False)
-        analyzed_product = await analyzer.analyze_product(product)
-        print(analyzed_product)
-
-    asyncio.run(main())
