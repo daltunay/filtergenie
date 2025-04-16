@@ -1,12 +1,5 @@
 /**
  * Smart E-commerce Filter - LeBonCoin Vendor Implementation
- *
- * This vendor module provides site-specific functionality for LeBonCoin.fr.
- * It handles:
- * - Search page detection
- * - Product item extraction
- * - URL normalization
- * - UI element location
  */
 
 class LeboncoinVendor extends VendorInterface {
@@ -19,9 +12,8 @@ class LeboncoinVendor extends VendorInterface {
 
   extractUrl(link) {
     const href = link.getAttribute("href");
-    return href.startsWith("http")
-      ? href
-      : `https://www.leboncoin.fr${href.startsWith("/") ? href : `/${href}`}`;
+    if (href.startsWith("http")) return href;
+    return `https://www.leboncoin.fr${href.startsWith("/") ? href : `/${href}`}`;
   }
 
   findImageContainer(item) {

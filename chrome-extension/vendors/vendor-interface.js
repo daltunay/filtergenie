@@ -1,11 +1,5 @@
 /**
  * Smart E-commerce Filter - Vendor Interface
- *
- * This module defines the base interface that all vendor-specific
- * implementations must follow. It provides:
- * - A registry for vendor implementations
- * - Common methods for detecting search pages
- * - Abstract methods that vendors must implement
  */
 
 window.SmartFilterVendors = window.SmartFilterVendors || {};
@@ -21,24 +15,24 @@ window.DEFAULT_FILTERS = [
  */
 class VendorInterface {
   name = "Unknown Vendor";
-
   searchPatterns = [];
 
   isSearchPage(url) {
-    const pathname = new URL(url).pathname;
-    return this.searchPatterns.some((pattern) => pathname.match(pattern));
+    return this.searchPatterns.some((pattern) =>
+      new URL(url).pathname.match(pattern),
+    );
   }
 
   getProductItems() {
-    throw new Error("getProductItems must be implemented by vendor");
+    throw new Error("Method not implemented");
   }
 
   extractUrl(link) {
-    throw new Error("extractUrl must be implemented by vendor");
+    throw new Error("Method not implemented");
   }
 
   findImageContainer(item) {
-    throw new Error("findImageContainer must be implemented by vendor");
+    throw new Error("Method not implemented");
   }
 }
 

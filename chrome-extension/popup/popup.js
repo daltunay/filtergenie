@@ -1,409 +1,473 @@
 /**
  * Smart E-commerce Filter - Popup UI Module
- *
- * This script handles the popup UI shown when clicking the extension icon.
- * It manages:
- * - Detection of compatible sites
- * - Loading and saving of filter settings
- * - Communication with content scripts
- * - User interaction with filter controls
- * - Application of filters to product pages
  */
 
-const supportedDomains = ["leboncoin.fr", "vinted.fr", "ebay.fr"];
+(function () {
+  const supportedDomains = ["leboncoin.fr", "vinted.fr", "ebay.fr"];
 
-const appState = {
-  isOnSupportedPage: false,
-  currentVendor: null,
-  currentHostname: "",
-  lastResults: null,
-  defaultFilters: window.DEFAULT_FILTERS || [],
+  const app = {
+    state: {
+      isOnSupportedPage: false,
+      currentVendor: null,
+      currentHostname: "",
+      lastResults: null,
+      defaultFilters: window.DEFAULT_FILTERS || [],
+    },
 
-  async init() {
-    await this.detectCurrentSite();
-    await this.loadStoredState();
-    await this.syncWithContentScript();
-    this.setupEventListeners();
-  },
+    elements: {},
 
-  async detectCurrentSite() {
-    try {
+    async init() {
+      this.cacheElements();
+      await this.detectCurrentSite();
+      await this.loadStoredState();
+      await this.syncWithContentScript();
+      this.setupEventListeners();
+    },
+
+    cacheElements() {
+      this.elements = {
+        statusIcon: document.querySelector(".status-icon"),
+        currentSite: document.getElementById("current-site"),
+        siteMessage: document.getElementById("site-message"),
+        filterPanel: document.getElementById("filter-panel"),
+        filterList: document.getElementById("filter-list"),
+        maxItems: document.getElementById("max-items"),
+        hideNonMatching: document.getElementById("hide-non-matching"),
+        resultsCounter: document.getElementById("results-counter"),
+        applyBtn: document.getElementById("apply-btn"),
+        resetBtn: document.getElementById("reset-btn"),
+        addFilterBtn: document.getElementById("add-filter-btn"),
+      };
+    },
+
+    async getCurrentTab() {
       const tabs = await chrome.tabs.query({
         active: true,
         currentWindow: true,
       });
-      const currentTab = tabs[0];
+      return tabs[0];
+    },
 
-      if (!currentTab?.url) {
-        this.updateSiteStatus(false);
-        return;
-      }
-
-      const url = new URL(currentTab.url);
-      this.currentHostname = url.hostname;
-
-      const isDomainSupported = supportedDomains.some((domain) =>
-        url.hostname.includes(domain),
-      );
-
-      if (!isDomainSupported) {
-        this.updateSiteStatus(false);
-        return;
-      }
-
+    async detectCurrentSite() {
       try {
-        const response = await chrome.tabs.sendMessage(currentTab.id, {
-          action: "getVendorInfo",
-        });
-
-        if (response?.success) {
-          this.isOnSupportedPage = true;
-          this.currentVendor = response.vendor;
-
-          if (window.DEFAULT_FILTERS?.length > 0) {
-            this.defaultFilters = window.DEFAULT_FILTERS;
-          }
-
-          this.updateSiteStatus(true, response.vendor);
+        const currentTab = await this.getCurrentTab();
+        if (!currentTab?.url) {
+          this.updateSiteStatus(false);
           return;
         }
+
+        const url = new URL(currentTab.url);
+        this.state.currentHostname = url.hostname;
+
+        const isDomainSupported = supportedDomains.some((domain) =>
+          url.hostname.includes(domain),
+        );
+
+        if (!isDomainSupported) {
+          this.updateSiteStatus(false);
+          return;
+        }
+
+        try {
+          const response = await chrome.tabs.sendMessage(currentTab.id, {
+            action: "getVendorInfo",
+          });
+
+          if (response?.success) {
+            this.state.isOnSupportedPage = true;
+            this.state.currentVendor = response.vendor;
+            this.state.defaultFilters =
+              response.defaultFilters?.length > 0
+                ? response.defaultFilters
+                : this.state.defaultFilters;
+
+            this.updateSiteStatus(true, response.vendor);
+            return;
+          }
+        } catch (error) {
+          console.log("Content script not ready");
+        }
+
+        this.state.isOnSupportedPage = true;
+        this.updateSiteStatus(true, {
+          name: supportedDomains.find((domain) =>
+            url.hostname.includes(domain),
+          ),
+        });
       } catch (error) {
-        console.log("Content script not ready:", error);
+        this.updateSiteStatus(false);
+      }
+    },
+
+    updateSiteStatus(isCompatible, vendor = null) {
+      const { statusIcon, currentSite, siteMessage, filterPanel } =
+        this.elements;
+
+      if (isCompatible) {
+        statusIcon.classList.remove("not-compatible");
+        statusIcon.classList.add("compatible");
+        statusIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>`;
+
+        currentSite.textContent = vendor ? vendor.name : "Compatible site";
+        siteMessage.textContent = "You can use filters on this site!";
+        filterPanel.style.display = "block";
+      } else {
+        statusIcon.classList.remove("compatible");
+        statusIcon.classList.add("not-compatible");
+        statusIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+        </svg>`;
+
+        currentSite.textContent = "Not a supported site";
+        siteMessage.textContent =
+          "Navigate to a supported e-commerce site to use this extension.";
+        filterPanel.style.display = "none";
+      }
+    },
+
+    async loadStoredState() {
+      if (!this.state.isOnSupportedPage) return;
+
+      const { currentHostname } = this.state;
+      const stored = await chrome.storage.local.get([
+        `filters_${currentHostname}`,
+        `settings_${currentHostname}`,
+        `lastApplied_${currentHostname}`,
+      ]);
+
+      const filters = stored[`filters_${currentHostname}`] || [];
+      const settings = stored[`settings_${currentHostname}`] || {
+        maxItems: 5,
+        hideNonMatching: false,
+      };
+
+      this.state.lastResults = stored[`lastApplied_${currentHostname}`] || null;
+
+      this.elements.maxItems.value = settings.maxItems;
+      this.elements.hideNonMatching.checked = settings.hideNonMatching;
+
+      const filterList = this.elements.filterList;
+      filterList.innerHTML = "";
+
+      if (filters.length > 0) {
+        filters.forEach((filter) => this.addFilterRow(filter));
+      } else {
+        this.addFilterRow("");
       }
 
-      this.isOnSupportedPage = true;
-      this.updateSiteStatus(true, {
-        name: supportedDomains.find((domain) => url.hostname.includes(domain)),
-      });
-    } catch (error) {
-      console.error("Error detecting site:", error);
-      this.updateSiteStatus(false);
-    }
-  },
+      this.updateResultsDisplay();
+      this.updateAddFilterButtonState();
+      this.updateRemoveButtonsState();
+    },
 
-  updateSiteStatus(isCompatible, vendor = null) {
-    const statusIcon = document.querySelector(".status-icon");
-    const currentSiteText = document.getElementById("current-site");
-    const siteMessage = document.getElementById("site-message");
-    const filterPanel = document.getElementById("filter-panel");
+    updateAddFilterButtonState() {
+      const filterInputs = document.querySelectorAll(".filter-input");
+      const addFilterBtn = this.elements.addFilterBtn;
 
-    if (isCompatible) {
-      statusIcon.classList.remove("not-compatible");
-      statusIcon.classList.add("compatible");
-      statusIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>`;
-
-      currentSiteText.textContent = vendor ? vendor.name : "Compatible site";
-      siteMessage.textContent = "You can use filters on this site!";
-      filterPanel.style.display = "block";
-    } else {
-      statusIcon.classList.remove("compatible");
-      statusIcon.classList.add("not-compatible");
-      statusIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-      </svg>`;
-
-      currentSiteText.textContent = "Not a supported site";
-      siteMessage.textContent =
-        "Navigate to a supported e-commerce site to use this extension.";
-      filterPanel.style.display = "none";
-    }
-  },
-
-  async loadStoredState() {
-    if (!this.isOnSupportedPage) return;
-
-    const stored = await chrome.storage.local.get([
-      `filters_${this.currentHostname}`,
-      `settings_${this.currentHostname}`,
-      `lastApplied_${this.currentHostname}`,
-    ]);
-
-    const filters = stored[`filters_${this.currentHostname}`] || [];
-    const settings = stored[`settings_${this.currentHostname}`] || {
-      maxItems: 5,
-      hideNonMatching: false,
-    };
-    this.lastResults = stored[`lastApplied_${this.currentHostname}`] || null;
-
-    document.getElementById("max-items").value = settings.maxItems;
-    document.getElementById("hide-non-matching").checked =
-      settings.hideNonMatching;
-
-    const filterList = document.getElementById("filter-list");
-    filterList.innerHTML = "";
-
-    if (filters.length > 0) {
-      filters.forEach((filter) => this.addFilterRow(filter));
-    } else {
-      this.defaultFilters.forEach((filter) => this.addFilterRow(filter));
-    }
-
-    this.updateResultsDisplay();
-  },
-
-  async syncWithContentScript() {
-    if (!this.isOnSupportedPage) return;
-
-    try {
-      const tabs = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
-      });
-      const response = await chrome.tabs.sendMessage(tabs[0].id, {
-        action: "getFilterState",
-      });
-
-      if (response?.success && response.isApplied) {
-        this.lastResults = {
-          matched: response.matched,
-          total: response.total,
-          timestamp: Date.now(),
-        };
-        this.updateResultsDisplay();
+      if (filterInputs.length === 0) {
+        addFilterBtn.disabled = false;
+        return;
       }
-    } catch (error) {
-      console.log("Could not sync with content script:", error);
-    }
-  },
 
-  updateResultsDisplay() {
-    const resultsCounter = document.getElementById("results-counter");
+      const lastInput = filterInputs[filterInputs.length - 1];
+      addFilterBtn.disabled = lastInput.value.trim() === "";
+    },
 
-    if (!this.lastResults) {
-      resultsCounter.innerHTML = "<span>No filters applied yet</span>";
-      return;
-    }
+    async syncWithContentScript() {
+      if (!this.state.isOnSupportedPage) return;
 
-    const { matched, total } = this.lastResults;
-    resultsCounter.innerHTML = `<span class="${matched === 0 ? "no-matches" : ""}">
-      Matched <strong>${matched}</strong> of ${total} items
-    </span>`;
-  },
+      try {
+        const tab = await this.getCurrentTab();
+        const response = await chrome.tabs.sendMessage(tab.id, {
+          action: "getFilterState",
+        });
 
-  setupEventListeners() {
-    document.getElementById("increase-max").addEventListener("click", () => {
-      const input = document.getElementById("max-items");
-      input.value = Math.min(
-        parseInt(input.max),
-        (parseInt(input.value) || 5) + 1,
+        if (response?.success && response.isApplied) {
+          this.state.lastResults = {
+            matched: response.matched,
+            total: response.total,
+            timestamp: Date.now(),
+          };
+          this.updateResultsDisplay();
+        }
+      } catch (error) {
+        console.log("Could not sync with content script");
+      }
+    },
+
+    updateResultsDisplay() {
+      const { resultsCounter } = this.elements;
+      const { lastResults } = this.state;
+
+      if (!lastResults) {
+        resultsCounter.innerHTML = "<span>No filters applied yet</span>";
+        return;
+      }
+
+      const { matched, total } = lastResults;
+      resultsCounter.innerHTML = `<span class="${matched === 0 ? "no-matches" : ""}">
+        Matched <strong>${matched}</strong> of ${total} items
+      </span>`;
+    },
+
+    setupEventListeners() {
+      document.getElementById("increase-max").addEventListener("click", () => {
+        const input = this.elements.maxItems;
+        input.value = Math.min(
+          parseInt(input.max),
+          (parseInt(input.value) || 5) + 1,
+        );
+        this.saveSettings();
+      });
+
+      document.getElementById("decrease-max").addEventListener("click", () => {
+        const input = this.elements.maxItems;
+        input.value = Math.max(
+          parseInt(input.min),
+          (parseInt(input.value) || 5) - 1,
+        );
+        this.saveSettings();
+      });
+
+      this.elements.maxItems.addEventListener("change", () =>
+        this.saveSettings(),
       );
-      this.saveSettings();
-    });
 
-    document.getElementById("decrease-max").addEventListener("click", () => {
-      const input = document.getElementById("max-items");
-      input.value = Math.max(
-        parseInt(input.min),
-        (parseInt(input.value) || 5) - 1,
-      );
-      this.saveSettings();
-    });
-
-    document
-      .getElementById("max-items")
-      .addEventListener("change", () => this.saveSettings());
-
-    document
-      .getElementById("hide-non-matching")
-      .addEventListener("change", async (e) => {
+      this.elements.hideNonMatching.addEventListener("change", async (e) => {
         this.saveSettings();
 
-        if (this.lastResults) {
+        if (this.state.lastResults) {
           try {
-            const tabs = await chrome.tabs.query({
-              active: true,
-              currentWindow: true,
-            });
-            await chrome.tabs.sendMessage(tabs[0].id, {
+            const tab = await this.getCurrentTab();
+            await chrome.tabs.sendMessage(tab.id, {
               action: "updateHideMode",
               hideNonMatching: e.target.checked,
             });
           } catch (error) {
-            console.error("Failed to update hide mode in real-time:", error);
+            console.error("Failed to update hide mode in real-time");
           }
         }
       });
 
-    document.getElementById("add-filter-btn").addEventListener("click", () => {
-      this.addFilterRow("");
-      this.saveFilters();
-    });
-
-    document
-      .getElementById("apply-btn")
-      .addEventListener("click", () => this.applyFilters());
-
-    document
-      .getElementById("reset-btn")
-      .addEventListener("click", () => this.resetFilters());
-  },
-
-  addFilterRow(value) {
-    const filterList = document.getElementById("filter-list");
-
-    const row = document.createElement("div");
-    row.className = "filter-row";
-
-    const input = document.createElement("input");
-    input.type = "text";
-    input.className = "filter-input";
-    input.value = value;
-    input.placeholder = value ? "" : "Enter filter criteria";
-
-    input.addEventListener("change", () => this.saveFilters());
-    input.addEventListener("blur", () => this.saveFilters());
-
-    const removeBtn = document.createElement("button");
-    removeBtn.className = "filter-remove-btn";
-    removeBtn.innerHTML = "×";
-    removeBtn.title = "Remove filter";
-    removeBtn.onclick = () => {
-      row.style.opacity = "0";
-      row.style.transform = "translateY(10px)";
-      setTimeout(() => {
-        row.remove();
+      this.elements.addFilterBtn.addEventListener("click", () => {
+        this.addFilterRow("");
         this.saveFilters();
-      }, 300);
-    };
-
-    row.appendChild(input);
-    row.appendChild(removeBtn);
-    filterList.appendChild(row);
-
-    if (!value) {
-      setTimeout(() => input.focus(), 50);
-    }
-
-    return row;
-  },
-
-  saveFilters() {
-    const filters = Array.from(document.querySelectorAll(".filter-input"))
-      .map((input) => input.value.trim())
-      .filter((text) => text !== "");
-
-    chrome.storage.local.set({
-      [`filters_${this.currentHostname}`]: filters,
-    });
-  },
-
-  saveSettings() {
-    const settings = {
-      maxItems: parseInt(document.getElementById("max-items").value) || 5,
-      hideNonMatching: document.getElementById("hide-non-matching").checked,
-    };
-
-    chrome.storage.local.set({
-      [`settings_${this.currentHostname}`]: settings,
-    });
-  },
-
-  async applyFilters() {
-    if (!this.isOnSupportedPage) return;
-
-    const applyBtn = document.getElementById("apply-btn");
-    applyBtn.textContent = "Filtering...";
-    applyBtn.disabled = true;
-    applyBtn.classList.add("btn-loading");
-
-    const resultsCounter = document.getElementById("results-counter");
-    resultsCounter.innerHTML =
-      "<span class='loading-text'>Processing...</span>";
-
-    const filters = Array.from(document.querySelectorAll(".filter-input"))
-      .map((input) => input.value.trim())
-      .filter((text) => text !== "");
-
-    this.saveFilters();
-
-    if (filters.length === 0) {
-      alert("Please add at least one filter");
-      this.resetApplyButton(applyBtn);
-      return;
-    }
-
-    const maxItems = parseInt(document.getElementById("max-items").value) || 5;
-    const hideNonMatching =
-      document.getElementById("hide-non-matching").checked;
-    this.saveSettings();
-
-    try {
-      const tabs = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
-      });
-      const response = await chrome.tabs.sendMessage(tabs[0].id, {
-        action: "applyFilters",
-        filters,
-        maxItems,
-        hideNonMatching,
       });
 
-      if (response?.success) {
-        this.lastResults = {
-          matched: response.matched,
-          total: response.total,
-          timestamp: Date.now(),
+      this.elements.applyBtn.addEventListener("click", () =>
+        this.applyFilters(),
+      );
+      this.elements.resetBtn.addEventListener("click", () =>
+        this.resetFilters(),
+      );
+    },
+
+    addFilterRow(value) {
+      const filterList = this.elements.filterList;
+
+      const row = document.createElement("div");
+      row.className = "filter-row";
+
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "filter-input";
+      input.value = value;
+      input.placeholder = value ? "" : "Enter filter criteria";
+
+      input.addEventListener("change", () => {
+        this.saveFilters();
+        this.updateAddFilterButtonState();
+      });
+
+      input.addEventListener("input", () => {
+        this.updateAddFilterButtonState();
+      });
+
+      input.addEventListener("blur", () => {
+        this.saveFilters();
+        this.updateAddFilterButtonState();
+      });
+
+      const removeBtn = document.createElement("button");
+      removeBtn.className = "filter-remove-btn";
+      removeBtn.innerHTML = "×";
+      removeBtn.title = "Remove filter";
+      removeBtn.onclick = () => {
+        if (document.querySelectorAll(".filter-row").length <= 1) {
+          return;
+        }
+
+        row.style.opacity = "0";
+        row.style.transform = "translateY(10px)";
+        setTimeout(() => {
+          row.remove();
+          this.saveFilters();
+
+          if (document.querySelectorAll(".filter-row").length === 0) {
+            this.addFilterRow("");
+          }
+
+          this.updateAddFilterButtonState();
+          this.updateRemoveButtonsState();
+        }, 300);
+      };
+
+      row.appendChild(input);
+      row.appendChild(removeBtn);
+      filterList.appendChild(row);
+
+      if (!value) {
+        setTimeout(() => input.focus(), 50);
+      }
+
+      this.updateAddFilterButtonState();
+      this.updateRemoveButtonsState();
+
+      return row;
+    },
+
+    updateRemoveButtonsState() {
+      const filterRows = document.querySelectorAll(".filter-row");
+      const removeButtons = document.querySelectorAll(".filter-remove-btn");
+
+      if (filterRows.length <= 1) {
+        removeButtons.forEach((btn) => {
+          btn.disabled = true;
+          btn.classList.add("btn-disabled");
+          btn.title = "Cannot remove the last filter";
+        });
+      } else {
+        removeButtons.forEach((btn) => {
+          btn.disabled = false;
+          btn.classList.remove("btn-disabled");
+          btn.title = "Remove filter";
+        });
+      }
+    },
+
+    saveFilters() {
+      const filters = Array.from(document.querySelectorAll(".filter-input"))
+        .map((input) => input.value.trim())
+        .filter((text) => text !== "");
+
+      chrome.storage.local.set({
+        [`filters_${this.state.currentHostname}`]: filters,
+      });
+    },
+
+    saveSettings() {
+      const settings = {
+        maxItems: parseInt(this.elements.maxItems.value) || 5,
+        hideNonMatching: this.elements.hideNonMatching.checked,
+      };
+
+      chrome.storage.local.set({
+        [`settings_${this.state.currentHostname}`]: settings,
+      });
+    },
+
+    async applyFilters() {
+      if (!this.state.isOnSupportedPage) return;
+
+      const { applyBtn, resultsCounter } = this.elements;
+
+      applyBtn.textContent = "Filtering...";
+      applyBtn.disabled = true;
+      applyBtn.classList.add("btn-loading");
+      resultsCounter.innerHTML =
+        "<span class='loading-text'>Processing...</span>";
+
+      const filters = Array.from(document.querySelectorAll(".filter-input"))
+        .map((input) => input.value.trim())
+        .filter((text) => text !== "");
+
+      this.saveFilters();
+
+      if (filters.length === 0) {
+        alert("Please add at least one filter");
+        this.resetApplyButton();
+        return;
+      }
+
+      const maxItems = parseInt(this.elements.maxItems.value) || 5;
+      const hideNonMatching = this.elements.hideNonMatching.checked;
+      this.saveSettings();
+
+      try {
+        const tab = await this.getCurrentTab();
+        const response = await chrome.tabs.sendMessage(tab.id, {
+          action: "applyFilters",
           filters,
-        };
-
-        chrome.storage.local.set({
-          [`lastApplied_${this.currentHostname}`]: this.lastResults,
+          maxItems,
+          hideNonMatching,
         });
 
-        this.updateResultsDisplay();
-      } else {
-        const errorMessage = response?.error || "Unknown error";
-        resultsCounter.innerHTML = `<span class="error-text">Error: ${errorMessage}</span>`;
+        if (response?.success) {
+          this.state.lastResults = {
+            matched: response.matched,
+            total: response.total,
+            timestamp: Date.now(),
+            filters,
+          };
+
+          chrome.storage.local.set({
+            [`lastApplied_${this.state.currentHostname}`]:
+              this.state.lastResults,
+          });
+
+          this.updateResultsDisplay();
+        } else {
+          const errorMessage = response?.error || "Unknown error";
+          resultsCounter.innerHTML = `<span class="error-text">Error: ${errorMessage}</span>`;
+        }
+      } catch (error) {
+        resultsCounter.innerHTML = `<span class="error-text">Error: Content script not available</span>`;
       }
-    } catch (error) {
-      resultsCounter.innerHTML = `<span class="error-text">Error: Content script not available</span>`;
-      console.error("Failed to communicate with content script:", error);
-    }
 
-    this.resetApplyButton(applyBtn);
-  },
+      this.resetApplyButton();
+    },
 
-  resetApplyButton(button) {
-    button.innerHTML = `<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>Apply Filters`;
-    button.disabled = false;
-    button.classList.remove("btn-loading");
-  },
+    resetApplyButton() {
+      const { applyBtn } = this.elements;
+      applyBtn.innerHTML = `<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>Apply Filters`;
+      applyBtn.disabled = false;
+      applyBtn.classList.remove("btn-loading");
+    },
 
-  async resetFilters() {
-    if (!this.isOnSupportedPage) return;
+    async resetFilters() {
+      if (!this.state.isOnSupportedPage) return;
 
-    try {
-      const filterList = document.getElementById("filter-list");
-      filterList.innerHTML = "";
+      try {
+        this.elements.filterList.innerHTML = "";
+        this.state.defaultFilters.forEach((filter) =>
+          this.addFilterRow(filter),
+        );
 
-      this.defaultFilters.forEach((filter) => this.addFilterRow(filter));
+        if (this.state.defaultFilters.length === 0) {
+          this.addFilterRow("");
+        }
 
-      this.saveFilters();
+        this.saveFilters();
+        this.updateAddFilterButtonState();
+        this.updateRemoveButtonsState();
 
-      const tabs = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
-      });
-      await chrome.tabs.sendMessage(tabs[0].id, {
-        action: "resetFilters",
-      });
+        const tab = await this.getCurrentTab();
+        await chrome.tabs.sendMessage(tab.id, { action: "resetFilters" });
 
-      this.lastResults = null;
-      chrome.storage.local.remove([`lastApplied_${this.currentHostname}`]);
+        this.state.lastResults = null;
+        chrome.storage.local.remove([
+          `lastApplied_${this.state.currentHostname}`,
+        ]);
+        this.elements.resultsCounter.innerHTML = "<span>Filters reset</span>";
+      } catch (error) {
+        console.error("Failed to reset filters:", error);
+      }
+    },
+  };
 
-      const resultsCounter = document.getElementById("results-counter");
-      resultsCounter.innerHTML = "<span>Filters reset</span>";
-    } catch (error) {
-      console.error("Failed to reset filters:", error);
-    }
-  },
-};
-
-document.addEventListener("DOMContentLoaded", () => {
-  appState.init();
-});
+  document.addEventListener("DOMContentLoaded", () => app.init());
+})();

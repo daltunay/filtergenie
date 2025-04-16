@@ -14,36 +14,33 @@ class SmartFilterCore {
 
   _setupStyles() {
     const styleId = "smart-filter-styles";
-    const existingStyle = document.getElementById(styleId);
-    if (existingStyle) existingStyle.remove();
+    document.getElementById(styleId)?.remove();
 
-    document.head.appendChild(
-      Object.assign(document.createElement("style"), {
-        id: styleId,
-        textContent: `
-        .smart-filter-hidden {
-          display: none !important;
-          visibility: hidden !important;
-          position: absolute !important;
-          left: -9999px !important;
-          pointer-events: none !important;
-          height: 0 !important;
-          overflow: hidden !important;
-        }
-        
-        .smart-filter-dimmed {
-          opacity: 0.5 !important;
-          filter: grayscale(70%) !important;
-        }
+    const styleEl = document.createElement("style");
+    styleEl.id = styleId;
+    styleEl.textContent = `
+      .smart-filter-hidden {
+        display: none !important;
+        visibility: hidden !important;
+        position: absolute !important;
+        left: -9999px !important;
+        pointer-events: none !important;
+        height: 0 !important;
+        overflow: hidden !important;
+      }
+      
+      .smart-filter-dimmed {
+        opacity: 0.5 !important;
+        filter: grayscale(70%) !important;
+      }
 
-        .badge-container {
-          z-index: 9999 !important;
-          opacity: 1 !important;
-          visibility: visible !important;
-        }
-      `,
-      }),
-    );
+      .badge-container {
+        z-index: 9999 !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+      }
+    `;
+    document.head.appendChild(styleEl);
   }
 
   async applyFilters(filters, maxItems, hideNonMatching) {
@@ -52,13 +49,13 @@ class SmartFilterCore {
     const productItems = Array.from(this.vendor.getProductItems())
       .map((item) => {
         const link = item.querySelector("a");
-        if (!link || !link.getAttribute("href")) return null;
+        if (!link?.getAttribute("href")) return null;
         return { element: item, url: this.vendor.extractUrl(link) };
       })
       .filter(Boolean)
       .slice(0, maxItems);
 
-    if (productItems.length === 0) {
+    if (!productItems.length) {
       return { success: false, error: "No products found" };
     }
 
@@ -69,43 +66,38 @@ class SmartFilterCore {
         maxItems,
       );
 
-      if (response?.success) {
-        this.filteredProducts = {
-          products: response.products,
-          items: productItems,
-          hideNonMatching,
-          filters,
-        };
-
-        const productsByUrl = Object.fromEntries(
-          response.products.map((product) => [product.url, product]),
-        );
-
-        let matchCount = 0;
-
-        productItems.forEach(({ element, url }) => {
-          const product = productsByUrl[url];
-          if (product) {
-            this._applyFilteringToItem(element, product, hideNonMatching);
-            if (product.matches_filters) matchCount++;
-          }
-        });
-
-        this.lastResults = {
-          total: productItems.length,
-          matched: matchCount,
-          filters,
-        };
-        document.documentElement.setAttribute("data-smart-filtered", "true");
-
-        return {
-          success: true,
-          matched: matchCount,
-          total: productItems.length,
-        };
-      } else {
+      if (!response?.success) {
         return { success: false, error: response?.error || "Unknown error" };
       }
+
+      this.filteredProducts = {
+        products: response.products,
+        items: productItems,
+        hideNonMatching,
+        filters,
+      };
+
+      const productsByUrl = Object.fromEntries(
+        response.products.map((product) => [product.url, product]),
+      );
+
+      let matchCount = 0;
+      productItems.forEach(({ element, url }) => {
+        const product = productsByUrl[url];
+        if (product) {
+          this._applyFilteringToItem(element, product, hideNonMatching);
+          if (product.matches_filters) matchCount++;
+        }
+      });
+
+      this.lastResults = {
+        total: productItems.length,
+        matched: matchCount,
+        filters,
+      };
+      document.documentElement.setAttribute("data-smart-filtered", "true");
+
+      return { success: true, matched: matchCount, total: productItems.length };
     } catch (error) {
       return { success: false, error: error.message };
     }
@@ -115,10 +107,12 @@ class SmartFilterCore {
     this.filteredProducts = null;
     this.lastResults = { total: 0, matched: 0 };
 
-    this.hiddenElements.forEach((element) => this._showElement(element));
+    this.hiddenElements.forEach((el) =>
+      this._toggleElementVisibility(el, true),
+    );
     this.hiddenElements.clear();
 
-    this.dimmedElements.forEach((element) => this._undimElement(element));
+    this.dimmedElements.forEach((el) => this._toggleElementOpacity(el, false));
     this.dimmedElements.clear();
 
     document.querySelectorAll(".badge-container").forEach((el) => el.remove());
@@ -132,15 +126,15 @@ class SmartFilterCore {
 
     if (!product.matches_filters) {
       if (hideNonMatching) {
-        this._hideElement(element);
+        this._toggleElementVisibility(element, false);
         this.hiddenElements.add(element);
       } else {
-        this._dimElement(element);
+        this._toggleElementOpacity(element, true);
         this.dimmedElements.add(element);
       }
     }
 
-    if (product.filters?.length > 0) {
+    if (product.filters?.length) {
       const targetEl = this.vendor.findImageContainer(element);
       element.querySelectorAll(".badge-container").forEach((el) => el.remove());
 
@@ -161,22 +155,18 @@ class SmartFilterCore {
     }
   }
 
-  _hideElement(element) {
-    element.classList.add("smart-filter-hidden");
-    element.setAttribute("aria-hidden", "true");
+  _toggleElementVisibility(element, show) {
+    if (show) {
+      element.classList.remove("smart-filter-hidden");
+      element.removeAttribute("aria-hidden");
+    } else {
+      element.classList.add("smart-filter-hidden");
+      element.setAttribute("aria-hidden", "true");
+    }
   }
 
-  _showElement(element) {
-    element.classList.remove("smart-filter-hidden");
-    element.removeAttribute("aria-hidden");
-  }
-
-  _dimElement(element) {
-    element.classList.add("smart-filter-dimmed");
-  }
-
-  _undimElement(element) {
-    element.classList.remove("smart-filter-dimmed");
+  _toggleElementOpacity(element, dim) {
+    element.classList.toggle("smart-filter-dimmed", dim);
   }
 
   updateHideMode(hideNonMatching) {
@@ -184,10 +174,12 @@ class SmartFilterCore {
 
     this.filteredProducts.hideNonMatching = hideNonMatching;
 
-    this.hiddenElements.forEach((element) => this._showElement(element));
+    this.hiddenElements.forEach((el) =>
+      this._toggleElementVisibility(el, true),
+    );
     this.hiddenElements.clear();
 
-    this.dimmedElements.forEach((element) => this._undimElement(element));
+    this.dimmedElements.forEach((el) => this._toggleElementOpacity(el, false));
     this.dimmedElements.clear();
 
     const productsByUrl = Object.fromEntries(
@@ -198,10 +190,10 @@ class SmartFilterCore {
       const product = productsByUrl[url];
       if (product && !product.matches_filters) {
         if (hideNonMatching) {
-          this._hideElement(element);
+          this._toggleElementVisibility(element, false);
           this.hiddenElements.add(element);
         } else {
-          this._dimElement(element);
+          this._toggleElementOpacity(element, true);
           this.dimmedElements.add(element);
         }
       }

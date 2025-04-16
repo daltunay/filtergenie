@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from analyzer import ProductAnalyzer, ProductFilter
 from cache import _cache, cached, clear_cache
-from scrape import get_product_id_from_url, scrape_product
+from scrape import get_product_id_from_url, get_scraper_class_for_url, scrape_product
 
 log = structlog.get_logger(name="api")
 
@@ -270,6 +270,24 @@ async def extension_filter(request: BatchFilterRequest):
         raise HTTPException(
             status_code=500, detail=f"Error filtering products: {str(e)}"
         ) from e
+
+
+@app.get("/extension/check-url")
+async def check_url(url: str):
+    """
+    Check if a URL is supported by any scraper and return relevant information.
+    """
+    scraper_class = get_scraper_class_for_url(url)
+    if not scraper_class:
+        return {"supported": False}
+
+    page_type = scraper_class.find_page_type(url)
+    return {
+        "supported": True,
+        "vendor": scraper_class.get_vendor_name(),
+        "page_type": page_type,
+        "is_search_page": page_type == "search",
+    }
 
 
 @app.exception_handler(Exception)

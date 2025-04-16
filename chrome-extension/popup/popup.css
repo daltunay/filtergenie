@@ -233,6 +233,19 @@ html {
   transform: scale(1.05);
 }
 
+.filter-remove-btn.btn-disabled {
+  background-color: #d1d5db;
+  color: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+}
+
+.filter-remove-btn.btn-disabled:hover {
+  background-color: #d1d5db;
+  transform: none;
+}
+
 .filter-button-row {
   margin-top: 12px;
   display: flex;
@@ -251,6 +264,18 @@ html {
 .add-filter-btn:hover {
   background-color: var(--accent-hover);
   transform: translateY(-1px);
+}
+
+.add-filter-btn:disabled {
+  background-color: #d1d5db;
+  color: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.add-filter-btn:disabled:hover {
+  background-color: #d1d5db;
+  transform: none;
 }
 
 .btn {
