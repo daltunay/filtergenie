@@ -66,6 +66,14 @@ class Product(BaseModel):
     def matches_filters(self) -> bool:
         """Check if the product matches all filters."""
         return all(filter_.value for filter_ in self.filters)
+    
+    def matches_min_filters(self, min_count: int) -> bool:
+        """Check if the product matches at least min_count filters."""
+        if not self.filters:
+            return True
+        
+        matching_count = sum(1 for filter_ in self.filters if filter_.value)
+        return matching_count >= min_count
 
 
 class DynamicSchema(BaseModel):

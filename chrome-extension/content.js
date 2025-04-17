@@ -29,12 +29,11 @@
 
     console.log(`Smart Filter: Initializing on ${vendor.name} search page`);
     smartFilterInstance = new SmartFilterCore(vendor);
-    
+
     // Load filter state but don't automatically apply filters
     await loadFilterState();
   }
 
-  // Renamed from reapplyStoredFilters to loadFilterState
   async function loadFilterState() {
     if (!smartFilterInstance) return;
 
@@ -47,13 +46,15 @@
       ]);
 
       // Only load the state but don't apply filters automatically
-      console.log("Smart Filter: Filter state loaded but not applied automatically");
-      
+      console.log(
+        "Smart Filter: Filter state loaded but not applied automatically",
+      );
+
       // Send a message to the popup to indicate we're ready
       try {
         chrome.runtime.sendMessage({
           action: "contentScriptReady",
-          hostname: hostname
+          hostname: hostname,
         });
       } catch (error) {
         // Popup might not be open, which is fine
@@ -87,12 +88,14 @@
       };
     },
 
-    updateHideMode: (request) => {
+    updateFilterThreshold: (request) => {
       if (!smartFilterInstance?.filteredProducts)
         return { success: false, error: "No active filters to update" };
 
-      smartFilterInstance.updateHideMode(request.hideNonMatching);
-      return { success: true };
+      const result = smartFilterInstance.updateFilterThreshold(
+        request.filterThreshold,
+      );
+      return { success: true, matched: result.matched, total: result.total };
     },
 
     applyFilters: async (request) => {
@@ -100,7 +103,7 @@
         return await smartFilterInstance.applyFilters(
           request.filters,
           request.maxItems,
-          request.hideNonMatching,
+          request.filterThreshold,
         );
       } catch (error) {
         return {
@@ -119,6 +122,7 @@
     },
   };
 
+  // Handle messages from popup
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const handler = messageHandlers[request.action];
 
@@ -127,6 +131,7 @@
       return true;
     }
 
+    // Initialize filter if needed (except for getVendorInfo)
     if (!smartFilterInstance && request.action !== "getVendorInfo") {
       init();
       if (!smartFilterInstance) {
@@ -135,6 +140,7 @@
       }
     }
 
+    // Call handler and respond
     const response = handler(request);
 
     if (response instanceof Promise) {

@@ -43,7 +43,7 @@ class SmartFilterCore {
     document.head.appendChild(styleEl);
   }
 
-  async applyFilters(filters, maxItems, hideNonMatching) {
+  async applyFilters(filters, maxItems, filterThreshold) {
     this.resetFiltering();
 
     const productItems = Array.from(this.vendor.getProductItems())
@@ -73,7 +73,7 @@ class SmartFilterCore {
       this.filteredProducts = {
         products: response.products,
         items: productItems,
-        hideNonMatching,
+        filterThreshold,
         filters,
       };
 
@@ -85,8 +85,16 @@ class SmartFilterCore {
       productItems.forEach(({ element, url }) => {
         const product = productsByUrl[url];
         if (product) {
-          this._applyFilteringToItem(element, product, hideNonMatching);
-          if (product.matches_filters) matchCount++;
+          this._applyFilteringToItem(element, product, filterThreshold);
+
+          const matchingFilters = product.filters.filter((f) => f.value).length;
+          const totalFilters = product.filters.length;
+          const thresholdToApply =
+            filterThreshold === totalFilters
+              ? totalFilters
+              : Math.min(filterThreshold, totalFilters);
+
+          if (matchingFilters >= thresholdToApply) matchCount++;
         }
       });
 
@@ -119,19 +127,23 @@ class SmartFilterCore {
     document.documentElement.removeAttribute("data-smart-filtered");
   }
 
-  _applyFilteringToItem(element, product, hideNonMatching) {
+  _applyFilteringToItem(element, product, filterThreshold) {
     if (window.getComputedStyle(element).position === "static") {
       element.style.position = "relative";
     }
 
-    if (!product.matches_filters) {
-      if (hideNonMatching) {
-        this._toggleElementVisibility(element, false);
-        this.hiddenElements.add(element);
-      } else {
-        this._toggleElementOpacity(element, true);
-        this.dimmedElements.add(element);
-      }
+    const matchingFilters = product.filters.filter((f) => f.value).length;
+    const totalFilters = product.filters.length;
+    const thresholdToApply =
+      filterThreshold === totalFilters
+        ? totalFilters
+        : Math.min(filterThreshold, totalFilters);
+
+    const meetsThreshold = matchingFilters >= thresholdToApply;
+
+    if (!meetsThreshold) {
+      this._toggleElementOpacity(element, true);
+      this.dimmedElements.add(element);
     }
 
     if (product.filters?.length) {
@@ -147,6 +159,11 @@ class SmartFilterCore {
         badge.textContent = `${filter.value ? "✓" : "✗"} ${filter.description}`;
         badgeContainer.appendChild(badge);
       });
+
+      const countBadge = document.createElement("div");
+      countBadge.className = `filter-badge ${!meetsThreshold ? "filter-badge-negative" : ""}`;
+      countBadge.textContent = `${matchingFilters}/${totalFilters} filters matched`;
+      badgeContainer.appendChild(countBadge);
 
       targetEl.appendChild(badgeContainer);
       if (window.getComputedStyle(targetEl).position === "static") {
@@ -198,6 +215,44 @@ class SmartFilterCore {
         }
       }
     });
+  }
+
+  updateFilterThreshold(filterThreshold) {
+    if (!this.filteredProducts) return;
+
+    this.filteredProducts.filterThreshold = filterThreshold;
+
+    this.hiddenElements.forEach((el) =>
+      this._toggleElementVisibility(el, true),
+    );
+    this.hiddenElements.clear();
+
+    this.dimmedElements.forEach((el) => this._toggleElementOpacity(el, false));
+    this.dimmedElements.clear();
+
+    const productsByUrl = Object.fromEntries(
+      this.filteredProducts.products.map((product) => [product.url, product]),
+    );
+
+    let matchCount = 0;
+    this.filteredProducts.items.forEach(({ element, url }) => {
+      const product = productsByUrl[url];
+      if (product) {
+        this._applyFilteringToItem(element, product, filterThreshold);
+
+        const matchingFilters = product.filters.filter((f) => f.value).length;
+        const totalFilters = product.filters.length;
+        const thresholdToApply =
+          filterThreshold === totalFilters
+            ? totalFilters
+            : Math.min(filterThreshold, totalFilters);
+
+        if (matchingFilters >= thresholdToApply) matchCount++;
+      }
+    });
+
+    this.lastResults.matched = matchCount;
+    return { matched: matchCount, total: this.lastResults.total };
   }
 
   async _callFilterAPI(filters, productUrls, maxItems) {

@@ -253,6 +253,13 @@ async def extension_filter(request: BatchFilterRequest):
         duration = __import__("time").time() - start_time
 
         valid_results = [result for result in results if result is not None]
+        
+        # Include the additional match_count data for the threshold feature
+        for result in valid_results:
+            if "filters" in result:
+                result["match_count"] = sum(1 for f in result["filters"] if f.get("value", False))
+                result["total_filters"] = len(result["filters"])
+        
         matched_results = [r for r in valid_results if r["matches_filters"]]
 
         log.info(
