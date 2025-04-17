@@ -10,5 +10,4 @@ wheels/
 .venv
 
 # Other
-uv.lock
 .env

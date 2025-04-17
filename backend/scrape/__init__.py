@@ -3,8 +3,8 @@ from contextlib import asynccontextmanager
 
 import structlog
 
-from analyzer import Product
-from cache import cached
+from backend.analyzer.models import Product
+from backend.common.cache import cached
 
 from .base import BaseScraper
 from .vendors.ebay import EbayScraper

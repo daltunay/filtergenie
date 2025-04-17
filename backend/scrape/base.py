@@ -7,8 +7,8 @@ import structlog
 from bs4 import BeautifulSoup
 from playwright.async_api import async_playwright
 
-from analyzer import Product, ProductImage
-from cache import cached
+from backend.analyzer.models import Product, ProductImage
+from backend.common.cache import cached
 
 
 class BaseScraper(ABC):

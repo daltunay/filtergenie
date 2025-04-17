@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup
 
-from ..base import BaseScraper
+from backend.scrape.base import BaseScraper
 
 
 class EbayScraper(BaseScraper):

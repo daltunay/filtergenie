@@ -10,6 +10,7 @@ dependencies = [
     "openai>=1.73.0",
     "pillow>=11.1.0",
     "playwright>=1.51.0",
+    "pydantic-settings>=2.8.1",
     "python-dotenv>=1.1.0",
     "requests>=2.32.3",
     "structlog>=25.2.0",

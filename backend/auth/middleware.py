@@ -1,7 +1,7 @@
-import os
-
 from fastapi import HTTPException, Security, status
 from fastapi.security import APIKeyHeader
+
+from backend.config import settings
 
 # Define API key header
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
@@ -10,14 +10,14 @@ api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 public_paths = ["/health"]
 
 
-def get_api_key(api_key: str = Security(api_key_header)) -> bool:
+def verify_api_key(api_key: str = Security(api_key_header)) -> bool:
     """
     Validate API key if one is set in environment.
 
     If API_KEY env var is not set, authentication is disabled.
     """
     # If API_KEY is not set in environment, skip authentication
-    required_key = os.getenv("API_KEY")
+    required_key = settings.api_key
     if not required_key:
         return True
 

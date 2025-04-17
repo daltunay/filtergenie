@@ -1,15 +1,12 @@
-import os
 import typing as tp
 from textwrap import dedent
 
 import structlog
-from PIL.Image import Image
 from pydantic import BaseModel, Field, create_model
-from pydantic.networks import HttpUrl
-from pydantic.types import Base64Str, FilePath
 
-from cache import cached
-from utils import image_to_base64, load_img, resize_img, sanitize_text
+from backend.analyzer.models import Product, ProductImage
+from backend.common.cache import cached
+from backend.config import settings
 
 if tp.TYPE_CHECKING:
     from openai import AsyncOpenAI as OpenAI
@@ -18,62 +15,6 @@ if tp.TYPE_CHECKING:
         from outlines.models import TransformersVision
     except ImportError:
         pass
-
-
-class ProductImage(BaseModel):
-    url_or_path: HttpUrl | FilePath = Field(default=None)
-    image: Image = Field(default=None, repr=False, exclude=True, init=False)
-    base64: Base64Str = Field(default=None, repr=False, exclude=True, init=False)
-
-    model_config = {"arbitrary_types_allowed": True}
-
-    def model_post_init(self, __context):
-        self.image = resize_img(load_img(self.url_or_path.__str__()))
-        self.base64 = image_to_base64(self.image)
-
-
-class ProductFilter(BaseModel):
-    description: str = Field(default="")
-    value: bool | None = Field(default=None, init=False)
-    name: str = Field(default="", init=False)
-
-    def model_post_init(self, __context):
-        self.name = sanitize_text(self.description)
-
-
-class Product(BaseModel):
-    """Class to hold product data scraped from websites."""
-
-    id: int | None = Field(default=None, init=False)
-    vendor: tp.Literal["ebay", "leboncoin", "vinted"] | None = Field(
-        default=None, init=False
-    )
-    url: HttpUrl | None = Field(default=None)
-    title: str = Field(default="")
-    description: str = Field(default="")
-    images: list[ProductImage] = Field(default_factory=list)
-    filters: list[ProductFilter] = Field(default_factory=list)
-
-    def model_post_init(self, __context):
-        if self.url is not None:
-            from scrape import get_product_id_from_url, get_vendor_for_url
-
-            self.url = HttpUrl(self.url.__str__().split("?")[0])
-            self.vendor = get_vendor_for_url(self.url.__str__())
-            self.id = get_product_id_from_url(self.url.__str__())
-
-    @property
-    def matches_filters(self) -> bool:
-        """Check if the product matches all filters."""
-        return all(filter_.value for filter_ in self.filters)
-
-    def matches_min_filters(self, min_count: int) -> bool:
-        """Check if the product matches at least min_count filters."""
-        if not self.filters:
-            return True
-
-        matching_count = sum(1 for filter_ in self.filters if filter_.value)
-        return matching_count >= min_count
 
 
 class DynamicSchema(BaseModel):
@@ -96,16 +37,25 @@ class ProductAnalyzer:
         """
     )
 
-    def __init__(self, use_local: bool = False):
+    def __init__(self, use_local: bool | None = None):
         """Initialize the analyzer with either a local VLM model or OpenAI."""
         self.log = structlog.get_logger(name="analyzer")
+
+        # Use settings if not explicitly provided
+        if use_local is None:
+            use_local = settings.use_local_model
+
         self.log.info("Initializing ProductAnalyzer", use_local=use_local)
 
         if use_local:
-            self.model = self._create_local_model()
+            self.model = self._create_local_model(
+                model_name=settings.local_model_name,
+                dtype=settings.local_model_dtype,
+                device=settings.local_model_device,
+            )
             self.predict = self._predict_local
         else:
-            self.model = self._create_openai_model()
+            self.model = self._create_openai_model(model_name=settings.model_name)
             self.predict = self._predict_openai
 
     def _create_local_model(
@@ -146,16 +96,13 @@ class ProductAnalyzer:
         self, model_name: str = "gemini-2.0-flash-lite"
     ) -> "OpenAI":
         """Create an OpenAI/Gemini model with async client."""
-        from dotenv import load_dotenv
         from openai import AsyncOpenAI as OpenAI
-
-        load_dotenv()
 
         self.log.debug("Creating API-based model", model_name=model_name)
         self.model_name = model_name
         return OpenAI(
-            base_url=os.getenv("OPENAI_BASE_URL"),
-            api_key=os.getenv("OPENAI_API_KEY"),
+            base_url=settings.openai_base_url,
+            api_key=settings.openai_api_key,
         )
 
     async def _predict_openai(
@@ -188,7 +135,7 @@ class ProductAnalyzer:
 
     @staticmethod
     def _create_filter_schema(
-        filters: list[ProductFilter],
+        filters: list[tp.Any],
     ) -> type[DynamicSchema]:
         """Create a Pydantic model schema based on filters list."""
         field_definitions = {

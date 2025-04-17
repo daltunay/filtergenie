@@ -1,87 +1,43 @@
 import asyncio
 import hashlib
-import os
 
 import structlog
-from fastapi import Depends, FastAPI, HTTPException, status
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, status
 
-from analyzer import ProductAnalyzer, ProductFilter
-from auth import get_api_key
-from cache import _cache, cached, clear_cache
-from scrape import get_product_id_from_url, get_scraper_class_for_url, scrape_product
+from backend.analyzer import ProductAnalyzer, ProductFilter
+from backend.api.models import (
+    AnalysisRequest,
+    AnalysisResponse,
+    BatchFilterRequest,
+    ExtensionResponse,
+    ProductResponse,
+)
+from backend.auth.middleware import verify_api_key
+from backend.common.cache import _cache, cached, clear_cache
+from backend.config import settings
+from backend.scrape import get_product_id_from_url, scrape_product
 
+router = APIRouter(dependencies=[Depends(verify_api_key)])
 log = structlog.get_logger(name="api")
 
-app = FastAPI(
-    title="Product Filter API",
-    description="API for validating products against filters",
-    dependencies=[Depends(get_api_key)],  # Apply API key auth globally
-)
+# Initialize analyzer
+analyzer = ProductAnalyzer(use_local=settings.use_local_model)
 
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-analyzer = ProductAnalyzer(
-    use_local=os.getenv("USE_LOCAL", "false").lower() in ["1", "true", "yes"],
-)
-
-
-class ProductRequest(BaseModel):
-    url: str
-
-
-class ProductResponse(BaseModel):
-    id: int | None
-    url: str
-    title: str
-    vendor: str | None
-
-
-class AnalysisRequest(BaseModel):
-    filters: list[str]
-
-
-class AnalysisResponse(BaseModel):
-    id: int | None
-    url: str
-    title: str
-    matches_filters: bool
-    filters: list[dict]
-
-
-class BatchFilterRequest(BaseModel):
-    filters: list[str]
-    product_urls: list[str]
-    max_products: int = 10
-
-
-class ExtensionResponse(BaseModel):
-    products: list[dict]
-
-
-@app.get("/health")
+@router.get("/health")
 async def health_check():
     """Health check endpoint."""
     return {"status": "ok"}
 
 
-@app.post("/cache/clear")
+@router.post("/cache/clear")
 async def clear_cache_endpoint():
     """Clear the application cache."""
     clear_cache()
     return {"status": "ok", "message": "Cache cleared"}
 
 
-@app.get(
+@router.get(
     "/product/{product_url:path}",
     response_model=ProductResponse,
 )
@@ -108,7 +64,7 @@ async def get_product(product_url: str):
         ) from e
 
 
-@app.post(
+@router.post(
     "/product/analyze",
     response_model=AnalysisResponse,
 )
@@ -232,7 +188,7 @@ async def analyze_product_safely(url: str, filters: list[str], product_id: int):
         return None
 
 
-@app.post(
+@router.post(
     "/extension/filter",
     response_model=ExtensionResponse,
 )
@@ -289,11 +245,13 @@ async def extension_filter(request: BatchFilterRequest):
         ) from e
 
 
-@app.get("/extension/check-url")
+@router.get("/extension/check-url")
 async def check_url(url: str):
     """
     Check if a URL is supported by any scraper and return relevant information.
     """
+    from backend.scrape import get_scraper_class_for_url
+
     scraper_class = get_scraper_class_for_url(url)
     if not scraper_class:
         return {"supported": False}
@@ -305,11 +263,3 @@ async def check_url(url: str):
         "page_type": page_type,
         "is_search_page": page_type == "search",
     }
-
-
-@app.exception_handler(Exception)
-async def generic_exception_handler(request, exc):
-    return JSONResponse(
-        status_code=500,
-        content={"detail": f"An unexpected error occurred: {str(exc)}"},
-    )
