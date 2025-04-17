@@ -7,36 +7,6 @@ class SmartFilterCore {
     this.lastResults = { total: 0, matched: 0 };
     this.filteredProducts = null;
     this.hiddenElements = new Set();
-
-    this._injectStyles();
-  }
-
-  _injectStyles() {
-    const styleId = "smart-filter-styles";
-    if (document.getElementById(styleId)) return;
-
-    const styleEl = document.createElement("style");
-    styleEl.id = styleId;
-    styleEl.textContent = `
-      .smart-filter-hidden {
-        display: none !important;
-        visibility: hidden !important;
-        position: absolute !important;
-        left: -9999px !important;
-      }
-      
-      .smart-filter-dimmed {
-        opacity: 0.5 !important;
-        filter: grayscale(70%) !important;
-      }
-
-      .badge-container {
-        z-index: 9999 !important;
-        opacity: 1 !important;
-        visibility: visible !important;
-      }
-    `;
-    document.head.appendChild(styleEl);
   }
 
   async applyFilters(filters, maxItems, filterThreshold) {

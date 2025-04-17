@@ -15,7 +15,7 @@
   <body>
     <header class="header">
       <h1>Smart<span>Filter</span></h1>
-      <p class="header-tagline">Find what you're looking for, naturally</p>
+      <p class="header-tagline">AI powered e-commerce filtering</p>
     </header>
 
     <main class="main">
@@ -28,190 +28,170 @@
       </section>
 
       <section id="filter-panel" class="panel" style="display: none">
-        <h2 class="panel-title">Filters</h2>
-        <div id="filter-list" class="filter-list"></div>
-        <button id="add-filter-btn" class="btn btn-add">
-          <svg
-            class="btn-icon"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="1.5"
-            stroke="currentColor"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M12 4.5v15m7.5-7.5h-15"
-            />
-          </svg>
-          Add Filter
-        </button>
-
-        <h2 class="panel-title">Settings</h2>
-
-        <div class="setting">
-          <div class="setting-header">
-            <label for="max-items">Products to analyze</label>
-            <div
-              class="tooltip"
-              data-tip="Controls how many products will be analyzed. Higher values give more results but take longer."
-            ></div>
+        <div class="section-header">
+          <div class="section-header-content">
+            <h2 class="panel-title">Filters</h2>
           </div>
-          <div class="number-input">
-            <input type="number" id="max-items" min="1" max="10" value="5" />
-            <div class="number-buttons">
-              <button id="increase-max">▲</button>
-              <button id="decrease-max">▼</button>
-            </div>
-          </div>
+          <div
+            class="tooltip"
+            data-tip="Enter filters in natural language. AI will analyze product images, title, and description to determine if criteria are met."
+          ></div>
         </div>
 
-        <div class="setting">
-          <div class="setting-header">
-            <label for="filter-threshold">Filter match requirement</label>
-            <div
-              class="tooltip"
-              data-tip="Products must match at least this many criteria to be highlighted."
-            ></div>
-          </div>
-          <div class="slider-container">
-            <input
-              type="range"
-              id="filter-threshold"
-              min="0"
-              max="5"
-              value="1"
-            />
-            <span id="threshold-value" class="value-display"
-              >At least 1 criterion</span
-            >
-          </div>
-        </div>
-
-        <div class="actions">
-          <button id="apply-btn" class="btn btn-primary">
-            <svg
-              class="btn-icon"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="1.5"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            Apply Filters
-          </button>
-          <button id="reset-btn" class="btn btn-secondary">
-            <svg
-              class="btn-icon"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="1.5"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
-              />
-            </svg>
-            Reset
-          </button>
-        </div>
-
-        <div id="results-counter" class="results-counter">
-          <span>No filters applied yet</span>
-        </div>
-      </section>
-
-      <div class="settings-link-container">
-        <button id="toggle-advanced" class="settings-toggle">
-          <svg
-            class="icon-settings"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <circle cx="12" cy="12" r="3"></circle>
-            <path
-              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
-            ></path>
-          </svg>
-          <span>Advanced Settings</span>
-          <svg
-            class="icon-chevron"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg>
-        </button>
-      </div>
-
-      <section id="advanced-panel" class="panel" style="display: none">
-        <h2 class="panel-title">Advanced Settings</h2>
-
-        <div class="setting">
-          <div class="setting-header">
-            <div class="setting-label-with-icon">
+        <div class="section-content">
+          <div class="filter-container">
+            <div id="filter-list" class="filter-list"></div>
+            <button id="add-filter-btn" class="btn btn-add">
               <img
-                src="../images/server-icon.svg"
-                alt="Server"
-                class="setting-icon"
+                src="../assets/images/plus.svg"
+                alt="Add"
+                class="btn-icon"
               />
-              <label for="api-endpoint">API Endpoint</label>
+              Add Filter
+            </button>
+          </div>
+        </div>
+
+        <div class="section-header settings-section-header">
+          <div class="section-header-content">
+            <h2 class="panel-title">Settings</h2>
+          </div>
+        </div>
+
+        <div class="section-content">
+          <div class="settings-container">
+            <div class="setting">
+              <div class="setting-header">
+                <label for="max-items">Products to analyze</label>
+                <div
+                  class="tooltip"
+                  data-tip="Controls how many products will be analyzed. Higher values give more results but take longer."
+                ></div>
+              </div>
+              <div class="number-input">
+                <input
+                  type="number"
+                  id="max-items"
+                  min="1"
+                  max="10"
+                  value="5"
+                />
+                <div class="number-buttons">
+                  <button id="increase-max">▲</button>
+                  <button id="decrease-max">▼</button>
+                </div>
+              </div>
             </div>
-            <div
-              class="tooltip"
-              data-tip="The base URL of the backend API. Use localhost:8000 for local development or your deployed URL."
-            ></div>
-          </div>
-          <input
-            type="text"
-            id="api-endpoint"
-            placeholder="http://localhost:8000"
-            class="text-input"
-          />
-        </div>
 
-        <div class="setting">
-          <div class="setting-header">
-            <label for="api-key">API Key</label>
-            <div
-              class="tooltip"
-              data-tip="API key for authentication (if required). Leave empty for local development."
-            ></div>
+            <div class="setting">
+              <div class="setting-header">
+                <label for="filter-threshold">Filter match requirement</label>
+                <div
+                  class="tooltip"
+                  data-tip="Products must match at least this many criteria to be highlighted."
+                ></div>
+              </div>
+              <div class="slider-container">
+                <input
+                  type="range"
+                  id="filter-threshold"
+                  min="0"
+                  max="5"
+                  value="1"
+                />
+                <span id="threshold-value" class="value-display"
+                  >At least 1 criterion</span
+                >
+              </div>
+            </div>
           </div>
-          <input
-            type="password"
-            id="api-key"
-            placeholder="Optional"
-            class="text-input"
-          />
-        </div>
 
-        <button id="save-api-settings" class="btn btn-primary">
-          Save Settings
+          <div class="actions">
+            <button id="apply-btn" class="btn btn-primary">
+              <img
+                src="../assets/images/check-circle.svg"
+                alt="Apply"
+                class="btn-icon"
+              />
+              Apply Filters
+            </button>
+            <button id="reset-btn" class="btn btn-secondary">
+              <img
+                src="../assets/images/reset.svg"
+                alt="Reset"
+                class="btn-icon"
+              />
+              Reset
+            </button>
+          </div>
+
+          <div id="results-counter" class="results-counter">
+            <div class="results-indicator">
+              <div class="status-dot"></div>
+              <span class="results-text">No filters applied yet</span>
+            </div>
+            <div class="results-details"></div>
+          </div>
+        </div>
+      </section>
+
+      <div class="advanced-container">
+        <button id="toggle-advanced" class="advanced-toggle">
+          <span>Advanced Settings</span>
+          <img
+            src="../assets/images/chevron.svg"
+            alt="Expand"
+            class="icon-chevron"
+          />
         </button>
 
-        <div id="api-settings-status" class="settings-status"></div>
-      </section>
+        <div id="advanced-panel" class="advanced-content">
+          <div class="settings-group">
+            <h3 class="settings-group-title">API Configuration</h3>
+            <div class="settings-container">
+              <div class="setting">
+                <div class="setting-header">
+                  <div class="setting-label-with-icon">
+                    <label for="api-endpoint">API Endpoint</label>
+                  </div>
+                  <div
+                    class="tooltip"
+                    data-tip="The base URL of the backend API. Use localhost:8000 for local development or your deployed URL."
+                  ></div>
+                </div>
+                <input
+                  type="text"
+                  id="api-endpoint"
+                  placeholder="http://localhost:8000"
+                  class="text-input"
+                />
+              </div>
+
+              <div class="setting">
+                <div class="setting-header">
+                  <label for="api-key">API Key</label>
+                  <div
+                    class="tooltip"
+                    data-tip="API key for authentication (if required). Leave empty for local development."
+                  ></div>
+                </div>
+                <input
+                  type="password"
+                  id="api-key"
+                  placeholder="Optional"
+                  class="text-input"
+                />
+              </div>
+            </div>
+
+            <button id="save-api-settings" class="btn btn-primary">
+              Save Settings
+            </button>
+
+            <div id="api-settings-status" class="settings-status"></div>
+          </div>
+        </div>
+      </div>
     </main>
 
     <footer class="footer">
@@ -224,14 +204,14 @@
           target="_blank"
           class="social-link"
         >
-          <img src="../images/github.png" alt="GitHub" />
+          <img src="../assets/social/github.png" alt="GitHub" />
         </a>
         <a
           href="https://www.linkedin.com/in/daltunay/"
           target="_blank"
           class="social-link"
         >
-          <img src="../images/linkedin.png" alt="LinkedIn" />
+          <img src="../assets/social/linkedin.png" alt="LinkedIn" />
         </a>
       </div>
     </footer>

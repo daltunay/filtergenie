@@ -6,14 +6,14 @@
   "permissions": ["activeTab", "scripting", "storage"],
   "host_permissions": ["<all_urls>"],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "src/background/background.js"
   },
   "action": {
     "default_popup": "popup/popup.html",
     "default_icon": {
-      "16": "images/icon16.png",
-      "48": "images/icon48.png",
-      "128": "images/icon128.png"
+      "16": "assets/icons/icon16.png",
+      "48": "assets/icons/icon48.png",
+      "128": "assets/icons/icon128.png"
     }
   },
   "content_scripts": [
@@ -22,22 +22,22 @@
       "js": [
         "vendors/vendor-interface.js",
         "vendors/leboncoin.js",
-        "content-core.js",
-        "content.js"
+        "src/content/content-core.js",
+        "src/content/content.js"
       ],
-      "css": ["styles.css"],
+      "css": ["src/content/styles.css"],
       "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["images/*"],
+      "resources": ["assets/images/**/*"],
       "matches": ["<all_urls>"]
     }
   ],
   "icons": {
-    "16": "images/icon16.png",
-    "48": "images/icon48.png",
-    "128": "images/icon128.png"
+    "16": "assets/icons/icon16.png",
+    "48": "assets/icons/icon48.png",
+    "128": "assets/icons/icon128.png"
   }
 }

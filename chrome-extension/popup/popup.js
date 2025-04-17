@@ -1,10 +1,6 @@
 /**
  * SmartFilter - Popup UI
- *
- * Restructured with separation of concerns:
- * - UI: Handles DOM interactions
- * - State: Manages application state
- * - API: Communicates with content script
+ * Simplified version with cleaner code organization
  */
 (function () {
   const CONFIG = {
@@ -32,7 +28,6 @@
     isSupported: false,
     filterCount: 0,
     results: null,
-    advancedPanelVisible: false,
 
     async load() {
       const hostname = await API.getCurrentHostname();
@@ -44,16 +39,13 @@
         `lastApplied_${hostname}`,
       ]);
 
-      const filters = stored[`filters_${hostname}`] || [];
-
-      const settings = stored[`settings_${hostname}`] || {
-        maxItems: CONFIG.SETTINGS.MAX_ITEMS.DEFAULT,
-        filterThreshold: CONFIG.SETTINGS.FILTER_THRESHOLD.DEFAULT,
+      return {
+        filters: stored[`filters_${hostname}`] || [],
+        settings: stored[`settings_${hostname}`] || {
+          maxItems: CONFIG.SETTINGS.MAX_ITEMS.DEFAULT,
+          filterThreshold: CONFIG.SETTINGS.FILTER_THRESHOLD.DEFAULT,
+        },
       };
-
-      this.filterCount = Math.max(1, filters.length);
-
-      return { filters, settings };
     },
 
     async saveFilters(filters) {
@@ -97,63 +89,39 @@
       }
     },
 
-    async getVendorInfo() {
+    async sendMessageToTab(action, data = {}) {
       const tab = await this.getCurrentTab();
       try {
-        return await chrome.tabs.sendMessage(tab.id, {
-          action: "getVendorInfo",
-        });
+        return await chrome.tabs.sendMessage(tab.id, { action, ...data });
       } catch (error) {
         return { success: false, error: "Content script not ready" };
       }
+    },
+
+    async getVendorInfo() {
+      return this.sendMessageToTab("getVendorInfo");
     },
 
     async getFilterState() {
-      const tab = await this.getCurrentTab();
-      try {
-        return await chrome.tabs.sendMessage(tab.id, {
-          action: "getFilterState",
-        });
-      } catch (error) {
-        return { success: false, error: "Content script not ready" };
-      }
-    },
-
-    async applyFilters(filters, maxItems, filterThreshold) {
-      const tab = await this.getCurrentTab();
-      try {
-        return await chrome.tabs.sendMessage(tab.id, {
-          action: "applyFilters",
-          filters,
-          maxItems,
-          filterThreshold,
-        });
-      } catch (error) {
-        return { success: false, error: "Content script not ready" };
-      }
+      return this.sendMessageToTab("getFilterState");
     },
 
     async updateFilterThreshold(filterThreshold) {
-      const tab = await this.getCurrentTab();
-      try {
-        return await chrome.tabs.sendMessage(tab.id, {
-          action: "updateFilterThreshold",
-          filterThreshold,
-        });
-      } catch (error) {
-        return { success: false, error: "Content script not ready" };
-      }
+      return this.sendMessageToTab("updateFilterThreshold", {
+        filterThreshold,
+      });
+    },
+
+    async applyFilters(filters, maxItems, filterThreshold) {
+      return this.sendMessageToTab("applyFilters", {
+        filters,
+        maxItems,
+        filterThreshold,
+      });
     },
 
     async resetFilters() {
-      const tab = await this.getCurrentTab();
-      try {
-        return await chrome.tabs.sendMessage(tab.id, {
-          action: "resetFilters",
-        });
-      } catch (error) {
-        return { success: false, error: "Content script not ready" };
-      }
+      return this.sendMessageToTab("resetFilters");
     },
 
     async notifySettingsChanged(endpoint, key) {
@@ -191,7 +159,7 @@
     },
 
     cacheElements() {
-      [
+      const elementIds = [
         "status-icon",
         "current-site",
         "site-message",
@@ -206,13 +174,15 @@
         "results-counter",
         "increase-max",
         "decrease-max",
-        "advanced-panel",
         "toggle-advanced",
+        "advanced-panel",
         "api-endpoint",
         "api-key",
         "save-api-settings",
         "api-settings-status",
-      ].forEach((id) => (DOM[id] = document.getElementById(id)));
+      ];
+
+      elementIds.forEach((id) => (DOM[id] = document.getElementById(id)));
     },
 
     setupEventListeners() {
@@ -234,10 +204,9 @@
       );
       DOM["apply-btn"].addEventListener("click", () => this.applyFilters());
       DOM["reset-btn"].addEventListener("click", () => this.resetFilters());
-      DOM["toggle-advanced"].addEventListener("click", (e) => {
-        e.preventDefault();
-        this.toggleAdvancedPanel();
-      });
+      DOM["toggle-advanced"].addEventListener("click", () =>
+        this.toggleAdvancedPanel(),
+      );
       DOM["save-api-settings"].addEventListener("click", () =>
         this.saveApiSettings(),
       );
@@ -358,7 +327,7 @@
       DOM["status-icon"].className =
         `status-icon ${isCompatible ? "compatible" : "not-compatible"}`;
       DOM["status-icon"].innerHTML =
-        `<img src="../images/${isCompatible ? "check-icon.svg" : "warning-icon.svg"}" alt="" class="status-svg">`;
+        `<img src="../assets/images/${isCompatible ? "check-icon.svg" : "warning-icon.svg"}" alt="" class="status-svg">`;
 
       DOM["current-site"].textContent = isCompatible
         ? vendor?.name || "Compatible site"
@@ -414,18 +383,31 @@
 
     updateResultsDisplay() {
       const { results } = State;
+      const resultsCounter = DOM["results-counter"];
 
       if (!results) {
-        DOM["results-counter"].innerHTML =
-          "<span>No filters applied yet</span>";
+        resultsCounter.innerHTML = `
+          <div class="results-indicator">
+            <div class="status-dot"></div>
+            <span class="results-text">No filters applied yet</span>
+          </div>
+          <div class="results-details"></div>
+        `;
         return;
       }
 
       const { matched, total } = results;
-      DOM["results-counter"].innerHTML =
-        `<span class="${matched === 0 ? "no-matches" : ""}">
-          Matched <strong>${matched}</strong> of ${total} items
-        </span>`;
+      const statusClass = matched === 0 ? "no-matches" : "success";
+
+      resultsCounter.innerHTML = `
+        <div class="results-indicator ${statusClass}">
+          <div class="status-dot"></div>
+          <span class="results-text">
+            Matched <strong>${matched}</strong> of ${total} items
+          </span>
+        </div>
+        <div class="results-details"></div>
+      `;
     },
 
     addFilterRow(value = "") {
@@ -616,19 +598,20 @@
       DOM["results-counter"].innerHTML = "<span>Filters reset</span>";
     },
 
-    async toggleAdvancedPanel() {
-      if (!State.advancedPanelVisible) {
-        await this.refreshApiSettings();
-      }
+    toggleAdvancedPanel() {
+      const advancedToggle = document.getElementById("toggle-advanced");
+      const advancedContent = document.getElementById("advanced-panel");
 
-      State.advancedPanelVisible = !State.advancedPanelVisible;
-      DOM["advanced-panel"].style.display = State.advancedPanelVisible
-        ? "flex"
-        : "none";
-      DOM["toggle-advanced"].classList.toggle(
-        "active",
-        State.advancedPanelVisible,
-      );
+      const isActive = advancedContent.classList.contains("active");
+
+      if (isActive) {
+        advancedToggle.classList.remove("active");
+        advancedContent.classList.remove("active");
+      } else {
+        advancedToggle.classList.add("active");
+        advancedContent.classList.add("active");
+        this.refreshApiSettings();
+      }
     },
 
     async saveApiSettings() {

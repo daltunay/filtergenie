@@ -1,7 +1,6 @@
 /**
  * SmartFilter - Background Service
- *
- * Manages API communication and badge updates
+ * Simplified version with cleaner code organization
  */
 
 const config = {

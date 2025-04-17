@@ -1,5 +1,6 @@
 /**
  * SmartFilter - Content Script Entry Point
+ * Simplified version with cleaner code organization
  */
 (function () {
   let smartFilterInstance = null;
