@@ -25,7 +25,11 @@ def get_scraper_class_for_url(url: str) -> type[BaseScraper] | None:
     """Find a suitable scraper class for the given URL."""
     for scraper_class in SCRAPERS:
         if scraper_class.can_handle_url(url):
-            log.debug(f"Using {scraper_class.__name__} for URL", url=url, scraper=scraper_class.__name__)
+            log.debug(
+                f"Using {scraper_class.__name__} for URL",
+                url=url,
+                scraper=scraper_class.__name__,
+            )
             return scraper_class
     log.warning("No scraper found for URL", url=url)
     return None
