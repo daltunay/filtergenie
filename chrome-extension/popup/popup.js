@@ -2,10 +2,9 @@
  * SmartFilter - Popup UI
  */
 (function () {
-  // Configuration as a single constant object
+  // Configuration
   const CONFIG = {
     SUPPORTED_DOMAINS: ["leboncoin.fr", "vinted.fr", "ebay.fr"],
-    // Use window.DEFAULT_FILTERS instead of defining here
     SETTINGS: {
       MAX_ITEMS: {
         DEFAULT: 5,
@@ -13,16 +12,15 @@
         MAX: 10,
       },
       FILTER_THRESHOLD: {
-        DEFAULT: 0, // Set to 0 to show all products by default
+        DEFAULT: 0,
         MIN: 0,
       },
     },
   };
 
-  // Cache DOM selectors for performance
+  // DOM elements cache
   const DOM = {};
 
-  // Use a more functional approach with separate modules
   const UI = {
     state: {
       currentSite: "",
@@ -31,9 +29,6 @@
       results: null,
     },
 
-    /**
-     * Initialize the UI
-     */
     async init() {
       this.cacheElements();
       this.setupEventListeners();
@@ -42,62 +37,50 @@
       await this.syncWithContentScript();
     },
 
-    /**
-     * Cache DOM elements - improved selector caching
-     */
     cacheElements() {
-      // Using a single function to reduce repetition
-      const getElement = (id) => document.getElementById(id);
+      const ids = [
+        "status-icon",
+        "current-site",
+        "site-message",
+        "filter-panel",
+        "filter-list",
+        "max-items",
+        "filter-threshold",
+        "threshold-value",
+        "add-filter-btn",
+        "apply-btn",
+        "reset-btn",
+        "results-counter",
+        "increase-max",
+        "decrease-max",
+      ];
 
-      DOM.statusIcon = getElement("status-icon");
-      DOM.currentSite = getElement("current-site");
-      DOM.siteMessage = getElement("site-message");
-      DOM.filterPanel = getElement("filter-panel");
-      DOM.filterList = getElement("filter-list");
-      DOM.maxItems = getElement("max-items");
-      DOM.filterThreshold = getElement("filter-threshold");
-      DOM.thresholdValue = getElement("threshold-value");
-      DOM.addFilterBtn = getElement("add-filter-btn");
-      DOM.applyBtn = getElement("apply-btn");
-      DOM.resetBtn = getElement("reset-btn");
-      DOM.resultsCounter = getElement("results-counter");
-      DOM.increaseMax = getElement("increase-max");
-      DOM.decreaseMax = getElement("decrease-max");
-
-      // Backward compatibility
-      DOM.hideNonMatching = { checked: false };
+      ids.forEach((id) => (DOM[id] = document.getElementById(id)));
     },
 
-    /**
-     * Set up event listeners
-     */
     setupEventListeners() {
-      // Filter management
-      DOM.addFilterBtn.addEventListener("click", () => this.addFilterRow());
-
-      // Settings
-      DOM.maxItems.addEventListener("change", () => this.saveSettings());
-      DOM.filterThreshold.addEventListener("input", () =>
+      DOM["add-filter-btn"].addEventListener("click", () =>
+        this.addFilterRow(),
+      );
+      DOM["max-items"].addEventListener("change", () => this.saveSettings());
+      DOM["filter-threshold"].addEventListener("input", () =>
         this.updateThresholdDisplay(),
       );
-      DOM.filterThreshold.addEventListener("change", () =>
+      DOM["filter-threshold"].addEventListener("change", () =>
         this.handleThresholdChange(),
       );
-
-      // Number input controls
-      DOM.increaseMax.addEventListener("click", () => this.changeMaxItems(1));
-      DOM.decreaseMax.addEventListener("click", () => this.changeMaxItems(-1));
-
-      // Action buttons
-      DOM.applyBtn.addEventListener("click", () => this.applyFilters());
-      DOM.resetBtn.addEventListener("click", () => this.resetFilters());
+      DOM["increase-max"].addEventListener("click", () =>
+        this.changeMaxItems(1),
+      );
+      DOM["decrease-max"].addEventListener("click", () =>
+        this.changeMaxItems(-1),
+      );
+      DOM["apply-btn"].addEventListener("click", () => this.applyFilters());
+      DOM["reset-btn"].addEventListener("click", () => this.resetFilters());
     },
 
-    /**
-     * Change max items value
-     */
     changeMaxItems(delta) {
-      const input = DOM.maxItems;
+      const input = DOM["max-items"];
       const newValue = Math.min(
         Math.max(CONFIG.SETTINGS.MAX_ITEMS.MIN, parseInt(input.value) + delta),
         CONFIG.SETTINGS.MAX_ITEMS.MAX,
@@ -106,32 +89,24 @@
       this.saveSettings();
     },
 
-    /**
-     * Update threshold display text
-     */
     updateThresholdDisplay() {
-      if (!DOM.thresholdValue) return;
-
-      const value = parseInt(DOM.filterThreshold.value);
+      const value = parseInt(DOM["filter-threshold"].value);
       const maxValue = this.state.filterCount;
 
       let text;
       if (value === CONFIG.SETTINGS.FILTER_THRESHOLD.MIN) {
         text = "Show all products";
       } else if (value === maxValue) {
-        text = maxValue === 1 ? "Criterion required" : "All criteria required"; // Single criterion wording
+        text = maxValue === 1 ? "Criterion required" : "All criteria required";
       } else if (value === 1) {
         text = "At least 1 criterion";
       } else {
         text = `At least ${value} criteria`;
       }
 
-      DOM.thresholdValue.textContent = text;
+      DOM["threshold-value"].textContent = text;
     },
 
-    /**
-     * Handle threshold change
-     */
     async handleThresholdChange() {
       this.saveSettings();
 
@@ -140,7 +115,7 @@
           const tab = await this.getCurrentTab();
           const response = await chrome.tabs.sendMessage(tab.id, {
             action: "updateFilterThreshold",
-            filterThreshold: parseInt(DOM.filterThreshold.value),
+            filterThreshold: parseInt(DOM["filter-threshold"].value),
           });
 
           if (response?.success) {
@@ -153,20 +128,14 @@
       }
     },
 
-    /**
-     * Get the current tab
-     */
     async getCurrentTab() {
-      const tabs = await chrome.tabs.query({
+      const [tab] = await chrome.tabs.query({
         active: true,
         currentWindow: true,
       });
-      return tabs[0];
+      return tab;
     },
 
-    /**
-     * Detect the current site
-     */
     async detectCurrentSite() {
       try {
         const currentTab = await this.getCurrentTab();
@@ -182,6 +151,7 @@
         const isDomainSupported = CONFIG.SUPPORTED_DOMAINS.some((domain) =>
           url.hostname.includes(domain),
         );
+
         if (!isDomainSupported) {
           this.updateSiteStatus(false);
           return;
@@ -214,38 +184,25 @@
       }
     },
 
-    /**
-     * Update site status in UI - simplified
-     */
     updateSiteStatus(isCompatible, vendor = null) {
-      const { statusIcon, currentSite, siteMessage, filterPanel } = DOM;
-
-      // Toggle site-not-supported class
       document.body.classList.toggle("site-not-supported", !isCompatible);
 
-      // Update status icon
-      statusIcon.className = `status-icon ${
-        isCompatible ? "compatible" : "not-compatible"
-      }`;
-      statusIcon.innerHTML = `<img src="../images/${
-        isCompatible ? "check-icon.svg" : "warning-icon.svg"
-      }" alt="" class="status-svg">`;
+      DOM["status-icon"].className =
+        `status-icon ${isCompatible ? "compatible" : "not-compatible"}`;
+      DOM["status-icon"].innerHTML =
+        `<img src="../images/${isCompatible ? "check-icon.svg" : "warning-icon.svg"}" alt="" class="status-svg">`;
 
-      // Update text content
-      currentSite.textContent = isCompatible
+      DOM["current-site"].textContent = isCompatible
         ? vendor?.name || "Compatible site"
         : "Not a supported site";
-      siteMessage.textContent = isCompatible
+
+      DOM["site-message"].textContent = isCompatible
         ? "You can use filters on this site!"
         : "Navigate to a supported e-commerce site to use this extension.";
 
-      // Show/hide filter panel
-      filterPanel.style.display = isCompatible ? "flex" : "none";
+      DOM["filter-panel"].style.display = isCompatible ? "flex" : "none";
     },
 
-    /**
-     * Load saved state from storage
-     */
     async loadStoredState() {
       if (!this.state.isSupported) return;
 
@@ -269,44 +226,32 @@
       this.state.results = stored[`lastApplied_${currentSite}`] || null;
 
       // Update UI
-      DOM.maxItems.value = settings.maxItems;
-
-      // Handle backward compatibility
-      if (settings.hideNonMatching !== undefined) {
-        DOM.hideNonMatching.checked = settings.hideNonMatching;
-        settings.filterThreshold = settings.hideNonMatching
-          ? filters.length || CONFIG.SETTINGS.FILTER_THRESHOLD.DEFAULT
-          : settings.filterThreshold || CONFIG.SETTINGS.FILTER_THRESHOLD.DEFAULT;
-      }
+      DOM["max-items"].value = settings.maxItems;
 
       // Populate filter list
-      const filterList = DOM.filterList;
+      const filterList = DOM["filter-list"];
       filterList.innerHTML = "";
 
       if (filters.length > 0) {
         filters.forEach((filter) => this.addFilterRow(filter));
       } else {
-        this.addFilterRow("");  // Add a single empty filter by default
+        this.addFilterRow(""); // Add a single empty filter by default
       }
 
       // Update threshold settings
       this.state.filterCount = Math.max(1, filters.length);
-      if (DOM.filterThreshold) {
-        DOM.filterThreshold.max = this.state.filterCount;
-        DOM.filterThreshold.value = Math.min(
-          settings.filterThreshold || CONFIG.SETTINGS.FILTER_THRESHOLD.DEFAULT,
-          this.state.filterCount,
-        );
-        this.updateThresholdDisplay();
-      }
 
+      DOM["filter-threshold"].max = this.state.filterCount;
+      DOM["filter-threshold"].value = Math.min(
+        settings.filterThreshold || CONFIG.SETTINGS.FILTER_THRESHOLD.DEFAULT,
+        this.state.filterCount,
+      );
+
+      this.updateThresholdDisplay();
       this.updateResultsDisplay();
       this.updateFilterControls();
     },
 
-    /**
-     * Sync with content script
-     */
     async syncWithContentScript() {
       if (!this.state.isSupported) return;
 
@@ -329,39 +274,32 @@
       }
     },
 
-    /**
-     * Update results counter display
-     */
     updateResultsDisplay() {
-      const { resultsCounter } = DOM;
       const { results } = this.state;
 
       if (!results) {
-        resultsCounter.innerHTML = "<span>No filters applied yet</span>";
+        DOM["results-counter"].innerHTML =
+          "<span>No filters applied yet</span>";
         return;
       }
 
       const { matched, total } = results;
-      resultsCounter.innerHTML = `<span class="${
-        matched === 0 ? "no-matches" : ""
-      }">
+      DOM["results-counter"].innerHTML =
+        `<span class="${matched === 0 ? "no-matches" : ""}">
         Matched <strong>${matched}</strong> of ${total} items
       </span>`;
     },
 
-    /**
-     * Add a filter row
-     */
     addFilterRow(value = "") {
-      const filterList = DOM.filterList;
+      const filterList = DOM["filter-list"];
 
       // Create row container
       const row = document.createElement("div");
       row.className = "filter-row";
-      
+
       // Create status indicator
       const statusIndicator = document.createElement("div");
-      statusIndicator.className = `filter-status ${value.trim() ? 'ready' : 'empty'}`;
+      statusIndicator.className = `filter-status ${value.trim() ? "ready" : "empty"}`;
       statusIndicator.innerHTML = value.trim() ? "✓" : "?";
       row.appendChild(statusIndicator);
 
@@ -374,8 +312,7 @@
       // Add input event listeners
       input.addEventListener("change", () => this.saveFilters());
       input.addEventListener("input", () => {
-        // Update status indicator when input changes
-        statusIndicator.className = `filter-status ${input.value.trim() ? 'ready' : 'empty'}`;
+        statusIndicator.className = `filter-status ${input.value.trim() ? "ready" : "empty"}`;
         statusIndicator.innerHTML = input.value.trim() ? "✓" : "?";
         this.updateFilterControls();
       });
@@ -403,9 +340,6 @@
       return row;
     },
 
-    /**
-     * Remove a filter row
-     */
     removeFilterRow(row) {
       const filterRows = document.querySelectorAll(".filter-row");
 
@@ -431,14 +365,12 @@
       }, 300);
     },
 
-    /**
-     * Update filter button states
-     */
     updateFilterControls() {
       // Update add button state
       const filterInputs = document.querySelectorAll(".filter-row input");
       const lastInput = filterInputs[filterInputs.length - 1];
-      DOM.addFilterBtn.disabled = lastInput && lastInput.value.trim() === "";
+      DOM["add-filter-btn"].disabled =
+        lastInput && lastInput.value.trim() === "";
 
       // Update remove buttons state
       const removeButtons = document.querySelectorAll(".filter-row button");
@@ -452,25 +384,24 @@
       });
 
       // Count only valid (non-empty) filters for the threshold slider
-      const validFilters = Array.from(filterInputs)
-        .filter(input => input.value.trim() !== "")
-        .length;
-      
+      const validFilters = Array.from(filterInputs).filter(
+        (input) => input.value.trim() !== "",
+      ).length;
+
       // Update threshold slider max value based on valid filters only
       this.state.filterCount = Math.max(1, validFilters);
-      if (DOM.filterThreshold) {
-        DOM.filterThreshold.max = this.state.filterCount;
-        // Ensure the current value doesn't exceed the new maximum
-        if (parseInt(DOM.filterThreshold.value) > this.state.filterCount) {
-          DOM.filterThreshold.value = this.state.filterCount;
-        }
-        this.updateThresholdDisplay();
+
+      const threshold = DOM["filter-threshold"];
+      threshold.max = this.state.filterCount;
+
+      // Ensure the current value doesn't exceed the new maximum
+      if (parseInt(threshold.value) > this.state.filterCount) {
+        threshold.value = this.state.filterCount;
       }
+
+      this.updateThresholdDisplay();
     },
 
-    /**
-     * Save filters to storage
-     */
     saveFilters() {
       const filters = Array.from(document.querySelectorAll(".filter-row input"))
         .map((input) => input.value.trim())
@@ -479,24 +410,18 @@
       chrome.storage.local.set({
         [`filters_${this.state.currentSite}`]: filters,
       });
-      
+
       // Update controls after saving to reflect the current valid filter count
       this.updateFilterControls();
     },
 
-    /**
-     * Save settings to storage
-     */
     saveSettings() {
       const settings = {
         maxItems:
-          parseInt(DOM.maxItems.value) || CONFIG.SETTINGS.MAX_ITEMS.DEFAULT,
-        filterThreshold: DOM.filterThreshold
-          ? parseInt(DOM.filterThreshold.value) ||
-            CONFIG.SETTINGS.FILTER_THRESHOLD.DEFAULT
-          : CONFIG.SETTINGS.FILTER_THRESHOLD.DEFAULT,
-        // Keep for backward compatibility
-        hideNonMatching: DOM.hideNonMatching.checked,
+          parseInt(DOM["max-items"].value) || CONFIG.SETTINGS.MAX_ITEMS.DEFAULT,
+        filterThreshold:
+          parseInt(DOM["filter-threshold"].value) ||
+          CONFIG.SETTINGS.FILTER_THRESHOLD.DEFAULT,
       };
 
       chrome.storage.local.set({
@@ -504,9 +429,6 @@
       });
     },
 
-    /**
-     * Apply filters
-     */
     async applyFilters() {
       if (!this.state.isSupported) return;
 
@@ -523,25 +445,19 @@
       }
 
       // Update UI to loading state
-      DOM.applyBtn.textContent = "Filtering...";
-      DOM.applyBtn.disabled = true;
-      DOM.applyBtn.classList.add("btn-loading");
-      DOM.resultsCounter.innerHTML =
+      const applyBtn = DOM["apply-btn"];
+      applyBtn.textContent = "Filtering...";
+      applyBtn.disabled = true;
+      applyBtn.classList.add("btn-loading");
+      DOM["results-counter"].innerHTML =
         "<span class='loading'>Processing...</span>";
 
       // Get settings
       const maxItems =
-        parseInt(DOM.maxItems.value) || CONFIG.SETTINGS.MAX_ITEMS.DEFAULT;
-      const filterThreshold = DOM.filterThreshold
-        ? parseInt(DOM.filterThreshold.value) ||
-          CONFIG.SETTINGS.FILTER_THRESHOLD.DEFAULT
-        : CONFIG.SETTINGS.FILTER_THRESHOLD.DEFAULT;
-
-      // Update backward compatibility setting
-      if (DOM.filterThreshold) {
-        DOM.hideNonMatching.checked =
-          parseInt(DOM.filterThreshold.value) === this.state.filterCount;
-      }
+        parseInt(DOM["max-items"].value) || CONFIG.SETTINGS.MAX_ITEMS.DEFAULT;
+      const filterThreshold =
+        parseInt(DOM["filter-threshold"].value) ||
+        CONFIG.SETTINGS.FILTER_THRESHOLD.DEFAULT;
 
       this.saveSettings();
 
@@ -570,30 +486,29 @@
           this.updateResultsDisplay();
         } else {
           const errorMessage = response?.error || "Unknown error";
-          DOM.resultsCounter.innerHTML = `<span class="no-matches">Error: ${errorMessage}</span>`;
+          DOM["results-counter"].innerHTML =
+            `<span class="no-matches">Error: ${errorMessage}</span>`;
         }
       } catch (error) {
-        DOM.resultsCounter.innerHTML = `<span class="no-matches">Error: Content script not available</span>`;
+        DOM["results-counter"].innerHTML =
+          `<span class="no-matches">Error: Content script not available</span>`;
       }
 
       // Reset button state
-      DOM.applyBtn.innerHTML = `<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+      applyBtn.innerHTML = `<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>Apply Filters`;
-      DOM.applyBtn.disabled = false;
-      DOM.applyBtn.classList.remove("btn-loading");
+      applyBtn.disabled = false;
+      applyBtn.classList.remove("btn-loading");
     },
 
-    /**
-     * Reset filters
-     */
     async resetFilters() {
       if (!this.state.isSupported) return;
 
       try {
         // Clear filter list and add a single empty filter
-        DOM.filterList.innerHTML = "";
-        this.addFilterRow("");  // Add a single empty filter
+        DOM["filter-list"].innerHTML = "";
+        this.addFilterRow(""); // Add a single empty filter
 
         this.saveFilters();
         this.updateFilterControls();
@@ -605,7 +520,7 @@
         // Clear results
         this.state.results = null;
         chrome.storage.local.remove([`lastApplied_${this.state.currentSite}`]);
-        DOM.resultsCounter.innerHTML = "<span>Filters reset</span>";
+        DOM["results-counter"].innerHTML = "<span>Filters reset</span>";
       } catch (error) {
         console.error("Failed to reset filters:", error);
       }

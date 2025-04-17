@@ -23,7 +23,6 @@
 
   /* Effects */
   --shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.15);
   --transition: 0.2s ease;
 
   /* Typography */
@@ -60,10 +59,10 @@ body.site-not-supported .main {
   padding-bottom: 10px;
 }
 
-/* Enhanced modern header */
+/* Header */
 .header {
   background: linear-gradient(135deg, var(--primary-dark), var(--primary));
-  padding: var(--spacing-lg) var(--spacing-lg);
+  padding: var(--spacing-lg);
   color: var(--white);
   text-align: center;
   position: relative;
@@ -108,7 +107,6 @@ body.site-not-supported .main {
   font-size: 14px;
   font-weight: 400;
   opacity: 0.9;
-  letter-spacing: 0.2px;
 }
 
 /* Main content */
@@ -186,7 +184,14 @@ body.site-not-supported .main {
   gap: 10px;
 }
 
-/* Filter status indicator */
+/* Filter row styles */
+.filter-row {
+  display: flex;
+  gap: 8px;
+  animation: fadeIn 0.3s ease;
+  align-items: center;
+}
+
 .filter-status {
   width: 16px;
   height: 16px;
@@ -208,13 +213,6 @@ body.site-not-supported .main {
 .filter-status.ready {
   background-color: rgba(16, 185, 129, 0.15);
   color: var(--success);
-}
-
-.filter-row {
-  display: flex;
-  gap: 8px;
-  animation: fadeIn 0.3s ease;
-  align-items: center;
 }
 
 .filter-row input {
@@ -506,33 +504,6 @@ body.site-not-supported .main {
   }
 }
 
-/* Social Links */
-.social-links {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-social-links a {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0.7;
-  transition: opacity 0.2s ease;
-}
-
-.social-links a:hover {
-  opacity: 1;
-}
-
-.social-links img {
-  width: 16px;
-  height: 16px;
-  max-width: 16px; /* Enforce maximum width */
-  max-height: 16px; /* Enforce maximum height */
-  object-fit: contain; /* Maintain aspect ratio */
-}
-
 /* Footer styling */
 .footer {
   padding: 12px 20px;
@@ -545,17 +516,7 @@ social-links a {
   border-top: 1px solid var(--border);
 }
 
-.footer-author {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.4;
-}
-
-.author-link:hover {
-  color: var(--primary-dark);
-  text-decoration: underline;
-}
-
+/* Social links */
 .social-links {
   display: flex;
   gap: 5px;

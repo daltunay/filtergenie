@@ -12,7 +12,7 @@ const API_URL = "http://localhost:8000";
 const ICON_PATHS = {
   16: "images/icon16.png",
   48: "images/icon48.png",
-  128: "images/icon128.png"
+  128: "images/icon128.png",
 };
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
