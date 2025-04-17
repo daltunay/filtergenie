@@ -140,12 +140,89 @@ A smart caching system reduces redundant work by caching product scraping result
    USE_LOCAL=true fastapi run api.py
    ```
 
-### Extension Setup
+### Using Docker
 
-1. Open Chrome and navigate to `chrome://extensions/`
-2. Enable "Developer mode"
-3. Click "Load unpacked" and select the chrome-extension folder
-4. The extension icon should appear in your toolbar
+1. Build the Docker image:
+
+   ```bash
+   docker build -t smartfilter .
+   ```
+
+2. Run the Docker container:
+
+   ```bash
+   docker run -p 8000:8000 -e OPENAI_API_KEY=your_api_key_here smartfilter
+   ```
+
+   This will start the API server on port 8000 inside the container and map it to port 8000 on your local machine.
+
+3. Accessing the API:
+   - The API will be available at `http://localhost:8000`
+   - Configure your Chrome extension to use this endpoint
+
+#### Environment Variables
+
+When running the Docker container, you can pass the following environment variables:
+
+- `OPENAI_API_KEY`: Your Gemini API key (required for API-based analysis)
+- `USE_LOCAL`: Set to "true" to use local VLM models instead of Gemini API
+- `API_KEY`: Optional API key for securing your SmartFilter API
+
+Example with all options:
+
+```bash
+docker run -p 8000:8000 \
+  -e OPENAI_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/" \
+  -e OPENAI_API_KEY=your_api_key_here \
+  -e USE_LOCAL=false \
+  -e API_KEY=your_custom_api_key \
+  smartfilter
+```
+
+#### Testing Your Docker Deployment
+
+Check if the API is running correctly:
+
+```bash
+curl http://localhost:8000/health
+```
+
+Should return:
+
+```json
+{"status":"ok"}
+```
+
+## 🌐 Deployment
+
+### API Deployment on Render.com
+
+You can deploy the API for free on Render.com:
+
+1. Create an account on [Render](https://render.com)
+2. Connect your GitHub repository
+3. Create a new Web Service and select your repository
+4. Configure the service:
+   - Name: `smartfilter-api` (or your preferred name)
+   - Environment: `Python`
+   - Build Command: `pip install -e .`
+   - Start Command: `uvicorn api:app --host 0.0.0.0 --port $PORT`
+5. Add your OPENAI_API_KEY as an environment variable in the Render dashboard
+6. Deploy the service
+
+Alternatively, you can use a `render.yaml` file in your repository root:
+
+```yaml
+services:
+  - type: web
+    name: smartfilter-api
+    env: python
+    buildCommand: pip install -e .
+    startCommand: uvicorn api:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+```
 
 ## 📝 Usage
 

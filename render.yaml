@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: smartfilter-api
+    env: docker
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: API_KEY
+        generateValue: true
+    plan: free

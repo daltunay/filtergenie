@@ -154,8 +154,8 @@ class ProductAnalyzer:
         self.log.debug("Creating API-based model", model_name=model_name)
         self.model_name = model_name
         return OpenAI(
-            base_url=os.getenv("GEMINI_BASE_URL"),
-            api_key=os.getenv("GEMINI_API_KEY"),
+            base_url=os.getenv("OPENAI_BASE_URL"),
+            api_key=os.getenv("OPENAI_API_KEY"),
         )
 
     async def _predict_openai(

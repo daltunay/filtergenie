@@ -15,6 +15,10 @@
         DEFAULT: 0,
         MIN: 0,
       },
+      API: {
+        DEFAULT_ENDPOINT: "http://localhost:8000",
+        DEFAULT_KEY: "",
+      },
     },
   };
 
@@ -27,6 +31,12 @@
       isSupported: false,
       filterCount: 0,
       results: null,
+      advancedPanelVisible: false,
+      apiSettingsStatus: {
+        message: "",
+        isError: false,
+        timeoutId: null,
+      },
     },
 
     async init() {
@@ -53,6 +63,12 @@
         "results-counter",
         "increase-max",
         "decrease-max",
+        "advanced-panel",
+        "toggle-advanced",
+        "api-endpoint",
+        "api-key",
+        "save-api-settings",
+        "api-settings-status",
       ];
 
       ids.forEach((id) => (DOM[id] = document.getElementById(id)));
@@ -77,6 +93,85 @@
       );
       DOM["apply-btn"].addEventListener("click", () => this.applyFilters());
       DOM["reset-btn"].addEventListener("click", () => this.resetFilters());
+
+      // Advanced settings
+      DOM["toggle-advanced"].addEventListener("click", (e) => {
+        e.preventDefault();
+        this.toggleAdvancedPanel();
+      });
+
+      DOM["save-api-settings"].addEventListener("click", () => {
+        this.saveApiSettings();
+      });
+
+      // Add input event listeners to validate API inputs in real-time
+      DOM["api-endpoint"].addEventListener("input", () => {
+        this.validateApiEndpoint(DOM["api-endpoint"].value);
+      });
+    },
+
+    // Method to validate API endpoint format
+    validateApiEndpoint(endpoint) {
+      if (!endpoint) return true;
+
+      try {
+        const url = new URL(endpoint);
+        return url.protocol === "http:" || url.protocol === "https:";
+      } catch (e) {
+        return false;
+      }
+    },
+
+    // Show API settings status message
+    showApiSettingsStatus(message, isError = false, duration = 3000) {
+      // Clear any existing timeout
+      if (this.state.apiSettingsStatus.timeoutId) {
+        clearTimeout(this.state.apiSettingsStatus.timeoutId);
+      }
+
+      const statusEl = DOM["api-settings-status"];
+      statusEl.textContent = message;
+      statusEl.className = `settings-status ${
+        isError ? "settings-error" : "settings-success"
+      }`;
+      statusEl.style.display = "block";
+
+      // Hide the message after duration
+      this.state.apiSettingsStatus.timeoutId = setTimeout(() => {
+        statusEl.style.display = "none";
+      }, duration);
+
+      this.state.apiSettingsStatus.message = message;
+      this.state.apiSettingsStatus.isError = isError;
+    },
+
+    // Dedicated function to refresh API settings from storage
+    async refreshApiSettings() {
+      try {
+        const stored = await chrome.storage.local.get(["api_settings"]);
+
+        // Get API settings or set defaults
+        const apiSettings = stored.api_settings || {
+          endpoint: CONFIG.SETTINGS.API.DEFAULT_ENDPOINT,
+          key: CONFIG.SETTINGS.API.DEFAULT_KEY,
+        };
+
+        // Update input fields
+        DOM["api-endpoint"].value = apiSettings.endpoint;
+        DOM["api-key"].value = apiSettings.key;
+
+        return apiSettings;
+      } catch (error) {
+        console.error("Failed to load API settings:", error);
+        // On error, revert to defaults
+        DOM["api-endpoint"].value = CONFIG.SETTINGS.API.DEFAULT_ENDPOINT;
+        DOM["api-key"].value = CONFIG.SETTINGS.API.DEFAULT_KEY;
+
+        return {
+          endpoint: CONFIG.SETTINGS.API.DEFAULT_ENDPOINT,
+          key: CONFIG.SETTINGS.API.DEFAULT_KEY,
+        };
+      }
     },
 
     changeMaxItems(delta) {
@@ -211,6 +306,7 @@
         `filters_${currentSite}`,
         `settings_${currentSite}`,
         `lastApplied_${currentSite}`,
+        "api_settings",
       ]);
 
       // Get filters or set defaults
@@ -222,8 +318,8 @@
         filterThreshold: CONFIG.SETTINGS.FILTER_THRESHOLD.DEFAULT,
       };
 
-      // Get results or set defaults
-      this.state.results = stored[`lastApplied_${currentSite}`] || null;
+      // Load API settings using dedicated function
+      await this.refreshApiSettings();
 
       // Update UI
       DOM["max-items"].value = settings.maxItems;
@@ -299,7 +395,9 @@
 
       // Create status indicator
       const statusIndicator = document.createElement("div");
-      statusIndicator.className = `filter-status ${value.trim() ? "ready" : "empty"}`;
+      statusIndicator.className = `filter-status ${
+        value.trim() ? "ready" : "empty"
+      }`;
       statusIndicator.innerHTML = value.trim() ? "✓" : "?";
       row.appendChild(statusIndicator);
 
@@ -312,7 +410,9 @@
       // Add input event listeners
       input.addEventListener("change", () => this.saveFilters());
       input.addEventListener("input", () => {
-        statusIndicator.className = `filter-status ${input.value.trim() ? "ready" : "empty"}`;
+        statusIndicator.className = `filter-status ${
+          input.value.trim() ? "ready" : "empty"
+        }`;
         statusIndicator.innerHTML = input.value.trim() ? "✓" : "?";
         this.updateFilterControls();
       });
@@ -523,6 +623,80 @@
         DOM["results-counter"].innerHTML = "<span>Filters reset</span>";
       } catch (error) {
         console.error("Failed to reset filters:", error);
+      }
+    },
+
+    toggleAdvancedPanel() {
+      // Always refresh API settings when opening panel to ensure latest values
+      if (!this.state.advancedPanelVisible) {
+        this.refreshApiSettings();
+      }
+
+      this.state.advancedPanelVisible = !this.state.advancedPanelVisible;
+      DOM["advanced-panel"].style.display = this.state.advancedPanelVisible
+        ? "flex"
+        : "none";
+
+      // Toggle the active class for styling
+      DOM["toggle-advanced"].classList.toggle(
+        "active",
+        this.state.advancedPanelVisible,
+      );
+    },
+
+    async saveApiSettings() {
+      const endpoint =
+        DOM["api-endpoint"].value.trim() || CONFIG.SETTINGS.API.DEFAULT_ENDPOINT;
+      const key = DOM["api-key"].value.trim();
+
+      // Validate endpoint format
+      if (!this.validateApiEndpoint(endpoint)) {
+        this.showApiSettingsStatus("Invalid API endpoint format", true);
+        return;
+      }
+
+      const saveBtn = DOM["save-api-settings"];
+      const originalText = saveBtn.textContent;
+      saveBtn.textContent = "Saving...";
+      saveBtn.disabled = true;
+
+      try {
+        // Save to storage
+        await chrome.storage.local.set({
+          api_settings: { endpoint, key },
+        });
+
+        // Notify background script about the change
+        const response = await new Promise((resolve, reject) => {
+          chrome.runtime.sendMessage(
+            { action: "apiSettingsChanged", settings: { endpoint, key } },
+            (response) => {
+              if (chrome.runtime.lastError) {
+                reject(chrome.runtime.lastError);
+              } else {
+                resolve(response);
+              }
+            },
+          );
+        });
+
+        if (response?.success) {
+          this.showApiSettingsStatus("Settings saved successfully!");
+        } else {
+          throw new Error("Failed to update settings in background script");
+        }
+
+        // Refresh API settings to ensure UI is in sync with storage
+        await this.refreshApiSettings();
+      } catch (error) {
+        console.error("Failed to save API settings:", error);
+        this.showApiSettingsStatus("Error saving settings: " + error.message, true);
+
+        // Refresh API settings to revert any partial changes
+        await this.refreshApiSettings();
+      } finally {
+        saveBtn.textContent = originalText;
+        saveBtn.disabled = false;
       }
     },
   };

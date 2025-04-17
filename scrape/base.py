@@ -52,7 +52,7 @@ class BaseScraper(ABC):
     @cached
     async def scrape_product_detail(self, url: str) -> Product:
         """Main method to scrape a product from a given URL."""
-        self.log.debug("Scraping product details", url_snippet=url[:30])
+        self.log.debug("Scraping product details", url=url)
         start_time = __import__("time").time()
         soup = await self.fetch_page(url)
 
@@ -90,7 +90,7 @@ class BaseScraper(ABC):
             self.log.info(
                 "Product scraped",
                 duration_seconds=round(duration, 2),
-                title=title[:30] + ("..." if len(title) > 30 else ""),
+                title=title,
                 image_count=len(images),
             )
         else:
@@ -107,7 +107,7 @@ class BaseScraper(ABC):
     ) -> list[Product]:
         """Main method to scrape search results from a given URL."""
         self.log.info(
-            "Scraping search results", url_snippet=url[:30], max_products=max_products
+            "Scraping search results", url=url, max_products=max_products
         )
         start_time = __import__("time").time()
 
@@ -132,7 +132,7 @@ class BaseScraper(ABC):
     @cached
     async def fetch_page(self, url: str) -> BeautifulSoup:
         """Fetch the page content using the instance browser and return a BeautifulSoup object."""
-        self.log.debug(f"Fetching page", url_snippet=url[:30])
+        self.log.debug(f"Fetching page", url=url)
         start_time = __import__("time").time()
 
         page = await self.browser.new_page()
@@ -143,7 +143,7 @@ class BaseScraper(ABC):
         duration = __import__("time").time() - start_time
         self.log.debug(
             "Page fetched",
-            url_snippet=url[:30],
+            url=url,
             content_length=len(html_content),
             duration_seconds=round(duration, 2),
         )

@@ -58,14 +58,14 @@ def get_product_id_from_url(url: str) -> int | None:
 @asynccontextmanager
 async def get_scraper(url: str) -> tp.AsyncIterator[BaseScraper | None]:
     """Context manager to get and properly close a scraper for a URL."""
-    log.debug("Getting scraper for URL", url_snippet=url[:30])
+    log.debug("Getting scraper for URL", url=url)
     scraper_cls = get_scraper_class_for_url(url)
     if not scraper_cls:
         log.warning("No suitable scraper found", url=url)
         yield None
         return
 
-    log.debug(f"Initializing {scraper_cls.__name__} for URL", url_snippet=url[:30])
+    log.debug(f"Initializing {scraper_cls.__name__} for URL", url=url)
     scraper = await scraper_cls.create()
 
     try:
@@ -78,7 +78,7 @@ async def get_scraper(url: str) -> tp.AsyncIterator[BaseScraper | None]:
 @cached
 async def scrape_product(url: str) -> Product | None:
     """Scrape a product from the given URL."""
-    log.debug("Scraping product", url_snippet=url[:30])
+    log.debug("Scraping product", url=url)
     start_time = __import__("time").time()
 
     async with get_scraper(url) as scraper:
@@ -92,7 +92,7 @@ async def scrape_product(url: str) -> Product | None:
     if duration > 5:
         log.info(
             "Product scraping completed",
-            url_snippet=url[:30],
+            url=url,
             product_id=product.id,
             vendor=product.vendor,
             duration_seconds=round(duration, 2),
@@ -100,7 +100,7 @@ async def scrape_product(url: str) -> Product | None:
     else:
         log.debug(
             "Product scraped",
-            url_snippet=url[:30],
+            url=url,
             product_id=product.id,
             duration_seconds=round(duration, 2),
         )
