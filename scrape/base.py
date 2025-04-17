@@ -86,19 +86,12 @@ class BaseScraper(ABC):
             images=images,
         )
 
-        if duration > 5:  # Only log slower operations at INFO level
-            self.log.info(
-                "Product scraped",
-                duration_seconds=round(duration, 2),
-                title=title,
-                image_count=len(images),
-            )
-        else:
-            self.log.debug(
-                "Product scraped",
-                duration_seconds=round(duration, 2),
-                image_count=len(images),
-            )
+        self.log.debug(
+            "Product scraped",
+            duration_seconds=round(duration, 2),
+            title=title,
+            image_count=len(images),
+        )
 
         return product
 
@@ -106,16 +99,13 @@ class BaseScraper(ABC):
         self, url: str, max_products: int = 5
     ) -> list[Product]:
         """Main method to scrape search results from a given URL."""
-        self.log.info(
-            "Scraping search results", url=url, max_products=max_products
-        )
+        self.log.info("Scraping search results", url=url, max_products=max_products)
         start_time = __import__("time").time()
 
         soup = await self.fetch_page(url)
         product_urls = self.extract_product_urls(soup)[:max_products]
         self.log.debug(f"Found {len(product_urls)} product URLs")
 
-        # Use asyncio.gather for parallel scraping
         products = await asyncio.gather(
             *[self.scrape_product_detail(url) for url in product_urls]
         )
@@ -132,7 +122,7 @@ class BaseScraper(ABC):
     @cached
     async def fetch_page(self, url: str) -> BeautifulSoup:
         """Fetch the page content using the instance browser and return a BeautifulSoup object."""
-        self.log.debug(f"Fetching page", url=url)
+        self.log.debug("Fetching page", url=url)
         start_time = __import__("time").time()
 
         page = await self.browser.new_page()

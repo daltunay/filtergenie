@@ -19,7 +19,6 @@
     </header>
 
     <main class="main">
-      <!-- Site compatibility status -->
       <section id="site-status" class="status-section">
         <div id="status-icon" class="status-icon" aria-hidden="true"></div>
         <div class="status-text">
@@ -28,9 +27,7 @@
         </div>
       </section>
 
-      <!-- Filter configuration panel -->
       <section id="filter-panel" class="panel" style="display: none">
-        <!-- Filters -->
         <h2 class="panel-title">Filters</h2>
         <div id="filter-list" class="filter-list"></div>
         <button id="add-filter-btn" class="btn btn-add">
@@ -51,10 +48,8 @@
           Add Filter
         </button>
 
-        <!-- Settings -->
         <h2 class="panel-title">Settings</h2>
 
-        <!-- Products to analyze -->
         <div class="setting">
           <div class="setting-header">
             <label for="max-items">Products to analyze</label>
@@ -72,7 +67,6 @@
           </div>
         </div>
 
-        <!-- Filter threshold -->
         <div class="setting">
           <div class="setting-header">
             <label for="filter-threshold">Filter match requirement</label>
@@ -95,7 +89,6 @@
           </div>
         </div>
 
-        <!-- Actions -->
         <div class="actions">
           <button id="apply-btn" class="btn btn-primary">
             <svg
@@ -133,36 +126,55 @@
           </button>
         </div>
 
-        <!-- Results summary -->
         <div id="results-counter" class="results-counter">
           <span>No filters applied yet</span>
         </div>
       </section>
 
-      <!-- Footer links -->
       <div class="settings-link-container">
         <button id="toggle-advanced" class="settings-toggle">
-          <svg class="icon-settings" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg
+            class="icon-settings"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
             <circle cx="12" cy="12" r="3"></circle>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            <path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+            ></path>
           </svg>
           <span>Advanced Settings</span>
-          <svg class="icon-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg
+            class="icon-chevron"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
             <polyline points="6 9 12 15 18 9"></polyline>
           </svg>
         </button>
       </div>
-      
-      <!-- Advanced settings panel - moved here so it appears below the toggle button -->
+
       <section id="advanced-panel" class="panel" style="display: none">
         <h2 class="panel-title">Advanced Settings</h2>
 
-        <!-- API Endpoint -->
         <div class="setting">
           <div class="setting-header">
             <div class="setting-label-with-icon">
-              <!-- Use the external SVG file -->
-              <img src="../images/server-icon.svg" alt="Server" class="setting-icon" />
+              <img
+                src="../images/server-icon.svg"
+                alt="Server"
+                class="setting-icon"
+              />
               <label for="api-endpoint">API Endpoint</label>
             </div>
             <div
@@ -170,10 +182,14 @@
               data-tip="The base URL of the backend API. Use localhost:8000 for local development or your deployed URL."
             ></div>
           </div>
-          <input type="text" id="api-endpoint" placeholder="http://localhost:8000" class="text-input">
+          <input
+            type="text"
+            id="api-endpoint"
+            placeholder="http://localhost:8000"
+            class="text-input"
+          />
         </div>
 
-        <!-- API Key -->
         <div class="setting">
           <div class="setting-header">
             <label for="api-key">API Key</label>
@@ -182,13 +198,18 @@
               data-tip="API key for authentication (if required). Leave empty for local development."
             ></div>
           </div>
-          <input type="password" id="api-key" placeholder="Optional" class="text-input">
+          <input
+            type="password"
+            id="api-key"
+            placeholder="Optional"
+            class="text-input"
+          />
         </div>
 
-        <!-- Save button -->
-        <button id="save-api-settings" class="btn btn-primary">Save Settings</button>
-        
-        <!-- Status message for API settings -->
+        <button id="save-api-settings" class="btn btn-primary">
+          Save Settings
+        </button>
+
         <div id="api-settings-status" class="settings-status"></div>
       </section>
     </main>

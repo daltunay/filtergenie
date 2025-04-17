@@ -1,20 +1,19 @@
 /**
- * SmartFilter - Core Functionality
+ * SmartFilter Core - Handles product filtering logic
  */
-
 class SmartFilterCore {
   constructor(vendor) {
     this.vendor = vendor;
     this.lastResults = { total: 0, matched: 0 };
     this.filteredProducts = null;
     this.hiddenElements = new Set();
-    this.dimmedElements = new Set();
-    this._setupStyles();
+
+    this._injectStyles();
   }
 
-  _setupStyles() {
+  _injectStyles() {
     const styleId = "smart-filter-styles";
-    document.getElementById(styleId)?.remove();
+    if (document.getElementById(styleId)) return;
 
     const styleEl = document.createElement("style");
     styleEl.id = styleId;
@@ -24,9 +23,6 @@ class SmartFilterCore {
         visibility: hidden !important;
         position: absolute !important;
         left: -9999px !important;
-        pointer-events: none !important;
-        height: 0 !important;
-        overflow: hidden !important;
       }
       
       .smart-filter-dimmed {
@@ -67,7 +63,7 @@ class SmartFilterCore {
       );
 
       if (!response?.success) {
-        return { success: false, error: response?.error || "Unknown error" };
+        return { success: false, error: response?.error || "API error" };
       }
 
       this.filteredProducts = {
@@ -77,37 +73,81 @@ class SmartFilterCore {
         filters,
       };
 
-      const productsByUrl = Object.fromEntries(
-        response.products.map((product) => [product.url, product]),
+      const matchCount = this._applyFiltersToDOM(
+        response.products,
+        productItems,
+        filterThreshold,
       );
-
-      let matchCount = 0;
-      productItems.forEach(({ element, url }) => {
-        const product = productsByUrl[url];
-        if (product) {
-          this._applyFilteringToItem(element, product, filterThreshold);
-
-          const matchingFilters = product.filters.filter((f) => f.value).length;
-          const totalFilters = product.filters.length;
-          const thresholdToApply =
-            filterThreshold === totalFilters
-              ? totalFilters
-              : Math.min(filterThreshold, totalFilters);
-
-          if (matchingFilters >= thresholdToApply) matchCount++;
-        }
-      });
 
       this.lastResults = {
         total: productItems.length,
         matched: matchCount,
         filters,
       };
-      document.documentElement.setAttribute("data-smart-filtered", "true");
 
+      document.documentElement.setAttribute("data-smart-filtered", "true");
       return { success: true, matched: matchCount, total: productItems.length };
     } catch (error) {
       return { success: false, error: error.message };
+    }
+  }
+
+  _applyFiltersToDOM(products, productItems, threshold) {
+    const productsByUrl = Object.fromEntries(
+      products.map((product) => [product.url, product]),
+    );
+
+    let matchCount = 0;
+
+    productItems.forEach(({ element, url }) => {
+      const product = productsByUrl[url];
+      if (!product) return;
+
+      if (window.getComputedStyle(element).position === "static") {
+        element.style.position = "relative";
+      }
+
+      const matchingFilters = product.filters.filter((f) => f.value).length;
+      const totalFilters = product.filters.length;
+      const thresholdToApply =
+        threshold === totalFilters
+          ? totalFilters
+          : Math.min(threshold, totalFilters);
+
+      const meetsThreshold = matchingFilters >= thresholdToApply;
+
+      if (meetsThreshold) {
+        matchCount++;
+      } else {
+        element.classList.add("smart-filter-hidden");
+        this.hiddenElements.add(element);
+      }
+
+      this._addFilterBadges(element, product.filters);
+    });
+
+    return matchCount;
+  }
+
+  _addFilterBadges(element, filters) {
+    if (!filters?.length) return;
+
+    const targetEl = this.vendor.findImageContainer(element);
+    element.querySelectorAll(".badge-container").forEach((el) => el.remove());
+
+    const badgeContainer = document.createElement("div");
+    badgeContainer.className = "badge-container";
+
+    filters.forEach((filter) => {
+      const badge = document.createElement("div");
+      badge.className = `filter-badge ${!filter.value ? "filter-badge-negative" : ""}`;
+      badge.textContent = `${filter.value ? "✓" : "✗"} ${filter.description}`;
+      badgeContainer.appendChild(badge);
+    });
+
+    targetEl.appendChild(badgeContainer);
+    if (window.getComputedStyle(targetEl).position === "static") {
+      targetEl.style.position = "relative";
     }
   }
 
@@ -116,135 +156,27 @@ class SmartFilterCore {
     this.lastResults = { total: 0, matched: 0 };
 
     this.hiddenElements.forEach((el) =>
-      this._toggleElementVisibility(el, true),
+      el.classList.remove("smart-filter-hidden"),
     );
     this.hiddenElements.clear();
-
-    this.dimmedElements.forEach((el) => this._toggleElementOpacity(el, false));
-    this.dimmedElements.clear();
 
     document.querySelectorAll(".badge-container").forEach((el) => el.remove());
     document.documentElement.removeAttribute("data-smart-filtered");
   }
 
-  _applyFilteringToItem(element, product, filterThreshold) {
-    if (window.getComputedStyle(element).position === "static") {
-      element.style.position = "relative";
-    }
-
-    const matchingFilters = product.filters.filter((f) => f.value).length;
-    const totalFilters = product.filters.length;
-    const thresholdToApply =
-      filterThreshold === totalFilters
-        ? totalFilters
-        : Math.min(filterThreshold, totalFilters);
-
-    const meetsThreshold = matchingFilters >= thresholdToApply;
-
-    if (!meetsThreshold) {
-      this._toggleElementVisibility(element, false);
-      this.hiddenElements.add(element);
-    }
-
-    if (product.filters?.length) {
-      const targetEl = this.vendor.findImageContainer(element);
-      element.querySelectorAll(".badge-container").forEach((el) => el.remove());
-
-      const badgeContainer = document.createElement("div");
-      badgeContainer.className = "badge-container";
-
-      product.filters.forEach((filter) => {
-        const badge = document.createElement("div");
-        badge.className = `filter-badge ${!filter.value ? "filter-badge-negative" : ""}`;
-        badge.textContent = `${filter.value ? "✓" : "✗"} ${filter.description}`;
-        badgeContainer.appendChild(badge);
-      });
-
-      targetEl.appendChild(badgeContainer);
-      if (window.getComputedStyle(targetEl).position === "static") {
-        targetEl.style.position = "relative";
-      }
-    }
-  }
-
-  _toggleElementVisibility(element, show) {
-    if (show) {
-      element.classList.remove("smart-filter-hidden");
-      element.removeAttribute("aria-hidden");
-    } else {
-      element.classList.add("smart-filter-hidden");
-      element.setAttribute("aria-hidden", "true");
-    }
-  }
-
-  _toggleElementOpacity(element, dim) {
-    element.classList.toggle("smart-filter-dimmed", dim);
-  }
-
-  updateHideMode(hideNonMatching) {
-    if (!this.filteredProducts) return;
-
-    this.filteredProducts.hideNonMatching = hideNonMatching;
-
-    this.hiddenElements.forEach((el) =>
-      this._toggleElementVisibility(el, true),
-    );
-    this.hiddenElements.clear();
-
-    this.dimmedElements.forEach((el) => this._toggleElementOpacity(el, false));
-    this.dimmedElements.clear();
-
-    const productsByUrl = Object.fromEntries(
-      this.filteredProducts.products.map((product) => [product.url, product]),
-    );
-
-    this.filteredProducts.items.forEach(({ element, url }) => {
-      const product = productsByUrl[url];
-      if (product && !product.matches_filters) {
-        if (hideNonMatching) {
-          this._toggleElementVisibility(element, false);
-          this.hiddenElements.add(element);
-        } else {
-          this._toggleElementOpacity(element, true);
-          this.dimmedElements.add(element);
-        }
-      }
-    });
-  }
-
   updateFilterThreshold(filterThreshold) {
-    if (!this.filteredProducts) return;
-
-    this.filteredProducts.filterThreshold = filterThreshold;
+    if (!this.filteredProducts) return { matched: 0, total: 0 };
 
     this.hiddenElements.forEach((el) =>
-      this._toggleElementVisibility(el, true),
+      el.classList.remove("smart-filter-hidden"),
     );
     this.hiddenElements.clear();
 
-    this.dimmedElements.forEach((el) => this._toggleElementOpacity(el, false));
-    this.dimmedElements.clear();
-
-    const productsByUrl = Object.fromEntries(
-      this.filteredProducts.products.map((product) => [product.url, product]),
+    const matchCount = this._applyFiltersToDOM(
+      this.filteredProducts.products,
+      this.filteredProducts.items,
+      filterThreshold,
     );
-
-    let matchCount = 0;
-    this.filteredProducts.items.forEach(({ element, url }) => {
-      const product = productsByUrl[url];
-      if (product) {
-        this._applyFilteringToItem(element, product, filterThreshold);
-
-        const matchingFilters = product.filters.filter((f) => f.value).length;
-        const totalFilters = product.filters.length;
-        const thresholdToApply =
-          filterThreshold === totalFilters
-            ? totalFilters
-            : Math.min(filterThreshold, totalFilters);
-
-        if (matchingFilters >= thresholdToApply) matchCount++;
-      }
-    });
 
     this.lastResults.matched = matchCount;
     return { matched: matchCount, total: this.lastResults.total };

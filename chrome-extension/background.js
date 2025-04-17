@@ -1,61 +1,54 @@
 /**
- * SmartFilter - Background Script
+ * SmartFilter - Background Service
+ *
+ * Manages API communication and badge updates
  */
 
-let API_URL = "http://localhost:8000"; // Default API URL
-let API_KEY = ""; // Default empty API key
-
-const ICON_PATHS = {
-  16: "images/icon16.png",
-  48: "images/icon48.png",
-  128: "images/icon128.png",
+const config = {
+  api: {
+    url: "http://localhost:8000",
+    key: "",
+  },
 };
 
-// Load API settings when extension starts
-chrome.storage.local.get(['api_settings'], function(result) {
+chrome.storage.local.get(["api_settings"], function (result) {
   if (result.api_settings) {
-    API_URL = result.api_settings.endpoint || API_URL;
-    API_KEY = result.api_settings.key || API_KEY;
-    console.log("Loaded API settings:", API_URL);
+    config.api.url = result.api_settings.endpoint || config.api.url;
+    config.api.key = result.api_settings.key || "";
   }
 });
 
-// Listen for settings changes
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "apiSettingsChanged") {
     try {
-      // Validate URL format
       if (request.settings.endpoint) {
         try {
-          new URL(request.settings.endpoint); // Will throw if invalid
-          API_URL = request.settings.endpoint;
+          new URL(request.settings.endpoint);
+          config.api.url = request.settings.endpoint;
         } catch (e) {
-          console.error("Invalid API URL format:", request.settings.endpoint);
-          sendResponse({success: false, error: "Invalid URL format"});
+          sendResponse({ success: false, error: "Invalid URL format" });
           return true;
         }
       } else {
-        API_URL = "http://localhost:8000"; // Default if empty
+        config.api.url = "http://localhost:8000";
       }
-      
-      API_KEY = request.settings.key || "";
-      console.log("Updated API settings:", API_URL);
-      sendResponse({success: true});
+
+      config.api.key = request.settings.key || "";
+      sendResponse({ success: true });
       return true;
     } catch (error) {
-      console.error("Error updating API settings:", error);
-      sendResponse({success: false, error: error.message});
+      sendResponse({ success: false, error: error.message });
       return true;
     }
   }
-  
+
   if (request.action === "filterProducts") {
     handleFilterRequest(request)
       .then(sendResponse)
       .catch((error) =>
         sendResponse({
           success: false,
-          error: error.message || "Unknown error",
+          error: error.message || "API error",
         }),
       );
     return true;
@@ -65,15 +58,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 async function handleFilterRequest(request) {
   try {
     const headers = { "Content-Type": "application/json" };
-    
-    // Add API key to headers if it exists
-    if (API_KEY) {
-      headers["X-API-Key"] = API_KEY;
+
+    if (config.api.key) {
+      headers["X-API-Key"] = config.api.key;
     }
-    
-    const response = await fetch(`${API_URL}/extension/filter`, {
+
+    const response = await fetch(`${config.api.url}/extension/filter`, {
       method: "POST",
-      headers: headers,
+      headers,
       body: JSON.stringify({
         filters: request.filters,
         product_urls: request.productUrls,
@@ -94,41 +86,23 @@ async function handleFilterRequest(request) {
   }
 }
 
-async function checkUrlSupport(url) {
-  try {
-    const headers = {};
-    if (API_KEY) {
-      headers["X-API-Key"] = API_KEY;
-    }
-    
-    const response = await fetch(
-      `${API_URL}/extension/check-url?url=${encodeURIComponent(url)}`,
-      { headers }
-    );
-    return response.ok ? await response.json() : { supported: false };
-  } catch {
-    return { supported: false };
-  }
-}
-
-function updateBadgeForTab(tabId, isSupported) {
-  chrome.action.setBadgeText({
-    tabId,
-    text: isSupported ? "✓" : "",
-  });
-
-  if (isSupported) {
-    chrome.action.setBadgeBackgroundColor({ tabId, color: "#10b981" });
-  }
-}
-
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status === "complete" && tab.url) {
-    // Set icon with constant path
-    chrome.action.setIcon({ tabId, path: ICON_PATHS });
+    try {
+      const headers = config.api.key ? { "X-API-Key": config.api.key } : {};
+      const url = `${config.api.url}/extension/check-url?url=${encodeURIComponent(tab.url)}`;
 
-    // Check if site is supported and update badge
-    const { supported } = await checkUrlSupport(tab.url);
-    updateBadgeForTab(tabId, supported);
+      const response = await fetch(url, { headers });
+      const data = response.ok ? await response.json() : { supported: false };
+
+      chrome.action.setBadgeText({
+        tabId,
+        text: data.supported ? "✓" : "",
+      });
+
+      if (data.supported) {
+        chrome.action.setBadgeBackgroundColor({ tabId, color: "#10b981" });
+      }
+    } catch {}
   }
 });

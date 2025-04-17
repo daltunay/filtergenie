@@ -1,7 +1,6 @@
 /**
  * SmartFilter - Vendor Interface
  */
-
 window.SmartFilterVendors = window.SmartFilterVendors || {};
 
 /**
@@ -32,11 +31,8 @@ class VendorInterface {
 
 function registerVendor(hostname, implementation) {
   if (!(implementation.prototype instanceof VendorInterface)) {
-    console.error(
-      `Vendor for ${hostname} doesn't properly implement VendorInterface`,
-    );
+    console.error(`Invalid vendor implementation for ${hostname}`);
     return;
   }
-
   window.SmartFilterVendors[hostname] = implementation;
 }
