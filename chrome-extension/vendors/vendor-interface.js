@@ -1,14 +1,8 @@
 /**
- * Smart E-commerce Filter - Vendor Interface
+ * SmartFilter - Vendor Interface
  */
 
 window.SmartFilterVendors = window.SmartFilterVendors || {};
-
-window.DEFAULT_FILTERS = [
-  "Is this in excellent condition?",
-  "Is this a good deal?",
-  "Does this look authentic?",
-];
 
 /**
  * Base vendor interface that all vendors should implement

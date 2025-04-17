@@ -3,40 +3,27 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Smart E-commerce Filter</title>
+    <title>SmartFilter</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="popup.css" />
   </head>
   <body>
     <header class="header">
-      <h1>Smart E-commerce Filter</h1>
+      <h1>Smart<span>Filter</span></h1>
+      <p class="header-tagline">Find what you're looking for, naturally</p>
     </header>
 
     <main class="main">
       <!-- Site compatibility status -->
       <section id="site-status" class="status-section">
-        <div id="status-icon" class="status-icon not-compatible">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="1.5"
-            stroke="currentColor"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
-            />
-          </svg>
+        <div id="status-icon" class="status-icon" aria-hidden="true">
+          <!-- Icon will be inserted by JS -->
         </div>
         <div class="status-text">
-          <h3>
-            Current site:
-            <span id="current-site">Not a supported e-commerce site</span>
-          </h3>
-          <p id="site-message">
-            Navigate to a supported e-commerce site to use this extension.
-          </p>
+          <h3>Current site: <span id="current-site">Checking...</span></h3>
+          <p id="site-message">Detecting compatible e-commerce site...</p>
         </div>
       </section>
 
@@ -153,15 +140,14 @@
     </main>
 
     <footer class="footer">
-      <span>Made by Daniel Altunay</span>
+      <div class="footer-author">
+        <span>Made by Daniel Altunay</span>
+      </div>
       <div class="social-links">
-        <a
-          href="https://github.com/daltunay/ecommerce-smart-filtering"
-          target="_blank"
-        >
+        <a href="https://github.com/daltunay/ecommerce-smart-filtering" target="_blank" class="social-link">
           <img src="../images/github.png" alt="GitHub" />
         </a>
-        <a href="https://www.linkedin.com/in/daltunay/" target="_blank">
+        <a href="https://www.linkedin.com/in/daltunay/" target="_blank" class="social-link">
           <img src="../images/linkedin.png" alt="LinkedIn" />
         </a>
       </div>

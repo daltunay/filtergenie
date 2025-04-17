@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Smart E-commerce Filter",
+  "name": "SmartFilter",
   "version": "1.0",
   "description": "Filter e-commerce search results using AI",
   "permissions": ["activeTab", "scripting", "storage"],

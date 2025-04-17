@@ -1,5 +1,5 @@
 /**
- * Smart E-commerce Filter - Core Functionality
+ * SmartFilter - Core Functionality
  */
 
 class SmartFilterCore {
@@ -142,8 +142,8 @@ class SmartFilterCore {
     const meetsThreshold = matchingFilters >= thresholdToApply;
 
     if (!meetsThreshold) {
-      this._toggleElementOpacity(element, true);
-      this.dimmedElements.add(element);
+      this._toggleElementVisibility(element, false);
+      this.hiddenElements.add(element);
     }
 
     if (product.filters?.length) {
@@ -159,11 +159,6 @@ class SmartFilterCore {
         badge.textContent = `${filter.value ? "✓" : "✗"} ${filter.description}`;
         badgeContainer.appendChild(badge);
       });
-
-      const countBadge = document.createElement("div");
-      countBadge.className = `filter-badge ${!meetsThreshold ? "filter-badge-negative" : ""}`;
-      countBadge.textContent = `${matchingFilters}/${totalFilters} filters matched`;
-      badgeContainer.appendChild(countBadge);
 
       targetEl.appendChild(badgeContainer);
       if (window.getComputedStyle(targetEl).position === "static") {

@@ -1,5 +1,5 @@
 /**
- * Smart E-commerce Filter - Background Script
+ * SmartFilter - Background Script
  *
  * This script runs in the extension's background service worker.
  * It handles:
@@ -9,6 +9,11 @@
  */
 
 const API_URL = "http://localhost:8000";
+const ICON_PATHS = {
+  16: "images/icon16.png",
+  48: "images/icon48.png",
+  128: "images/icon128.png"
+};
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "filterProducts") {
@@ -37,7 +42,7 @@ async function handleFilterRequest(request) {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.detail || `API error (${response.status})`);
     }
 
@@ -73,15 +78,8 @@ function updateBadgeForTab(tabId, isSupported) {
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status === "complete" && tab.url) {
-    // Set icon
-    chrome.action.setIcon({
-      tabId,
-      path: {
-        16: "icon16.png",
-        48: "icon48.png",
-        128: "icon128.png",
-      },
-    });
+    // Set icon with constant path
+    chrome.action.setIcon({ tabId, path: ICON_PATHS });
 
     // Check if site is supported and update badge
     const { supported } = await checkUrlSupport(tab.url);

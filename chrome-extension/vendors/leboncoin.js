@@ -1,9 +1,9 @@
 /**
- * Smart E-commerce Filter - LeBonCoin Vendor Implementation
+ * SmartFilter - leboncoin Vendor Implementation
  */
 
 class LeboncoinVendor extends VendorInterface {
-  name = "LeBonCoin";
+  name = "leboncoin";
   searchPatterns = [/\/(recherche|c)(\/|$)/];
 
   getProductItems() {

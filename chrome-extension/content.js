@@ -1,5 +1,5 @@
 /**
- * Smart E-commerce Filter - Content Script
+ * SmartFilter - Content Script
  */
 
 (function () {
