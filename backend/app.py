@@ -6,7 +6,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.api.routes import public_router
 from backend.api.routes import router as api_router
-from backend.auth.middleware import verify_api_key
 from backend.config import settings
 
 log = structlog.get_logger(name="app")

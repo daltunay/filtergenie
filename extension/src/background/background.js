@@ -58,7 +58,8 @@ async function handleFilterRequest(request) {
   try {
     const headers = { "Content-Type": "application/json" };
 
-    if (config.api.key) {
+    // Only add the API key header if one is configured and not empty
+    if (config.api.key && config.api.key.trim() !== "") {
       headers["X-API-Key"] = config.api.key;
     }
 
@@ -88,7 +89,12 @@ async function handleFilterRequest(request) {
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status === "complete" && tab.url) {
     try {
-      const headers = config.api.key ? { "X-API-Key": config.api.key } : {};
+      // Only add the API key header if one is configured
+      const headers = {};
+      if (config.api.key) {
+        headers["X-API-Key"] = config.api.key;
+      }
+      
       const url = `${config.api.url}/extension/check-url?url=${encodeURIComponent(tab.url)}`;
 
       const response = await fetch(url, { headers });

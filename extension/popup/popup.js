@@ -225,6 +225,11 @@
       }
     },
 
+    validateApiKey(key) {
+      // Always allow empty keys - they're optional
+      return true;
+    },
+
     validateInput(inputEl, validationFn) {
       const isValid = validationFn(inputEl.value);
       inputEl.classList.toggle("invalid", !isValid);
@@ -618,6 +623,7 @@
       const endpoint =
         DOM["api-endpoint"].value.trim() ||
         CONFIG.SETTINGS.API.DEFAULT_ENDPOINT;
+      // Allow empty key (it's optional)
       const key = DOM["api-key"].value.trim();
 
       if (!this.validateApiEndpoint(endpoint)) {
@@ -625,6 +631,8 @@
         return;
       }
 
+      // We don't need to validate the key - empty is allowed
+      
       const saveBtn = DOM["save-api-settings"];
       const originalText = saveBtn.textContent;
       saveBtn.textContent = "Saving...";
