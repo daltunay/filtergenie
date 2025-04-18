@@ -1,3 +1,4 @@
+import os
 from typing import Literal
 
 from pydantic import Field
@@ -12,7 +13,7 @@ class Settings(BaseSettings):
 
     # AI model configuration
     use_local_model: bool = Field(
-        default=False,
+        default=os.getenv("USE_LOCAL", "false") == "true",
         description="Use local VLM model instead of API",
         alias="USE_LOCAL",
     )

@@ -29,22 +29,12 @@ The project consists of two main components:
 | **Chrome Extension** | Browser extension that injects into supported e-commerce sites, captures product information, and displays filtering UI |
 | **Backend API** | Python [FastAPI](https://fastapi.tiangolo.com/) service that handles product analysis using vision-language models |
 
-### Directory Structure
+<!-- ### Directory Structure
 
 ```mermaid
 graph TD
-    A[ecommerce-smart-filtering] --> B[chrome-extension]
-    A --> C[scrape]
-    A --> D[analyzer.py]
-    A --> E[api.py]
-    A --> F[cache.py]
-    B --> G[content-core.js]
-    B --> H[content.js]
-    B --> I[popup/]
-    B --> J[vendors/]
-    C --> K[base.py]
-    C --> L[vendors/]
-```
+-> TBD
+``` -->
 
 ## 🔄 How It Works
 
@@ -110,7 +100,7 @@ A smart caching system reduces redundant work by caching product scraping result
 
    ```bash
    # with uv
-   uv sync  # `uv sync --extra local` for local VLM
+   uv sync  # `uv sync --extra local` for local VLM dependencies
    ```
 
    or
@@ -118,7 +108,7 @@ A smart caching system reduces redundant work by caching product scraping result
    ```bash
    # with pip
    python -m venv .venv
-   pip install -e .  # `pip install -e ".[local]"` for local VLM
+   pip install -e .  # `pip install -e ".[local]"` for local VLM dependencies
    ```
 
 3. Activate the virtual environment
@@ -133,17 +123,10 @@ A smart caching system reduces redundant work by caching product scraping result
    playwright install --with-deps firefox
    ```
 
-4. Run the API server
+5. Run the API server
 
    ```bash
-   # Using Gemini API
-   fastapi run api.py
-    ```
-
-    or
-
-    ```bash
-   USE_LOCAL=true fastapi run api.py
+   fastapi run backend/app.py  # with USE_LOCAL=true for local VLM
    ```
 
 ### Using Docker
@@ -151,17 +134,35 @@ A smart caching system reduces redundant work by caching product scraping result
 1. Build the Docker image:
 
    ```bash
+   # Build without local VLM support (smaller image, uses Gemini API)
    docker build -t smartfilter .
+   ```
+
+   or
+
+   ```bash
+   # Build with local VLM support (larger image, can run offline)
+   docker build --build-arg USE_LOCAL=true -t smartfilter:local .
    ```
 
 2. Run the Docker container:
 
    ```bash
+   # When using API-based version
    docker run -p 8000:8000 \
      -e OPENAI_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/" \
      -e OPENAI_API_KEY=your_api_key_here \
      -e USE_LOCAL=false \
      smartfilter
+   ```
+
+   or
+
+   ```bash
+   # When using local VLM version
+   docker run -p 8000:8000 \
+     -e USE_LOCAL=true \
+     smartfilter:local
    ```
 
    The API will be available at `http://localhost:8000`. Configure your Chrome extension to use this endpoint.
