@@ -1,11 +1,26 @@
 services:
   - type: web
     name: smartfilter-api
-    env: docker
+    plan: free
+
+    # Source code information
+    repo: https://github.com/daltunay/ecommerce-smart-filtering
+    runtime: docker
     dockerfilePath: ./Dockerfile
+
+    # Deployment configuration
+    region: oregon
+    autoDeploy: true
+    healthCheckPath: /health
+    maxShutdownDelaySeconds: 60
+
+    # Environment variables
     envVars:
+      - key: OPENAI_BASE_URL
+        value: "https://generativelanguage.googleapis.com/v1beta/openai/"
       - key: OPENAI_API_KEY
         sync: false
       - key: API_KEY
         generateValue: true
-    plan: free
+      - key: USE_LOCAL
+        value: "false"
