@@ -1,23 +1,25 @@
-from unittest.mock import AsyncMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
 
+from backend.analyzer.models import Product
 from backend.app import app
 
 client = TestClient(app)
 
 
-def test_health_check():
+def test_health_check() -> None:
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 
 
 @patch("backend.api.routes.scrape_product")
-def test_get_product(mock_scrape_product, mock_product):
+def test_get_product(mock_scrape_product: MagicMock, mock_product: Product) -> None:
     """Test the product endpoint."""
-    mock_scrape_product.return_value = AsyncMock(return_value=mock_product)()
+    # Configure the mock to return the product directly, not a coroutine
+    mock_scrape_product.return_value = mock_product
 
     response = client.get(
         "/product/https://www.leboncoin.fr/ad/instruments_de_musique/1234567890"
@@ -32,10 +34,15 @@ def test_get_product(mock_scrape_product, mock_product):
 
 @patch("backend.api.routes.scrape_product")
 @patch("backend.api.routes.analyzer.analyze_product")
-def test_analyze_product(mock_analyze_product, mock_scrape_product, mock_product):
+def test_analyze_product(
+    mock_analyze_product: MagicMock,
+    mock_scrape_product: MagicMock,
+    mock_product: Product,
+) -> None:
     """Test the analyze product endpoint."""
-    mock_scrape_product.return_value = AsyncMock(return_value=mock_product)()
-    mock_analyze_product.return_value = AsyncMock(return_value=mock_product)()
+    # Configure the mocks to return the product directly, not a coroutine
+    mock_scrape_product.return_value = mock_product
+    mock_analyze_product.return_value = mock_product
 
     response = client.post(
         "/product/analyze?product_url=https://www.leboncoin.fr/ad/instruments_de_musique/1234567890",
@@ -52,18 +59,21 @@ def test_analyze_product(mock_analyze_product, mock_scrape_product, mock_product
 @patch("backend.api.routes.get_product_id_from_url")
 @patch("backend.api.routes.analyze_product_safely")
 def test_extension_filter(
-    mock_analyze_safely, mock_get_product_id, mock_product_response
-):
+    mock_analyze_safely: MagicMock,
+    mock_get_product_id: MagicMock,
+    mock_product_response: dict,
+) -> None:
     """Test the extension filter endpoint."""
     mock_get_product_id.return_value = 1234567890
-    mock_analyze_safely.return_value = AsyncMock(return_value=mock_product_response)()
+    # Return the response directly
+    mock_analyze_safely.return_value = mock_product_response
 
     response = client.post(
         "/extension/filter",
         json={
             "filters": ["No visible damage"],
             "product_urls": [
-                "https://www.leboncoin.fr/instruments_de_musique/1234567890.htm"
+                "https://www.leboncoin.fr/ad/instruments_de_musique/1234567890"
             ],
             "max_products": 5,
         },
@@ -75,8 +85,10 @@ def test_extension_filter(
     assert isinstance(data["products"], list)
 
 
-@patch("backend.api.routes.get_scraper_class_for_url")
-def test_check_url(mock_get_scraper_class, mock_scraper_class):
+@patch("backend.scrape.get_scraper_class_for_url")
+def test_check_url(
+    mock_get_scraper_class: MagicMock, mock_scraper_class: MagicMock
+) -> None:
     """Test the check URL endpoint."""
     mock_get_scraper_class.return_value = mock_scraper_class
     mock_scraper_class.find_page_type.return_value = "search"
@@ -96,12 +108,12 @@ def test_check_url(mock_get_scraper_class, mock_scraper_class):
 
 # Fixtures for testing
 @pytest.fixture
-def mock_product():
+def mock_product() -> Product:
     """Create a mock Product for testing."""
     from backend.analyzer.models import Product, ProductFilter
 
     product = Product(
-        url="https://www.leboncoin.fr/instruments_de_musique/1234567890.htm",
+        url="https://www.leboncoin.fr/ad/instruments_de_musique/1234567890",
         title="Guitare acoustique en parfait état",
         description="Guitare acoustique de marque Martin, achetée il y a 2 ans, très peu utilisée.",
     )
@@ -117,11 +129,11 @@ def mock_product():
 
 
 @pytest.fixture
-def mock_product_response():
+def mock_product_response() -> dict:
     """Create a mock product response for testing."""
     return {
         "id": 1234567890,
-        "url": "https://www.leboncoin.fr/instruments_de_musique/1234567890.htm",
+        "url": "https://www.leboncoin.fr/ad/instruments_de_musique/1234567890",
         "title": "Guitare acoustique en parfait état",
         "matches_filters": True,
         "filters": [{"description": "No visible damage", "value": True}],
@@ -129,8 +141,6 @@ def mock_product_response():
 
 
 @pytest.fixture
-def mock_scraper_class():
+def mock_scraper_class() -> MagicMock:
     """Create a mock scraper class for testing."""
-    from unittest.mock import MagicMock
-
     return MagicMock()

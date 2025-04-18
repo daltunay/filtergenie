@@ -39,9 +39,7 @@ class Settings(BaseSettings):
             data["api_key"] = "***"
         return data
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    model_config = {"env_file": ".env", "case_sensitive": True}
 
 
 # Create settings instance

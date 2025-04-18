@@ -94,16 +94,20 @@ def test_analyzer_initialization(mock_settings):
     mock_settings.model_name = "test-model"
     mock_settings.openai_api_key = "test-key"
 
-    with patch("backend.analyzer.processor.OpenAI") as mock_openai:
+    with patch(
+        "backend.analyzer.processor.ProductAnalyzer._create_openai_model"
+    ) as mock_create_openai:
         analyzer = ProductAnalyzer(use_local=False)
         assert analyzer.predict == analyzer._predict_openai
-        mock_openai.assert_called_once()
+        mock_create_openai.assert_called_once()
 
     # Test local model initialization
     mock_settings.use_local_model = True
     mock_settings.local_model_name = "test-local-model"
 
-    with patch("backend.analyzer.processor.models") as mock_models:
+    with patch(
+        "backend.analyzer.processor.ProductAnalyzer._create_local_model"
+    ) as mock_create_local:
         with patch.dict(
             "sys.modules",
             {
@@ -114,7 +118,7 @@ def test_analyzer_initialization(mock_settings):
         ):
             analyzer = ProductAnalyzer(use_local=True)
             assert analyzer.predict == analyzer._predict_local
-            mock_models.transformers_vision.assert_called_once()
+            mock_create_local.assert_called_once()
 
 
 def test_create_filter_schema():
@@ -127,36 +131,33 @@ def test_create_filter_schema():
     schema = ProductAnalyzer._create_filter_schema(filters)
 
     assert issubclass(schema, BaseModel)
-    assert hasattr(schema, "no_visible_damage")
-    assert hasattr(schema, "original_packaging_included")
+    assert "no_visible_damage" in schema.model_fields
+    assert "original_packaging_included" in schema.model_fields
 
 
-@patch("backend.analyzer.processor.ProductAnalyzer.predict")
-async def test_analyze_product(mock_predict, mock_product):
+@pytest.mark.asyncio
+async def test_analyze_product(mock_product):
     """Test the analyze_product method."""
-    # Setup the analyzer
-    analyzer = MagicMock()
-    analyzer._create_filter_schema = ProductAnalyzer._create_filter_schema
-    analyzer.predict = AsyncMock()
+    # Setup the analyzer with a mock predict method
+    analyzer = ProductAnalyzer()
 
     # Create a response object that matches the schema
     class DummySchema(BaseModel):
         no_visible_damage: bool = True
         original_packaging_included: bool = False
 
-    # Set the mock return value
-    mock_predict.return_value = DummySchema()
-    analyzer.predict = mock_predict
+    # Set up the mock predict method
+    analyzer.predict = AsyncMock(return_value=DummySchema())
 
     # Call the method
-    result = await ProductAnalyzer.analyze_product(analyzer, mock_product)
+    result = await analyzer.analyze_product(mock_product)
 
     # Check the filter values were set
     assert result.filters[0].value is True
     assert result.filters[1].value is False
 
     # Check that predict was called with the right arguments
-    mock_predict.assert_called_once()
+    analyzer.predict.assert_called_once()
 
 
 if __name__ == "__main__":
