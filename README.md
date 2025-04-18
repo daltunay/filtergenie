@@ -195,7 +195,7 @@ The project uses pytest for testing. To run the tests:
 1. Install the development dependencies:
 
    ```bash
-   uv pip install -e ".[dev]"
+   uv sync --extra dev
    ```
 
 2. Run tests:
