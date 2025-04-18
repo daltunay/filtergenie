@@ -18,7 +18,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     if [ "$USE_LOCAL" = "true" ]; then \
         LOCAL_ARGS="--extra local"; \
     fi; \
-    uv sync --no-install-project --no-dev $LOCAL_ARGS
+    uv sync --no-install-project --no-dev "$LOCAL_ARGS"
 
 ENV PLAYWRIGHT_BROWSERS_PATH=/app/ms-playwright
 RUN playwright install --with-deps firefox
