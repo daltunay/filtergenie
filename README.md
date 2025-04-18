@@ -136,7 +136,6 @@ A smart caching system reduces redundant work by caching product scraping result
     or
 
     ```bash
-   # Using local VLM
    USE_LOCAL=true fastapi run api.py
    ```
 
@@ -151,33 +150,21 @@ A smart caching system reduces redundant work by caching product scraping result
 2. Run the Docker container:
 
    ```bash
-   docker run -p 8000:8000 -e OPENAI_API_KEY=your_api_key_here smartfilter
+   docker run -p 8000:8000 \
+     -e OPENAI_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/" \
+     -e OPENAI_API_KEY=your_api_key_here \
+     -e USE_LOCAL=false \
+     smartfilter
    ```
 
-   This will start the API server on port 8000 inside the container and map it to port 8000 on your local machine.
-
-3. Accessing the API:
-   - The API will be available at `http://localhost:8000`
-   - Configure your Chrome extension to use this endpoint
+   The API will be available at `http://localhost:8000`. Configure your Chrome extension to use this endpoint.
 
 #### Environment Variables
 
-When running the Docker container, you can pass the following environment variables:
-
+- `OPENAI_BASE_URL`: The base URL for the Gemini API
 - `OPENAI_API_KEY`: Your Gemini API key (required for API-based analysis)
 - `USE_LOCAL`: Set to "true" to use local VLM models instead of Gemini API
-- `API_KEY`: Optional API key for securing your SmartFilter API
-
-Example with all options:
-
-```bash
-docker run -p 8000:8000 \
-  -e OPENAI_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/" \
-  -e OPENAI_API_KEY=your_api_key_here \
-  -e USE_LOCAL=false \
-  -e API_KEY=your_custom_api_key \
-  smartfilter
-```
+- `API_KEY`: Optional API key for securing your SmartFilter API (only needed if you want to deploy and protect your API)
 
 #### Testing Your Docker Deployment
 
@@ -203,24 +190,10 @@ The project uses pytest for testing. To run the tests:
    uv pip install -e ".[dev]"
    ```
 
-2. Run all tests:
+2. Run tests:
 
    ```bash
    pytest
-   ```
-
-3. Run tests with coverage:
-
-   ```bash
-   pytest --cov=backend
-   ```
-
-4. Run specific test files:
-
-   ```bash
-   pytest tests/test_api.py
-   pytest tests/test_scraping.py
-   pytest tests/test_analyzer.py
    ```
 
 ## 📝 Usage
