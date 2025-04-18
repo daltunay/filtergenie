@@ -12,7 +12,6 @@ services:
     region: oregon
     autoDeploy: true
     healthCheckPath: /health
-    maxShutdownDelaySeconds: 60
 
     # Environment variables
     envVars:
