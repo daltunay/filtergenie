@@ -14,11 +14,11 @@ ENV UV_PROJECT_ENVIRONMENT="/usr/local/"
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    LOCAL_ARGS=""; \
     if [ "$USE_LOCAL" = "true" ]; then \
-        uv sync --no-install-project --no-dev --extra local; \
-    else \
-        uv sync --no-install-project --no-dev; \
-    fi
+        LOCAL_ARGS="--extra local"; \
+    fi; \
+    uv sync --no-install-project --no-dev $LOCAL_ARGS
 
 ENV PLAYWRIGHT_BROWSERS_PATH=/app/ms-playwright
 RUN playwright install --with-deps firefox
