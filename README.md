@@ -193,36 +193,35 @@ Should return:
 {"status":"ok"}
 ```
 
-## 🌐 Deployment
+## 🧪 Running Tests
 
-### API Deployment on Render.com
+The project uses pytest for testing. To run the tests:
 
-You can deploy the API for free on Render.com:
+1. Install the development dependencies:
 
-1. Create an account on [Render](https://render.com)
-2. Connect your GitHub repository
-3. Create a new Web Service and select your repository
-4. Configure the service:
-   - Name: `smartfilter-api` (or your preferred name)
-   - Environment: `Python`
-   - Build Command: `pip install -e .`
-   - Start Command: `uvicorn api:app --host 0.0.0.0 --port $PORT`
-5. Add your OPENAI_API_KEY as an environment variable in the Render dashboard
-6. Deploy the service
+   ```bash
+   uv pip install -e ".[dev]"
+   ```
 
-Alternatively, you can use a `render.yaml` file in your repository root:
+2. Run all tests:
 
-```yaml
-services:
-  - type: web
-    name: smartfilter-api
-    env: python
-    buildCommand: pip install -e .
-    startCommand: uvicorn api:app --host 0.0.0.0 --port $PORT
-    envVars:
-      - key: OPENAI_API_KEY
-        sync: false
-```
+   ```bash
+   pytest
+   ```
+
+3. Run tests with coverage:
+
+   ```bash
+   pytest --cov=backend
+   ```
+
+4. Run specific test files:
+
+   ```bash
+   pytest tests/test_api.py
+   pytest tests/test_scraping.py
+   pytest tests/test_analyzer.py
+   ```
 
 ## 📝 Usage
 
