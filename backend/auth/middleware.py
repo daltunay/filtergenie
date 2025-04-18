@@ -6,9 +6,6 @@ from backend.config import settings
 # Define API key header
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
-# Public routes that don't require authentication
-public_paths = ["/health"]
-
 
 def verify_api_key(api_key: str = Security(api_key_header)) -> bool:
     """
