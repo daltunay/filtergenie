@@ -100,7 +100,7 @@ A smart caching system reduces redundant work by caching product scraping result
 
 ### Backend Setup
 
-1. Install UV (optional)
+1. Install UV (recommended)
 
    ```bash
    curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -109,21 +109,28 @@ A smart caching system reduces redundant work by caching product scraping result
 2. Install the project
 
    ```bash
-   # For standard installation (using Gemini API)
-   uv pip install -e .
+   # with uv
+   uv sync  # `uv sync --extra local` for local VLM
    ```
 
    or
 
-    ```bash
-   # For local VLM support
-   uv pip install -e ".[local]"
+   ```bash
+   # with pip
+   python -m venv .venv
+   pip install -e .  # `pip install -e ".[local]"` for local VLM
    ```
 
 3. Activate the virtual environment
 
    ```bash
    source .venv/bin/activate
+   ```
+
+4. Install playwright dependencies
+
+   ```bash
+   playwright install --with-deps firefox
    ```
 
 4. Run the API server

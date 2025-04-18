@@ -15,7 +15,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --no-install-project --no-dev
 
 ENV PLAYWRIGHT_BROWSERS_PATH=/app/ms-playwright
-RUN playwright install firefox --with-deps
+RUN playwright install --with-deps firefox
 
 COPY backend/ ./backend
 
