@@ -4,6 +4,7 @@ import structlog
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from backend.api.routes import public_router
 from backend.api.routes import router as api_router
 from backend.auth.middleware import verify_api_key
 from backend.config import settings
@@ -39,7 +40,10 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Include API routes
+    # Include public routes first (without authentication)
+    app.include_router(public_router)
+
+    # Include API routes (with authentication)
     app.include_router(api_router)
 
     return app

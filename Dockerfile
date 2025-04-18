@@ -25,4 +25,4 @@ COPY backend/ ./backend
 
 EXPOSE 8000
 
-CMD ["fastapi", "run", "backend/app.py", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["fastapi", "dev", "backend/app.py", "--host", "0.0.0.0", "--port", "8000"]

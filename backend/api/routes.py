@@ -17,17 +17,22 @@ from backend.common.cache import _cache, cached, clear_cache
 from backend.config import settings
 from backend.scrape import get_product_id_from_url, scrape_product
 
+# Create a public router with no authentication for health checks
+public_router = APIRouter()
+
+
+@public_router.get("/health")
+async def health_check():
+    """Health check endpoint without authentication."""
+    return {"status": "ok"}
+
+
+# Main authenticated router
 router = APIRouter(dependencies=[Depends(verify_api_key)])
 log = structlog.get_logger(name="api")
 
 # Initialize analyzer
 analyzer = ProductAnalyzer(use_local=settings.use_local_model)
-
-
-@router.get("/health")
-async def health_check():
-    """Health check endpoint."""
-    return {"status": "ok"}
 
 
 @router.post("/cache/clear")
