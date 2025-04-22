@@ -5,7 +5,8 @@ from pydantic import BaseModel, Field, field_validator
 from pydantic.networks import HttpUrl
 from pydantic.types import Base64Str, FilePath
 
-from backend.common.utils import img_to_base64, load_img, resize_img, sanitize_text
+from backend.common.utils import (img_to_base64, load_img, resize_img,
+                                  sanitize_text)
 
 
 class ProductImage(BaseModel):
@@ -69,7 +70,8 @@ class Product(BaseModel):
 
     def model_post_init(self, __context):
         if self.url is not None:
-            from backend.scrape import get_product_id_from_url, get_vendor_for_url
+            from backend.scrape import (get_product_id_from_url,
+                                        get_vendor_for_url)
 
             # Set vendor and ID from the now-valid URL
             self.vendor = get_vendor_for_url(self.url)

@@ -7,13 +7,9 @@ import structlog
 
 from backend.analyzer.models import Product
 from backend.common.db import clear_cache as db_clear_cache
-from backend.common.db import (
-    get_persistent_connection,
-    get_product,
-    get_product_filters,
-    store_product,
-    store_product_filters,
-)
+from backend.common.db import (get_persistent_connection, get_product,
+                               get_product_filters, store_product,
+                               store_product_filters)
 
 logger = structlog.get_logger(name="cache")
 
@@ -146,10 +142,8 @@ def cached(func=None, *, connection: duckdb.DuckDBPyConnection | None = None):
 
                 # If we have a URL, try to get from cache
                 if url:
-                    from backend.scrape import (
-                        get_product_id_from_url,
-                        get_vendor_for_url,
-                    )
+                    from backend.scrape import (get_product_id_from_url,
+                                                get_vendor_for_url)
 
                     vendor = get_vendor_for_url(url)
                     product_id = get_product_id_from_url(url)
@@ -205,10 +199,8 @@ def cached(func=None, *, connection: duckdb.DuckDBPyConnection | None = None):
 
                 # If we have a URL, try to get from cache
                 if url:
-                    from backend.scrape import (
-                        get_product_id_from_url,
-                        get_vendor_for_url,
-                    )
+                    from backend.scrape import (get_product_id_from_url,
+                                                get_vendor_for_url)
 
                     vendor = get_vendor_for_url(url)
                     product_id = get_product_id_from_url(url)

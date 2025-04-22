@@ -4,8 +4,7 @@ import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.api.routes import public_router
-from backend.api.routes import router as api_router
+from backend.api.routes import authenticated_router, public_router
 from backend.config import settings
 
 log = structlog.get_logger(name="app")
@@ -45,8 +44,8 @@ def create_app() -> FastAPI:
     # Include public routes first (without authentication)
     app.include_router(public_router)
 
-    # Include API routes (with authentication)
-    app.include_router(api_router)
+    # Include authenticated API routes
+    app.include_router(authenticated_router)
 
     return app
 

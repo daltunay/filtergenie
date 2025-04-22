@@ -2,14 +2,13 @@ import asyncio
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import HttpUrl
 
 from backend.analyzer import Product, ProductAnalyzer, ProductFilter
 from backend.api.models import ExtensionResponse, ProductsAnalysisRequest
 from backend.auth.middleware import verify_api_key
 from backend.common.cache import cached, clear_cache
 from backend.config import settings
-from backend.scrape import get_scraper_class_for_url, scrape_product
+from backend.scrape import scrape_product
 
 # Create logger
 log = structlog.get_logger(name="api")
@@ -145,29 +144,10 @@ async def analyze_products(request: ProductsAnalysisRequest):
         ) from e
 
 
-@vendors_router.get("/check", response_model=dict)
-async def check_vendor_support(url: HttpUrl):
-    """
-    Check if a URL is supported by any vendor and determine its type.
-    """
-    url_str = str(url)
-    scraper_class = get_scraper_class_for_url(url_str)
-    if not scraper_class:
-        return {"supported": False}
-
-    page_type = scraper_class.find_page_type(url_str)
-    return {
-        "supported": True,
-        "vendor": scraper_class.get_vendor_name(),
-        "page_type": page_type,
-        "is_search_page": page_type == "search",
-    }
-
-
 # Include all routers in the main router
 api_router.include_router(products_router)
 api_router.include_router(vendors_router)
 
-# Create the main authenticated router
-router = APIRouter(dependencies=[Depends(verify_api_key)])
-router.include_router(api_router)
+# Create the main authenticated router with a more descriptive name
+authenticated_router = APIRouter(dependencies=[Depends(verify_api_key)])
+authenticated_router.include_router(api_router)
