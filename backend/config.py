@@ -1,5 +1,5 @@
 import os
-from typing import Literal
+import typing as tp
 
 from pydantic import Field
 from pydantic_settings import BaseSettings
@@ -23,7 +23,7 @@ class Settings(BaseSettings):
 
     # Local model settings
     local_model_name: str = Field(default="HuggingFaceTB/SmolVLM-Instruct")
-    local_model_dtype: Literal["float16", "float32", "bfloat16"] = Field(
+    local_model_dtype: tp.Literal["float16", "float32", "bfloat16"] = Field(
         default="bfloat16"
     )
     local_model_device: str = Field(default="auto")

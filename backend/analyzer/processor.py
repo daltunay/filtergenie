@@ -170,7 +170,7 @@ class ProductAnalyzer:
         for filter_ in product.filters:
             filter_.value = getattr(response, filter_.name)
 
-        if product.matches_filters:
+        if product.matches_all_filters:
             self.log.info(
                 "Found matching product",
                 product_id=product.id,
@@ -180,7 +180,7 @@ class ProductAnalyzer:
             self.log.debug(
                 "Product analysis complete",
                 product_id=product.id,
-                matches_filters=False,
+                matches_all_filters=False,
             )
 
         return product

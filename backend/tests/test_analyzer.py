@@ -36,7 +36,7 @@ def test_product_filter_initialization():
 
 
 def test_product_matches_filters():
-    """Test the matches_filters property of Product."""
+    """Test the matches_all_filters property of Product."""
     product = Product(
         url="https://example.com/product/123",
         title="Test Product",
@@ -44,7 +44,7 @@ def test_product_matches_filters():
     )
 
     # No filters - should match
-    assert product.matches_filters is True
+    assert product.matches_all_filters is True
 
     # Add filters - all set to True
     product.filters = [
@@ -53,11 +53,11 @@ def test_product_matches_filters():
     ]
     product.filters[0].value = True
     product.filters[1].value = True
-    assert product.matches_filters is True
+    assert product.matches_all_filters is True
 
     # One filter set to False
     product.filters[1].value = False
-    assert product.matches_filters is False
+    assert product.matches_all_filters is False
 
 
 def test_product_matches_min_filters():

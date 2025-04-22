@@ -2,6 +2,7 @@ import asyncio
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import HttpUrl
 
 from backend.analyzer import ProductAnalyzer, ProductFilter
 from backend.api.models import (
@@ -14,7 +15,7 @@ from backend.api.models import (
 from backend.auth.middleware import verify_api_key
 from backend.common.cache import cached, clear_cache
 from backend.config import settings
-from backend.scrape import get_product_id_from_url, scrape_product
+from backend.scrape import scrape_product
 
 # Create logger
 log = structlog.get_logger(name="api")
@@ -22,15 +23,12 @@ log = structlog.get_logger(name="api")
 # Initialize analyzer
 analyzer = ProductAnalyzer(use_local=settings.use_local_model)
 
-# Create nested routers
+# Create routers with proper organization
+public_router = APIRouter(tags=["System"])
 api_router = APIRouter()
-system_router = APIRouter(prefix="/system", tags=["System"])
 products_router = APIRouter(prefix="/products", tags=["Products"])
 filters_router = APIRouter(prefix="/filters", tags=["Filters"])
 extension_router = APIRouter(prefix="/extension", tags=["Extension"])
-
-# Public router for health checks (no auth)
-public_router = APIRouter(tags=["System"])
 
 
 @public_router.get("/health")
@@ -39,7 +37,7 @@ async def health_check():
     return {"status": "ok"}
 
 
-@system_router.post("/cache/clear")
+@api_router.post("/system/cache/clear")
 async def clear_cache_api():
     """Clear the application cache."""
     clear_cache()
@@ -48,7 +46,7 @@ async def clear_cache_api():
 
 @products_router.get("/{product_url:path}", response_model=ProductResponse)
 @cached
-async def get_product(product_url: str):
+async def get_product_info(product_url: str):
     """Get information for a specific product by URL."""
     try:
         if not product_url.startswith(("http://", "https://")):
@@ -71,98 +69,83 @@ async def get_product(product_url: str):
 
 
 @products_router.post("/analyze", response_model=AnalysisResponse)
-@cached
-async def analyze_product(product_url: str, request: AnalysisRequest):
+async def analyze_product_api(request: AnalysisRequest):
     """Analyze a product against provided filters."""
     try:
+        product_url = str(request.url)
+
         log.debug(
             "Analyzing product",
             url=product_url,
             num_filters=len(request.filters),
         )
 
-        product = await scrape_product(product_url)
-        if not product:
-            log.warning("Product not found", url=product_url)
-            raise HTTPException(status_code=404, detail="Product not found")
-
-        product.filters = [
-            ProductFilter(description=filter_desc) for filter_desc in request.filters
-        ]
-
-        analyzed_product = await analyzer.analyze_product(product)
-
-        if analyzed_product.matches_filters:
-            log.info(
-                "Product matched filters",
-                product_id=analyzed_product.id,
-                url=product_url,
+        result = await analyze_single_product(product_url, request.filters)
+        if not result:
+            raise HTTPException(
+                status_code=404, detail="Product not found or analysis failed"
             )
 
         return {
-            "id": analyzed_product.id,
-            "url": str(analyzed_product.url),
-            "title": analyzed_product.title,
-            "matches_filters": analyzed_product.matches_filters,
-            "filters": [
-                {"description": f.description, "value": f.value}
-                for f in analyzed_product.filters
-            ],
+            "id": result["id"],
+            "url": result["url"],
+            "title": result["title"],
+            "matches_all_filters": result["matches_all_filters"],
+            "filters": result["filters"],
         }
+    except HTTPException:
+        raise
     except Exception as e:
-        log.error("Analysis error", url=product_url, error=str(e), exc_info=True)
+        log.error("Analysis error", url=str(request.url), error=str(e), exc_info=True)
         raise HTTPException(
             status_code=500, detail=f"Error analyzing product: {str(e)}"
         ) from e
 
 
 @cached
-async def analyze_product_safely(url: str, filters: list[str], product_id: int):
-    """Analyze a product and handle exceptions gracefully for batch processing."""
+async def analyze_single_product(url: str, filters: list[str]) -> dict | None:
+    """
+    Analyze a single product with caching.
+    This is the core function that should be cached to maximize reuse across different batch requests.
+    """
     try:
-        # Sort filters for consistent cache keys
-        sorted_filters = sorted(filters)
-
         product = await scrape_product(url)
         if not product:
-            log.warning("Product not found during batch processing", url=url)
+            log.warning("Product not found during analysis", url=url)
             return None
 
-        if product.id != product_id:
-            log.warning(
-                "Product ID mismatch",
-                expected=product_id,
-                actual=product.id,
-                url=url,
-            )
-            product_id = product.id
-
-        product.filters = [ProductFilter(description=f) for f in sorted_filters]
-
-        # Analyze the product (this is already cached internally by the analyzer)
+        product.filters = [ProductFilter(description=f) for f in filters]
         analyzed_product = await analyzer.analyze_product(product)
 
-        return {
+        result = {
             "url": str(url),
             "id": product.id,
             "title": analyzed_product.title,
-            "matches_filters": analyzed_product.matches_filters,
+            "matches_all_filters": analyzed_product.matches_all_filters,
             "filters": [
                 {"description": f.description, "value": f.value}
                 for f in analyzed_product.filters
             ],
+            "match_count": sum(1 for f in analyzed_product.filters if f.value),
+            "total_filters": len(analyzed_product.filters),
         }
+
+        return result
     except Exception as e:
         log.error("Product analysis failed", url=url, error=str(e), exc_info=True)
         return None
 
 
 @filters_router.post("/batch", response_model=ExtensionResponse)
-@cached
 async def batch_filter_products(request: BatchFilterRequest):
-    """Filter multiple products in batch against provided filters."""
+    """
+    Filter multiple products in batch against provided filters.
+    Not cached directly since we want to cache at the individual product level.
+    """
     try:
-        product_urls = request.product_urls[: request.max_products]
+        product_urls = [
+            str(url) for url in request.product_urls[: request.max_products]
+        ]
         log.info(
             "Batch request received",
             num_urls=len(product_urls),
@@ -174,24 +157,14 @@ async def batch_filter_products(request: BatchFilterRequest):
 
         tasks = []
         for url in product_urls:
-            product_id = get_product_id_from_url(url)
-            if product_id:
-                tasks.append(analyze_product_safely(url, request.filters, product_id))
+            tasks.append(analyze_single_product(url, request.filters))
 
         start_time = __import__("time").time()
         results = await asyncio.gather(*tasks)
         duration = __import__("time").time() - start_time
 
         valid_results = [result for result in results if result is not None]
-
-        for result in valid_results:
-            if "filters" in result:
-                result["match_count"] = sum(
-                    1 for f in result["filters"] if f.get("value", False)
-                )
-                result["total_filters"] = len(result["filters"])
-
-        matched_results = [r for r in valid_results if r["matches_filters"]]
+        matched_results = [r for r in valid_results if r["matches_all_filters"]]
 
         log.info(
             "Batch analysis complete",
@@ -212,17 +185,16 @@ async def batch_filter_products(request: BatchFilterRequest):
 
 
 @extension_router.get("/validate-url")
-async def validate_url(url: str):
-    """
-    Check if a URL is supported and determine its type.
-    """
+async def validate_url(url: HttpUrl):
+    """Check if a URL is supported and determine its type."""
     from backend.scrape import get_scraper_class_for_url
 
-    scraper_class = get_scraper_class_for_url(url)
+    url_str = str(url)
+    scraper_class = get_scraper_class_for_url(url_str)
     if not scraper_class:
         return {"supported": False}
 
-    page_type = scraper_class.find_page_type(url)
+    page_type = scraper_class.find_page_type(url_str)
     return {
         "supported": True,
         "vendor": scraper_class.get_vendor_name(),
@@ -232,15 +204,12 @@ async def validate_url(url: str):
 
 
 @extension_router.post("/filter", response_model=ExtensionResponse)
-@cached
 async def extension_filter_products(request: BatchFilterRequest):
     """Endpoint for Chrome extension to filter multiple products."""
     return await batch_filter_products(request)
 
 
-# Include all routers
-api_router.include_router(public_router)
-api_router.include_router(system_router)
+# Include all routers in the main router
 api_router.include_router(products_router)
 api_router.include_router(filters_router)
 api_router.include_router(extension_router)

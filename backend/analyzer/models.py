@@ -53,11 +53,6 @@ class Product(BaseModel):
             self.vendor = get_vendor_for_url(self.url.__str__())
             self.id = get_product_id_from_url(self.url.__str__())
 
-    @property
-    def matches_filters(self) -> bool:
-        """Check if the product matches all filters."""
-        return all(filter_.value for filter_ in self.filters)
-
     def matches_min_filters(self, min_count: int) -> bool:
         """Check if the product matches at least min_count filters."""
         if not self.filters:
@@ -65,3 +60,20 @@ class Product(BaseModel):
 
         matching_count = sum(1 for filter_ in self.filters if filter_.value)
         return matching_count >= min_count
+
+    @property
+    def matches_all_filters(self) -> bool:
+        """Check if the product matches all filters."""
+        return self.matches_min_filters(len(self.filters)) if self.filters else True
+
+    @property
+    def cache_key(self) -> tuple[str, int]:
+        """Return a tuple that uniquely identifies this product for caching."""
+        if self.vendor and self.id is not None:
+            return (self.vendor, self.id)
+        return None
+
+    @property
+    def filter_descriptions(self) -> list[str]:
+        """Get a list of filter descriptions for this product."""
+        return [f.description for f in self.filters] if self.filters else []

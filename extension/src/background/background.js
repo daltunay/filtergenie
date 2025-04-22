@@ -94,8 +94,8 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       if (config.api.key) {
         headers["X-API-Key"] = config.api.key;
       }
-      
-      const url = `${config.api.url}/extension/check-url?url=${encodeURIComponent(tab.url)}`;
+
+      const url = `${config.api.url}/extension/validate-url?url=${encodeURIComponent(tab.url)}`;
 
       const response = await fetch(url, { headers });
       const data = response.ok ? await response.json() : { supported: false };

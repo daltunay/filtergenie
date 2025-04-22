@@ -51,7 +51,7 @@ def test_analyze_product(
 
     assert response.status_code == 200
     data = response.json()
-    assert "matches_filters" in data
+    assert "matches_all_filters" in data
     assert "filters" in data
     assert len(data["filters"]) == 2
 
@@ -135,7 +135,7 @@ def mock_product_response() -> dict:
         "id": 1234567890,
         "url": "https://www.leboncoin.fr/ad/instruments_de_musique/1234567890",
         "title": "Guitare acoustique en parfait état",
-        "matches_filters": True,
+        "matches_all_filters": True,
         "filters": [{"description": "No visible damage", "value": True}],
     }
 
