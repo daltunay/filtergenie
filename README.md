@@ -126,7 +126,7 @@ A smart caching system reduces redundant work by caching product scraping result
 5. Run the API server
 
    ```bash
-   fastapi run backend/app.py  # with USE_LOCAL=true for local VLM
+   fastapi run backend/app.py  # with `USE_LOCAL=true` for local VLM inference
    ```
 
 ### Using Docker
@@ -134,14 +134,14 @@ A smart caching system reduces redundant work by caching product scraping result
 1. Build the Docker image:
 
    ```bash
-   # Build without local VLM support (smaller image, uses Gemini API)
+   # Build without local VLM support (OpenAI API)
    docker build -t smartfilter .
    ```
 
    or
 
    ```bash
-   # Build with local VLM support (larger image, can run offline)
+   # Build with local VLM support (offline)
    docker build --build-arg USE_LOCAL=true -t smartfilter:local .
    ```
 
