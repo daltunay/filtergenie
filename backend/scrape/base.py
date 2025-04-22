@@ -8,6 +8,8 @@ from bs4 import BeautifulSoup
 from backend.analyzer import Product, ProductImage
 from backend.common.cache import cached
 
+log = structlog.get_logger(__name__=__name__)
+
 
 class BaseScraper(ABC):
     """Abstract base class for all website scrapers."""
@@ -21,7 +23,8 @@ class BaseScraper(ABC):
 
     def __init__(self):
         """Initialize the scraper."""
-        self.log = structlog.get_logger(__name__=__name__)
+        global log
+        log = log.bind(vendor=self.get_vendor_name())
 
     @classmethod
     def get_vendor_name(cls) -> str:
@@ -38,7 +41,7 @@ class BaseScraper(ABC):
             html_content: HTML content to parse
             url: The URL of the product page
         """
-        self.log.debug("Scraping product details from HTML")
+        log.debug("Scraping product details from HTML")
         start_time = __import__("time").time()
 
         soup = BeautifulSoup(html_content, "html.parser")
@@ -46,23 +49,21 @@ class BaseScraper(ABC):
         try:
             title = self.extract_product_title(soup)
         except Exception as e:
-            self.log.error("Error extracting title", exception=str(e), exc_info=True)
+            log.error("Error extracting title", exception=str(e), exc_info=True)
             title = ""
 
         try:
             description = self.extract_product_description(soup)
         except Exception as e:
-            self.log.error(
-                "Error extracting description", exception=str(e), exc_info=True
-            )
+            log.error("Error extracting description", exception=str(e), exc_info=True)
             description = ""
 
         try:
             image_urls = self.extract_product_images(soup)
-            self.log.debug(f"Found {len(image_urls)} images")
+            log.debug(f"Found {len(image_urls)} images")
             images = [ProductImage(url_or_path=img_url) for img_url in image_urls]
         except Exception as e:
-            self.log.error("Error extracting images", exception=str(e), exc_info=True)
+            log.error("Error extracting images", exception=str(e), exc_info=True)
             images = []
 
         duration = __import__("time").time() - start_time
@@ -73,7 +74,7 @@ class BaseScraper(ABC):
             images=images,
         )
 
-        self.log.debug(
+        log.debug(
             "Product scraped",
             duration_seconds=round(duration, 2),
             title=title,

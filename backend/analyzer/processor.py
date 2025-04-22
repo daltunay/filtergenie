@@ -16,6 +16,8 @@ if tp.TYPE_CHECKING:
     except ImportError:
         pass
 
+log = structlog.get_logger(__name__=__name__)
+
 
 class DynamicSchema(BaseModel):
     """Placeholder for dynamic schema generation. For type hinting only."""
@@ -39,13 +41,11 @@ class ProductAnalyzer:
 
     def __init__(self, use_local: bool | None = None):
         """Initialize the analyzer with either a local VLM model or OpenAI."""
-        self.log = structlog.get_logger(__name__=__name__)
-
         # Use settings if not explicitly provided
         if use_local is None:
             use_local = settings.use_local_model
 
-        self.log.info("Initializing ProductAnalyzer", use_local=use_local)
+        log.info("Initializing ProductAnalyzer", use_local=use_local)
 
         if use_local:
             self.model = self._create_local_model(
@@ -69,7 +69,7 @@ class ProductAnalyzer:
         from outlines import models
         from transformers import AutoModelForImageTextToText
 
-        self.log.debug("Creating local VLM model", model_name=model_name, device=device)
+        log.debug("Creating local VLM model", model_name=model_name, device=device)
         return models.transformers_vision(
             model_name=model_name,
             model_class=AutoModelForImageTextToText,
@@ -83,7 +83,7 @@ class ProductAnalyzer:
         """Run prediction using local model."""
         from outlines import generate
 
-        self.log.debug("Running local prediction", num_images=len(images))
+        log.debug("Running local prediction", num_images=len(images))
         generator = generate.json(self.model, schema)
 
         import asyncio
@@ -98,7 +98,7 @@ class ProductAnalyzer:
         """Create an OpenAI/Gemini model with async client."""
         from openai import AsyncOpenAI as OpenAI
 
-        self.log.debug("Creating API-based model", model_name=model_name)
+        log.debug("Creating API-based model", model_name=model_name)
         self.model_name = model_name
         return OpenAI(
             base_url=settings.openai_base_url,
@@ -117,9 +117,7 @@ class ProductAnalyzer:
             ],
         ]
 
-        self.log.debug(
-            "Sending API request", model=self.model_name, num_images=len(images)
-        )
+        log.debug("Sending API request", model=self.model_name, num_images=len(images))
 
         start_time = __import__("time").time()
         response = await self.model.beta.chat.completions.parse(
@@ -129,7 +127,7 @@ class ProductAnalyzer:
         )
 
         elapsed = __import__("time").time() - start_time
-        self.log.debug("Received API response", elapsed_seconds=round(elapsed, 2))
+        log.debug("Received API response", elapsed_seconds=round(elapsed, 2))
 
         return response.choices[0].message.parsed
 
@@ -150,7 +148,7 @@ class ProductAnalyzer:
     @cached
     async def analyze_product(self, product: Product) -> Product:
         """Analyze a single product and update its filters with results."""
-        self.log.debug(
+        log.debug(
             "Analyzing product",
             product_id=product.id,
             vendor=product.vendor,
@@ -171,13 +169,13 @@ class ProductAnalyzer:
             filter_.value = getattr(response, filter_.name)
 
         if product.matches_all_filters:
-            self.log.info(
+            log.info(
                 "Found matching product",
                 product_id=product.id,
                 filter_results=[(f.description, f.value) for f in product.filters],
             )
         else:
-            self.log.debug(
+            log.debug(
                 "Product analysis complete",
                 product_id=product.id,
                 matches_all_filters=False,

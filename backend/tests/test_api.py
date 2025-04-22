@@ -66,10 +66,7 @@ def test_analyze_products(disable_auth: None) -> None:
     }
 
     # Use a more specific mock path to ensure the route uses our mock
-    with patch(
-        "backend.api.routes.process_product", 
-        return_value=mock_result
-    ):
+    with patch("backend.api.routes.process_product", return_value=mock_result):
         payload = {
             "filters": ["Test filter"],
             "products": [
@@ -114,10 +111,7 @@ def test_analyze_products_with_multiple_items(disable_auth: None) -> None:
     ]
 
     # Use side_effect to return different results for each call
-    with patch(
-        "backend.api.routes.process_product", 
-        side_effect=mock_results
-    ):
+    with patch("backend.api.routes.process_product", side_effect=mock_results):
         payload = {
             "filters": ["Test filter"],
             "products": [
@@ -167,8 +161,7 @@ def test_analyze_products_validation_error(disable_auth: None) -> None:
 def test_analyze_products_service_error(disable_auth: None) -> None:
     """Test error handling when service fails."""
     with patch(
-        "backend.api.routes.process_product",
-        side_effect=Exception("Service error")
+        "backend.api.routes.process_product", side_effect=Exception("Service error")
     ):
         payload = {
             "filters": ["Test filter"],
