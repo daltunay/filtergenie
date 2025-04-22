@@ -31,7 +31,7 @@ def resize_img(img: Image.Image, max_size=(512, 512)) -> Image.Image:
     return img
 
 
-def image_to_base64(img: Image.Image) -> str:
+def img_to_base64(img: Image.Image) -> str:
     """Convert an image to base64 encoding."""
     buffer = io.BytesIO()
     img.save(buffer, format="JPEG")

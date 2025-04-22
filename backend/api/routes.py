@@ -1,5 +1,4 @@
 import asyncio
-import hashlib
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -13,12 +12,25 @@ from backend.api.models import (
     ProductResponse,
 )
 from backend.auth.middleware import verify_api_key
-from backend.common.cache import _cache, cached, clear_cache
+from backend.common.cache import cached, clear_cache
 from backend.config import settings
 from backend.scrape import get_product_id_from_url, scrape_product
 
-# Create a public router with no authentication for health checks
-public_router = APIRouter()
+# Create logger
+log = structlog.get_logger(name="api")
+
+# Initialize analyzer
+analyzer = ProductAnalyzer(use_local=settings.use_local_model)
+
+# Create nested routers
+api_router = APIRouter()
+system_router = APIRouter(prefix="/system", tags=["System"])
+products_router = APIRouter(prefix="/products", tags=["Products"])
+filters_router = APIRouter(prefix="/filters", tags=["Filters"])
+extension_router = APIRouter(prefix="/extension", tags=["Extension"])
+
+# Public router for health checks (no auth)
+public_router = APIRouter(tags=["System"])
 
 
 @public_router.get("/health")
@@ -27,28 +39,17 @@ async def health_check():
     return {"status": "ok"}
 
 
-# Main authenticated router
-router = APIRouter(dependencies=[Depends(verify_api_key)])
-log = structlog.get_logger(name="api")
-
-# Initialize analyzer
-analyzer = ProductAnalyzer(use_local=settings.use_local_model)
-
-
-@router.post("/cache/clear")
-async def clear_cache_endpoint():
+@system_router.post("/cache/clear")
+async def clear_cache_api():
     """Clear the application cache."""
     clear_cache()
     return {"status": "ok", "message": "Cache cleared"}
 
 
-@router.get(
-    "/product/{product_url:path}",
-    response_model=ProductResponse,
-)
+@products_router.get("/{product_url:path}", response_model=ProductResponse)
 @cached
 async def get_product(product_url: str):
-    """Scrape and return product information."""
+    """Get information for a specific product by URL."""
     try:
         if not product_url.startswith(("http://", "https://")):
             product_url = f"https://{product_url}"
@@ -69,13 +70,10 @@ async def get_product(product_url: str):
         ) from e
 
 
-@router.post(
-    "/product/analyze",
-    response_model=AnalysisResponse,
-)
+@products_router.post("/analyze", response_model=AnalysisResponse)
 @cached
-async def analyze_product_endpoint(product_url: str, request: AnalysisRequest):
-    """Analyze a product against the provided filters."""
+async def analyze_product(product_url: str, request: AnalysisRequest):
+    """Analyze a product against provided filters."""
     try:
         log.debug(
             "Analyzing product",
@@ -118,23 +116,12 @@ async def analyze_product_endpoint(product_url: str, request: AnalysisRequest):
         ) from e
 
 
+@cached
 async def analyze_product_safely(url: str, filters: list[str], product_id: int):
     """Analyze a product and handle exceptions gracefully for batch processing."""
     try:
+        # Sort filters for consistent cache keys
         sorted_filters = sorted(filters)
-        url_snippet = url[:50]
-        cache_key = (
-            f"analyze_safely:{product_id}:{url_snippet}:{','.join(sorted_filters)}"
-        )
-        cache_hash = hashlib.md5(cache_key.encode(), usedforsecurity=False).hexdigest()
-
-        if cache_hash in _cache:
-            log.debug(
-                "Using cached analysis result",
-                product_id=product_id,
-                url=url,
-            )
-            return _cache[cache_hash]
 
         product = await scrape_product(url)
         if not product:
@@ -152,29 +139,10 @@ async def analyze_product_safely(url: str, filters: list[str], product_id: int):
 
         product.filters = [ProductFilter(description=f) for f in sorted_filters]
 
-        analyzer_key = f"analyzer:{product.id}:{url_snippet}:{','.join(sorted_filters)}"
-        analyzer_hash = hashlib.md5(
-            analyzer_key.encode(), usedforsecurity=False
-        ).hexdigest()
+        # Analyze the product (this is already cached internally by the analyzer)
+        analyzed_product = await analyzer.analyze_product(product)
 
-        if analyzer_hash in _cache:
-            log.debug(
-                "Using cached analyzer result",
-                product_id=product.id,
-                url=url,
-            )
-            analyzed_product = _cache[analyzer_hash]
-        else:
-            log.debug(
-                "Analyzing product",
-                product_id=product.id,
-                url=url,
-                filter_count=len(product.filters),
-            )
-            analyzed_product = await analyzer.analyze_product(product)
-            _cache[analyzer_hash] = analyzed_product
-
-        result = {
+        return {
             "url": str(url),
             "id": product.id,
             "title": analyzed_product.title,
@@ -184,22 +152,15 @@ async def analyze_product_safely(url: str, filters: list[str], product_id: int):
                 for f in analyzed_product.filters
             ],
         }
-
-        _cache[cache_hash] = result
-
-        return result
     except Exception as e:
         log.error("Product analysis failed", url=url, error=str(e), exc_info=True)
         return None
 
 
-@router.post(
-    "/extension/filter",
-    response_model=ExtensionResponse,
-)
+@filters_router.post("/batch", response_model=ExtensionResponse)
 @cached
-async def extension_filter(request: BatchFilterRequest):
-    """Simplified endpoint for Chrome extension integration, using parallel analysis."""
+async def batch_filter_products(request: BatchFilterRequest):
+    """Filter multiple products in batch against provided filters."""
     try:
         product_urls = request.product_urls[: request.max_products]
         log.info(
@@ -250,10 +211,10 @@ async def extension_filter(request: BatchFilterRequest):
         ) from e
 
 
-@router.get("/extension/check-url")
-async def check_url(url: str):
+@extension_router.get("/validate-url")
+async def validate_url(url: str):
     """
-    Check if a URL is supported by any scraper and return relevant information.
+    Check if a URL is supported and determine its type.
     """
     from backend.scrape import get_scraper_class_for_url
 
@@ -268,3 +229,22 @@ async def check_url(url: str):
         "page_type": page_type,
         "is_search_page": page_type == "search",
     }
+
+
+@extension_router.post("/filter", response_model=ExtensionResponse)
+@cached
+async def extension_filter_products(request: BatchFilterRequest):
+    """Endpoint for Chrome extension to filter multiple products."""
+    return await batch_filter_products(request)
+
+
+# Include all routers
+api_router.include_router(public_router)
+api_router.include_router(system_router)
+api_router.include_router(products_router)
+api_router.include_router(filters_router)
+api_router.include_router(extension_router)
+
+# Create the main authenticated router
+router = APIRouter(dependencies=[Depends(verify_api_key)])
+router.include_router(api_router)

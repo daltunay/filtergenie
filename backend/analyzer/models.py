@@ -5,19 +5,22 @@ from pydantic import BaseModel, Field
 from pydantic.networks import HttpUrl
 from pydantic.types import Base64Str, FilePath
 
-from backend.common.utils import image_to_base64, load_img, resize_img, sanitize_text
+from backend.common.utils import img_to_base64, load_img, resize_img, sanitize_text
 
 
 class ProductImage(BaseModel):
     url_or_path: HttpUrl | FilePath = Field(default=None)
-    image: Image = Field(default=None, repr=False, exclude=True, init=False)
-    base64: Base64Str = Field(default=None, repr=False, exclude=True, init=False)
 
-    model_config = {"arbitrary_types_allowed": True}
+    @property
+    def image(self) -> Image:
+        """Load and resize the image."""
+        img = load_img(self.url_or_path.__str__())
+        return resize_img(img)
 
-    def model_post_init(self, __context):
-        self.image = resize_img(load_img(self.url_or_path.__str__()))
-        self.base64 = image_to_base64(self.image)
+    @property
+    def base64(self) -> Base64Str:
+        """Convert the image to base64 encoding."""
+        return img_to_base64(self.image)
 
 
 class ProductFilter(BaseModel):
