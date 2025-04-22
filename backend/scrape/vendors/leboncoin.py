@@ -37,13 +37,25 @@ class LeboncoinScraper(BaseScraper):
     @staticmethod
     def extract_product_images(soup: BeautifulSoup) -> list[str]:
         image_urls = []
-        gallery_section = soup.find(
-            "section", attrs={"aria-label": "Aller à la galerie de photos"}
-        )
-        picture_elements = gallery_section.find_all("picture")
-        for picture in picture_elements:
-            jpeg_source = picture.find("source", attrs={"type": "image/jpeg"})
-            image_urls.append(jpeg_source["srcset"].strip())
+        seen_urls = set()
+        gallery_section = soup.find("div", class_="slick-list")
+
+        if not gallery_section:
+            return image_urls
+
+        for gallery_section_refine in gallery_section.find_all(
+            "div",
+            class_=["slick-slide", "slick-slide slick-active slick-current"],
+        ):
+            picture_elements = gallery_section_refine.find_all("picture")
+
+            for picture in picture_elements:
+                img_element = picture.find("img")
+                if img_element and "src" in img_element.attrs:
+                    image_url = img_element["src"].strip()
+                    if image_url not in seen_urls:
+                        seen_urls.add(image_url)
+                        image_urls.append(image_url)
 
         return image_urls
 
