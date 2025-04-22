@@ -16,12 +16,9 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     LOCAL_ARGS=""; \
     if [ "$USE_LOCAL" = "true" ]; then \
-        LOCAL_ARGS="--extra local"; \
+    LOCAL_ARGS="--extra local"; \
     fi; \
     uv sync --no-install-project --no-dev "$LOCAL_ARGS"
-
-ENV PLAYWRIGHT_BROWSERS_PATH=/app/ms-playwright
-RUN playwright install --with-deps firefox
 
 COPY backend/ ./backend
 

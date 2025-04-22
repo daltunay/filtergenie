@@ -1,11 +1,9 @@
-import asyncio
 import typing as tp
 from abc import ABC, abstractmethod
 from urllib.parse import urlparse
 
 import structlog
 from bs4 import BeautifulSoup
-from playwright.async_api import async_playwright
 
 from backend.analyzer.models import Product, ProductImage
 from backend.common.cache import cached
@@ -14,7 +12,6 @@ from backend.common.cache import cached
 class BaseScraper(ABC):
     """Abstract base class for all website scrapers."""
 
-    HEADLESS_MODE: bool = True
     SUPPORTED_DOMAINS: list[str] = []
 
     PAGE_TYPE_PATTERNS: dict[str, list[str]] = {
@@ -22,26 +19,9 @@ class BaseScraper(ABC):
         "search": [],
     }
 
-    async def __init__(self):
-        """Initialize the scraper with Playwright and browser instances."""
+    def __init__(self):
+        """Initialize the scraper."""
         self.log = structlog.get_logger(scraper=self.__class__.__name__)
-        self.log.debug("Initializing scraper")
-        self.playwright = await async_playwright().start()
-        self.browser = await self.playwright.firefox.launch(headless=self.HEADLESS_MODE)
-        self.log.debug("Browser launched", headless=self.HEADLESS_MODE)
-
-    @classmethod
-    async def create(cls):
-        """Factory method to properly create an async instance."""
-        instance = cls.__new__(cls)
-        await instance.__init__()
-        return instance
-
-    async def close(self):
-        """Close the browser and Playwright instance."""
-        self.log.debug("Closing scraper resources")
-        await self.browser.close()
-        await self.playwright.stop()
 
     @classmethod
     def get_vendor_name(cls) -> str:
@@ -50,11 +30,18 @@ class BaseScraper(ABC):
         return vendor
 
     @cached
-    async def scrape_product_detail(self, url: str) -> Product:
-        """Main method to scrape a product from a given URL."""
-        self.log.debug("Scraping product details", url=url)
+    def scrape_product_detail(self, html_content: str) -> Product:
+        """
+        Scrape a product from HTML content.
+
+        Args:
+            html_content: HTML content to parse
+        """
+        self.log.debug("Scraping product details from HTML")
         start_time = __import__("time").time()
-        soup = await self.fetch_page(url)
+
+        soup = BeautifulSoup(html_content, "html.parser")
+        url = self._extract_canonical_url(soup) or "unknown_url"
 
         try:
             title = self.extract_product_title(soup)
@@ -73,7 +60,7 @@ class BaseScraper(ABC):
         try:
             image_urls = self.extract_product_images(soup)
             self.log.debug(f"Found {len(image_urls)} images")
-            images = [ProductImage(url_or_path=url) for url in image_urls]
+            images = [ProductImage(url_or_path=img_url) for img_url in image_urls]
         except Exception as e:
             self.log.error("Error extracting images", exception=str(e), exc_info=True)
             images = []
@@ -95,50 +82,17 @@ class BaseScraper(ABC):
 
         return product
 
-    async def scrape_search_results(
-        self, url: str, max_products: int = 5
-    ) -> list[Product]:
-        """Main method to scrape search results from a given URL."""
-        self.log.info("Scraping search results", url=url, max_products=max_products)
-        start_time = __import__("time").time()
+    def _extract_canonical_url(self, soup: BeautifulSoup) -> str | None:
+        """Extract the canonical URL from the HTML if available."""
+        canonical = soup.find("link", rel="canonical")
+        if canonical and canonical.get("href"):
+            return canonical.get("href")
 
-        soup = await self.fetch_page(url)
-        product_urls = self.extract_product_urls(soup)[:max_products]
-        self.log.debug(f"Found {len(product_urls)} product URLs")
+        og_url = soup.find("meta", property="og:url")
+        if og_url and og_url.get("content"):
+            return og_url.get("content")
 
-        products = await asyncio.gather(
-            *[self.scrape_product_detail(url) for url in product_urls]
-        )
-
-        duration = __import__("time").time() - start_time
-        self.log.info(
-            "Search results scraped",
-            product_count=len(products),
-            duration_seconds=round(duration, 2),
-        )
-
-        return products
-
-    @cached
-    async def fetch_page(self, url: str) -> BeautifulSoup:
-        """Fetch the page content using the instance browser and return a BeautifulSoup object."""
-        self.log.debug("Fetching page", url=url)
-        start_time = __import__("time").time()
-
-        page = await self.browser.new_page()
-        await page.goto(url)
-        html_content = await page.content()
-        await page.close()
-
-        duration = __import__("time").time() - start_time
-        self.log.debug(
-            "Page fetched",
-            url=url,
-            content_length=len(html_content),
-            duration_seconds=round(duration, 2),
-        )
-
-        return BeautifulSoup(html_content, "html.parser")
+        return None
 
     @classmethod
     def can_handle_url(cls, url: str) -> bool:

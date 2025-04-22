@@ -1,7 +1,5 @@
-import typing as tp
-from contextlib import asynccontextmanager
-
 import structlog
+from bs4 import BeautifulSoup
 
 from backend.analyzer.models import Product
 from backend.common.cache import cached
@@ -59,54 +57,65 @@ def get_product_id_from_url(url: str) -> int | None:
     return None
 
 
-@asynccontextmanager
-async def get_scraper(url: str) -> tp.AsyncIterator[BaseScraper | None]:
-    """Context manager to get and properly close a scraper for a URL."""
-    log.debug("Getting scraper for URL", url=url)
-    scraper_cls = get_scraper_class_for_url(url)
-    if not scraper_cls:
-        log.warning("No suitable scraper found", url=url)
-        yield None
-        return
+def extract_url_from_html(html_content: str) -> str | None:
+    """Extract the canonical URL from HTML content."""
+    soup = BeautifulSoup(html_content, "html.parser")
 
-    log.debug(f"Initializing {scraper_cls.__name__} for URL", url=url)
-    scraper = await scraper_cls.create()
+    # Try to find canonical URL in the HTML
+    link = soup.find("link", rel="canonical")
+    if link and link.get("href"):
+        url = link.get("href")
+        # Handle relative LeBonCoin URLs
+        if url.startswith("/ad/") and "leboncoin" not in url:
+            return f"https://www.leboncoin.fr{url}"
+        return url
 
-    try:
-        yield scraper
-    finally:
-        log.debug("Closing scraper instance", scraper=scraper_cls.__name__)
-        await scraper.close()
+    # Try Open Graph URL
+    meta = soup.find("meta", property="og:url")
+    if meta and meta.get("content"):
+        url = meta.get("content")
+        # Handle relative LeBonCoin URLs
+        if url.startswith("/ad/") and "leboncoin" not in url:
+            return f"https://www.leboncoin.fr{url}"
+        return url
+
+    return None
 
 
 @cached
-async def scrape_product(url: str) -> Product | None:
-    """Scrape a product from the given URL."""
-    log.debug("Scraping product", url=url)
+async def scrape_product(html_content: str) -> Product | None:
+    """
+    Scrape a product from HTML content.
+
+    Args:
+        html_content: HTML content to parse
+    """
+    log.debug("Scraping product from HTML content")
     start_time = __import__("time").time()
 
-    async with get_scraper(url) as scraper:
-        if not scraper:
-            log.warning("No scraper available for URL", url=url)
-            return None
+    # Extract the URL from HTML content
+    canonical_url = extract_url_from_html(html_content)
 
-        product = await scraper.scrape_product_detail(url)
+    if not canonical_url:
+        log.warning("Could not determine URL from HTML content")
+        return None
+
+    # Find the appropriate scraper
+    scraper_cls = get_scraper_class_for_url(canonical_url)
+    if not scraper_cls:
+        log.warning("No scraper found for URL in HTML content", url=canonical_url)
+        return None
+
+    # Create scraper instance and process the HTML
+    scraper = scraper_cls()
+    product = scraper.scrape_product_detail(html_content)
 
     duration = __import__("time").time() - start_time
-    if duration > 5:
-        log.info(
-            "Product scraping completed",
-            url=url,
-            product_id=product.id,
-            vendor=product.vendor,
-            duration_seconds=round(duration, 2),
-        )
-    else:
-        log.debug(
-            "Product scraped",
-            url=url,
-            product_id=product.id,
-            duration_seconds=round(duration, 2),
-        )
+    log.debug(
+        "Product scraped",
+        url=product.url if product else "unknown",
+        product_id=getattr(product, "id", "unknown"),
+        duration_seconds=round(duration, 2),
+    )
 
     return product

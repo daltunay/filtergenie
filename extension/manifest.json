@@ -3,7 +3,7 @@
   "name": "SmartFilter",
   "version": "1.0",
   "description": "Filter e-commerce search results using AI",
-  "permissions": ["activeTab", "scripting", "storage"],
+  "permissions": ["activeTab", "scripting", "storage", "webRequest"],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "src/background/background.js"

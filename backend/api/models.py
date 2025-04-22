@@ -50,6 +50,23 @@ class BatchFilterRequest(BaseModel):
     )
 
 
+class ProductHtml(BaseModel):
+    """Model for product HTML content"""
+
+    url: HttpUrl
+    html: str
+
+
+class ProductsAnalysisRequest(BaseModel):
+    """RESTful request model for analyzing multiple products"""
+
+    filters: list[str] = Field(..., description="Filter criteria to apply")
+    products: list[ProductHtml] = Field(..., description="Products' HTML to analyze")
+    threshold: int = Field(
+        1, ge=1, description="Minimum number of filters that must match"
+    )
+
+
 class ExtensionResponse(BaseModel):
     """Response model for extension requests"""
 

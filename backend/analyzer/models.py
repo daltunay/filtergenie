@@ -1,7 +1,7 @@
 import typing as tp
 
 from PIL.Image import Image
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from pydantic.networks import HttpUrl
 from pydantic.types import Base64Str, FilePath
 
@@ -39,19 +39,41 @@ class Product(BaseModel):
     vendor: tp.Literal["ebay", "leboncoin", "vinted"] | None = Field(
         default=None, init=False
     )
-    url: HttpUrl | None = Field(default=None)
+    # Change to accept string input initially instead of HttpUrl
+    url: str | None = Field(default=None)
     title: str = Field(default="")
     description: str = Field(default="")
     images: list[ProductImage] = Field(default_factory=list)
     filters: list[ProductFilter] = Field(default_factory=list)
 
+    @field_validator("url")
+    def validate_url(cls, v: str | None) -> str | None:
+        if not v:
+            return None
+
+        # Handle relative URLs by adding base domain
+        if v.startswith("/"):
+            if v.startswith("/ad/"):
+                # LeBonCoin URL
+                v = f"https://www.leboncoin.fr{v}"
+            elif v.startswith("/item/"):
+                # Vinted URL
+                v = f"https://www.vinted.fr{v}"
+            elif v.startswith("/itm/"):
+                # eBay URL
+                v = f"https://www.ebay.fr{v}"
+
+        # Remove query parameters for consistency
+        v = v.split("?")[0]
+        return v
+
     def model_post_init(self, __context):
         if self.url is not None:
             from backend.scrape import get_product_id_from_url, get_vendor_for_url
 
-            self.url = HttpUrl(self.url.__str__().split("?")[0])
-            self.vendor = get_vendor_for_url(self.url.__str__())
-            self.id = get_product_id_from_url(self.url.__str__())
+            # Set vendor and ID from the now-valid URL
+            self.vendor = get_vendor_for_url(self.url)
+            self.id = get_product_id_from_url(self.url)
 
     def matches_min_filters(self, min_count: int) -> bool:
         """Check if the product matches at least min_count filters."""
@@ -77,3 +99,28 @@ class Product(BaseModel):
     def filter_descriptions(self) -> list[str]:
         """Get a list of filter descriptions for this product."""
         return [f.description for f in self.filters] if self.filters else []
+
+    def __getitem__(self, key):
+        """Make Product objects subscriptable to be compatible with dictionary access."""
+        if key == "matches_all_filters":
+            return self.matches_all_filters
+        elif hasattr(self, key):
+            return getattr(self, key)
+        raise KeyError(f"'{key}' not found in Product")
+
+    def to_extension_dict(self) -> dict:
+        """Convert the product to a dictionary format suitable for extension API responses."""
+        match_count = sum(1 for f in self.filters if f.value)
+        total_filters = len(self.filters)
+
+        return {
+            "url": self.url,
+            "id": self.id,
+            "title": self.title,
+            "matches_all_filters": self.matches_all_filters,
+            "filters": [
+                {"description": f.description, "value": f.value} for f in self.filters
+            ],
+            "match_count": match_count,
+            "total_filters": total_filters,
+        }

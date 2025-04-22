@@ -28,20 +28,6 @@ class Settings(BaseSettings):
     )
     local_model_device: str = Field(default="auto")
 
-    # Scraper configuration
-    headless_mode: bool = Field(default=True)
-
-    def model_dump(self) -> dict:
-        """Return a sanitized dictionary of settings (without secrets)."""
-        data = super().model_dump()
-        if self.openai_api_key:
-            data["openai_api_key"] = "***"
-        if self.api_key:
-            data["api_key"] = "***"
-        return data
-
-    model_config = {"env_file": ".env", "case_sensitive": True}
-
 
 # Create settings instance
 settings = Settings()

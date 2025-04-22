@@ -14,7 +14,10 @@ log = structlog.get_logger(name="app")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup event code
-    log.info("Starting the application", config=settings.model_dump())
+    log.info(
+        "Starting the application",
+        config=settings.model_dump(exclude={"api_key", "openai_api_key"}),
+    )
     yield
     # Shutdown event code
     log.info("Shutting down the application")
