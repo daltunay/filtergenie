@@ -1,12 +1,11 @@
 import typing as tp
 
 from PIL.Image import Image
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 from pydantic.networks import HttpUrl
-from pydantic.types import Base64Str, FilePath
+from pydantic.types import Base64UrlStr, FilePath
 
-from backend.common.utils import (img_to_base64, load_img, resize_img,
-                                  sanitize_text)
+from backend.common.utils import img_to_base64, load_img, resize_img, sanitize_text
 
 
 class ProductImage(BaseModel):
@@ -19,7 +18,7 @@ class ProductImage(BaseModel):
         return resize_img(img)
 
     @property
-    def base64(self) -> Base64Str:
+    def base64(self) -> Base64UrlStr:
         """Convert the image to base64 encoding."""
         return img_to_base64(self.image)
 
@@ -36,46 +35,14 @@ class ProductFilter(BaseModel):
 class Product(BaseModel):
     """Class to hold product data scraped from websites."""
 
-    id: int | None = Field(default=None, init=False)
-    vendor: tp.Literal["ebay", "leboncoin", "vinted"] | None = Field(
-        default=None, init=False
-    )
-    # Change to accept string input initially instead of HttpUrl
-    url: str | None = Field(default=None)
+    id: int | None = Field(default=None)
+    vendor: tp.Literal["ebay", "leboncoin", "vinted"] | None = Field(default=None)
+
+    url: HttpUrl | None = Field(default=None)
     title: str = Field(default="")
     description: str = Field(default="")
     images: list[ProductImage] = Field(default_factory=list)
     filters: list[ProductFilter] = Field(default_factory=list)
-
-    @field_validator("url")
-    def validate_url(cls, v: str | None) -> str | None:
-        if not v:
-            return None
-
-        # Handle relative URLs by adding base domain
-        if v.startswith("/"):
-            if v.startswith("/ad/"):
-                # LeBonCoin URL
-                v = f"https://www.leboncoin.fr{v}"
-            elif v.startswith("/item/"):
-                # Vinted URL
-                v = f"https://www.vinted.fr{v}"
-            elif v.startswith("/itm/"):
-                # eBay URL
-                v = f"https://www.ebay.fr{v}"
-
-        # Remove query parameters for consistency
-        v = v.split("?")[0]
-        return v
-
-    def model_post_init(self, __context):
-        if self.url is not None:
-            from backend.scrape import (get_product_id_from_url,
-                                        get_vendor_for_url)
-
-            # Set vendor and ID from the now-valid URL
-            self.vendor = get_vendor_for_url(self.url)
-            self.id = get_product_id_from_url(self.url)
 
     def matches_min_filters(self, min_count: int) -> bool:
         """Check if the product matches at least min_count filters."""
@@ -89,13 +56,6 @@ class Product(BaseModel):
     def matches_all_filters(self) -> bool:
         """Check if the product matches all filters."""
         return self.matches_min_filters(len(self.filters)) if self.filters else True
-
-    @property
-    def cache_key(self) -> tuple[str, int]:
-        """Return a tuple that uniquely identifies this product for caching."""
-        if self.vendor and self.id is not None:
-            return (self.vendor, self.id)
-        return None
 
     @property
     def filter_descriptions(self) -> list[str]:

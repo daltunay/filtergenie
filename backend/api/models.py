@@ -16,11 +16,6 @@ class ProductBase(BaseModel):
     id: int | None = None
     url: str
     title: str
-
-
-class ProductResponse(ProductBase):
-    """Simple product response without filter results"""
-
     vendor: str | None = None
 
 
@@ -36,18 +31,8 @@ class AnalysisResponse(ProductBase):
 
     matches_all_filters: bool
     filters: list[FilterResult]
-
-
-class BatchFilterRequest(BaseModel):
-    """Request model for batch filtering products"""
-
-    filters: list[str] = Field(..., description="List of filter descriptions to apply")
-    product_urls: list[HttpUrl] = Field(
-        ..., description="List of product URLs to analyze"
-    )
-    max_products: int = Field(
-        10, ge=1, le=50, description="Maximum number of products to process"
-    )
+    match_count: int
+    total_filters: int
 
 
 class ProductHtml(BaseModel):
@@ -60,7 +45,7 @@ class ProductHtml(BaseModel):
 class ProductsAnalysisRequest(BaseModel):
     """RESTful request model for analyzing multiple products"""
 
-    filters: list[str] = Field(..., description="Filter criteria to apply")
+    filters: list[str] = Field(..., description="List of filter descriptions to apply")
     products: list[ProductHtml] = Field(..., description="Products' HTML to analyze")
     threshold: int = Field(
         1, ge=1, description="Minimum number of filters that must match"

@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.api.routes import authenticated_router, public_router
 from backend.config import settings
 
-log = structlog.get_logger(name="app")
+log = structlog.get_logger(__name__=__name__)
 
 
 @asynccontextmanager
@@ -28,7 +28,6 @@ def create_app() -> FastAPI:
         title="Product Filter API",
         description="API for validating products against filters using AI",
         version="1.0.0",
-        # Remove global authentication to allow public routes
         lifespan=lifespan,
     )
 

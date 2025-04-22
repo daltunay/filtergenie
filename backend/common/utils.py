@@ -8,7 +8,7 @@ from PIL import Image
 
 def sanitize_text(text: str) -> str:
     """Convert text to a valid attribute name."""
-    return re.sub(r"[^a-z0-9_]", "_", text.lower()).strip("_")
+    return re.sub(r"[^a-z0-9]+", "_", text.lower()).strip("_")
 
 
 def load_img(url_or_path: str) -> Image.Image:

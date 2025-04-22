@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 import structlog
 from bs4 import BeautifulSoup
 
-from backend.analyzer.models import Product, ProductImage
+from backend.analyzer import Product, ProductImage
 from backend.common.cache import cached
 
 
@@ -21,7 +21,7 @@ class BaseScraper(ABC):
 
     def __init__(self):
         """Initialize the scraper."""
-        self.log = structlog.get_logger(scraper=self.__class__.__name__)
+        self.log = structlog.get_logger(__name__=__name__)
 
     @classmethod
     def get_vendor_name(cls) -> str:
@@ -30,18 +30,18 @@ class BaseScraper(ABC):
         return vendor
 
     @cached
-    def scrape_product_detail(self, html_content: str) -> Product:
+    def scrape_product_detail(self, html_content: str, url: str) -> Product:
         """
         Scrape a product from HTML content.
 
         Args:
             html_content: HTML content to parse
+            url: The URL of the product page
         """
         self.log.debug("Scraping product details from HTML")
         start_time = __import__("time").time()
 
         soup = BeautifulSoup(html_content, "html.parser")
-        url = self._extract_canonical_url(soup) or "unknown_url"
 
         try:
             title = self.extract_product_title(soup)
@@ -81,18 +81,6 @@ class BaseScraper(ABC):
         )
 
         return product
-
-    def _extract_canonical_url(self, soup: BeautifulSoup) -> str | None:
-        """Extract the canonical URL from the HTML if available."""
-        canonical = soup.find("link", rel="canonical")
-        if canonical and canonical.get("href"):
-            return canonical.get("href")
-
-        og_url = soup.find("meta", property="og:url")
-        if og_url and og_url.get("content"):
-            return og_url.get("content")
-
-        return None
 
     @classmethod
     def can_handle_url(cls, url: str) -> bool:

@@ -4,7 +4,7 @@ from textwrap import dedent
 import structlog
 from pydantic import BaseModel, Field, create_model
 
-from backend.analyzer.models import Product, ProductImage
+from backend.analyzer import Product, ProductImage
 from backend.common.cache import cached
 from backend.config import settings
 
@@ -39,7 +39,7 @@ class ProductAnalyzer:
 
     def __init__(self, use_local: bool | None = None):
         """Initialize the analyzer with either a local VLM model or OpenAI."""
-        self.log = structlog.get_logger(name="analyzer")
+        self.log = structlog.get_logger(__name__=__name__)
 
         # Use settings if not explicitly provided
         if use_local is None:

@@ -8,9 +8,9 @@ from pathlib import Path
 import duckdb
 import structlog
 
-from backend.analyzer.models import Product, ProductFilter, ProductImage
+from backend.analyzer import Product, ProductFilter, ProductImage
 
-logger = structlog.get_logger(name="db")
+logger = structlog.get_logger(__name__=__name__)
 
 # Define database path
 DB_PATH = Path(os.environ.get("DUCKDB_PATH", "products.db"))
