@@ -12,7 +12,6 @@ class SmartFilterCore {
   }
 
   async applyFilters(filters, maxItems, filterThreshold) {
-    // Prevent multiple filter operations
     if (this.fetchingInProgress) {
       return { success: false, error: "Filter operation already in progress" };
     }
@@ -21,92 +20,148 @@ class SmartFilterCore {
       this.fetchingInProgress = true;
       this.resetFiltering();
 
-      // Get product items from the page
-      const productItems = this._getValidProductItems(maxItems);
-      if (!productItems.length) {
-        this.fetchingInProgress = false;
-        return { success: false, error: "No products found" };
+      let productData;
+      if (this.vendor.pageType === "product") {
+        productData = await this._getProductPageData();
+      } else {
+        productData = await this._getSearchPageData(maxItems);
       }
 
-      console.log(`Filtering ${productItems.length} products`);
-
-      // Extract URLs for all products
-      const productUrls = productItems.map((item) => item.url);
-
-      // Show loading indicators
-      this._showLoadingState(productItems);
-
-      // Fetch HTML content for all products in parallel
-      const htmlContents = await this._fetchAllProductsHtml(productUrls);
-
-      // Process valid products only
-      const validProductData = this._getValidProductData(
-        productItems,
-        productUrls,
-        htmlContents,
-      );
-      if (!validProductData.valid) {
-        this._hideLoadingState(productItems);
-        this.fetchingInProgress = false;
-        return { success: false, error: "Failed to fetch HTML content" };
+      if (!productData.success) {
+        return productData;
       }
 
-      // Send to backend API for analysis
       const analysisResult = await this._analyzeProducts(
         filters,
-        validProductData.urls,
-        validProductData.htmlContents,
-        validProductData.items,
+        productData.urls,
+        productData.htmlContents,
         filterThreshold,
       );
 
-      // Hide loading indicators
-      this._hideLoadingState(productItems);
-
-      if (!analysisResult.success) {
-        this.fetchingInProgress = false;
-        return analysisResult;
+      if (!analysisResult?.success) {
+        return { success: false, error: analysisResult?.error || "API error" };
       }
 
-      // Apply filtering results to DOM
-      const matchCount = this._applyFiltersToDOM(
-        analysisResult.products,
-        validProductData.items,
-        filterThreshold,
-      );
+      let matchCount = 0;
+      if (this.vendor.pageType === "product") {
+        const product = analysisResult.products[0];
+        if (product) {
+          const targetContainer =
+            document.querySelector("main") || document.body;
+          this._addFilterBadges(targetContainer, product.filters);
+          matchCount = product.matches_all_filters ? 1 : 0;
+        }
+      } else {
+        matchCount = this._applyFiltersToDOM(
+          analysisResult.products,
+          productData.items,
+          filterThreshold,
+        );
+      }
 
-      // Store results
+      const total = productData.items?.length || 1;
+
       this.lastResults = {
-        total: validProductData.items.length,
+        total: total,
         matched: matchCount,
         filters,
       };
 
       document.documentElement.setAttribute("data-smart-filtered", "true");
-      this.fetchingInProgress = false;
+
+      this.filteredProducts = {
+        products: analysisResult.products,
+        items: productData.items,
+        filterThreshold,
+        filters,
+      };
 
       return {
         success: true,
         matched: matchCount,
-        total: validProductData.items.length,
+        total: total,
       };
     } catch (error) {
-      this.fetchingInProgress = false;
-      console.error("Filter application error:", error);
       return { success: false, error: error.message };
+    } finally {
+      this.fetchingInProgress = false;
     }
   }
 
-  /**
-   * Extract valid product items from the page
-   */
+  async _getProductPageData() {
+    const url = window.location.href;
+    document.body.classList.add("smart-filter-loading");
+
+    try {
+      const html = await this._fetchHtml(url);
+
+      if (!html) {
+        return { success: false, error: "Failed to fetch HTML content" };
+      }
+
+      return {
+        success: true,
+        urls: [url],
+        htmlContents: [html],
+        items: [{ element: document.body }],
+      };
+    } finally {
+      document.body.classList.remove("smart-filter-loading");
+    }
+  }
+
+  async _getSearchPageData(maxItems) {
+    const productItems = this._getValidProductItems(maxItems);
+
+    if (!productItems.length) {
+      return { success: false, error: "No products found" };
+    }
+
+    const productUrls = productItems.map((item) => item.url);
+    this._toggleLoadingState(productItems, true);
+
+    try {
+      const htmlContents = await Promise.all(
+        productUrls.map((url) => this._fetchHtml(url)),
+      );
+
+      const validProductData = this._getValidProductData(
+        productItems,
+        productUrls,
+        htmlContents,
+      );
+
+      if (!validProductData.valid) {
+        return { success: false, error: "Failed to fetch HTML content" };
+      }
+
+      return {
+        success: true,
+        urls: validProductData.urls,
+        htmlContents: validProductData.htmlContents,
+        items: validProductData.items,
+      };
+    } finally {
+      this._toggleLoadingState(productItems, false);
+    }
+  }
+
+  async _analyzeProducts(filters, urls, htmlContents, threshold) {
+    return await chrome.runtime.sendMessage({
+      action: "analyzeProducts",
+      filters,
+      productUrls: urls,
+      htmlContents: htmlContents,
+      threshold: threshold || 1,
+    });
+  }
+
   _getValidProductItems(maxItems) {
     return Array.from(this.vendor.getProductItems())
       .map((item) => {
         const link = item.querySelector("a");
         if (!link) return null;
 
-        // Let the vendor handle the URL extraction with its own logic
         const url = this.vendor.extractUrl(link);
         if (!url) return null;
 
@@ -116,133 +171,42 @@ class SmartFilterCore {
       .slice(0, maxItems);
   }
 
-  /**
-   * Show loading indicators on product items
-   */
-  _showLoadingState(productItems) {
+  _toggleLoadingState(productItems, isLoading) {
     productItems.forEach(({ element }) => {
-      element.classList.add("smart-filter-loading");
+      element.classList.toggle("smart-filter-loading", isLoading);
     });
   }
 
-  /**
-   * Hide loading indicators on product items
-   */
-  _hideLoadingState(productItems) {
-    productItems.forEach(({ element }) => {
-      element.classList.remove("smart-filter-loading");
-    });
-  }
-
-  /**
-   * Fetch HTML for all products in parallel
-   */
-  async _fetchAllProductsHtml(productUrls) {
-    return Promise.all(productUrls.map((url) => this._fetchHtml(url)));
-  }
-
-  /**
-   * Get valid product data from results
-   */
   _getValidProductData(productItems, productUrls, htmlContents) {
-    const validUrls = [];
-    const validHtmlContents = [];
-    const validItems = [];
-
-    htmlContents.forEach((html, index) => {
-      if (html !== null) {
-        validUrls.push(productUrls[index]);
-        validHtmlContents.push(html);
-        validItems.push(productItems[index]);
-      } else {
-        console.warn(`Failed to fetch HTML for ${productUrls[index]}`);
-      }
-    });
+    const validData = productItems
+      .map((item, index) =>
+        htmlContents[index]
+          ? { item, url: productUrls[index], html: htmlContents[index] }
+          : null,
+      )
+      .filter(Boolean);
 
     return {
-      valid: validUrls.length > 0,
-      urls: validUrls,
-      htmlContents: validHtmlContents,
-      items: validItems,
+      valid: validData.length > 0,
+      urls: validData.map((d) => d.url),
+      htmlContents: validData.map((d) => d.html),
+      items: validData.map((d) => d.item),
     };
   }
 
-  /**
-   * Send products to backend for analysis
-   */
-  async _analyzeProducts(
-    filters,
-    productUrls,
-    htmlContents,
-    validProductItems,
-    threshold,
-  ) {
-    try {
-      const response = await new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage(
-          {
-            action: "analyzeProducts",
-            filters,
-            productUrls,
-            htmlContents,
-            threshold: threshold || 1,
-          },
-          (response) =>
-            chrome.runtime.lastError
-              ? reject(chrome.runtime.lastError)
-              : resolve(response),
-        );
-      });
-
-      if (!response?.success) {
-        return { success: false, error: response?.error || "API error" };
-      }
-
-      this.filteredProducts = {
-        products: response.products,
-        items: validProductItems,
-        filterThreshold: threshold,
-        filters,
-      };
-
-      return { success: true, products: response.products };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  }
-
-  /**
-   * Fetch HTML content for a single product
-   */
   async _fetchHtml(url) {
     try {
-      const startTime = performance.now();
-      const result = await new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage({ action: "fetchHtml", url }, (response) => {
-          if (chrome.runtime.lastError) {
-            reject(chrome.runtime.lastError);
-          } else if (!response.success) {
-            console.warn(`Failed to fetch HTML for ${url}:`, response.error);
-            resolve(null);
-          } else {
-            const duration = performance.now() - startTime;
-            console.log(`Fetched HTML for ${url} in ${Math.round(duration)}ms`);
-            resolve(response.html);
-          }
-        });
+      const response = await chrome.runtime.sendMessage({
+        action: "fetchHtml",
+        url,
       });
-      return result;
-    } catch (error) {
-      console.warn(`Error fetching HTML for ${url}:`, error);
+      return response?.success ? response.html : null;
+    } catch {
       return null;
     }
   }
 
-  /**
-   * Apply filter results to DOM elements
-   */
   _applyFiltersToDOM(products, productItems, threshold) {
-    // Create lookup map by URL
     const productsByUrl = Object.fromEntries(
       products.map((product) => [product.url, product]),
     );
@@ -253,22 +217,18 @@ class SmartFilterCore {
       const product = productsByUrl[url];
       if (!product) return;
 
-      // Ensure element is positioned for badges
       if (window.getComputedStyle(element).position === "static") {
         element.style.position = "relative";
       }
 
-      // Check if product meets threshold
       const matchingFilters = product.filters.filter((f) => f.value).length;
       const totalFilters = product.filters.length;
       const thresholdToApply =
         threshold === totalFilters
           ? totalFilters
           : Math.min(threshold, totalFilters);
-
       const meetsThreshold = matchingFilters >= thresholdToApply;
 
-      // Mark as match or hide
       if (meetsThreshold) {
         matchCount++;
       } else {
@@ -276,28 +236,21 @@ class SmartFilterCore {
         this.hiddenElements.add(element);
       }
 
-      // Add filter badges to the product
       this._addFilterBadges(element, product.filters);
     });
 
     return matchCount;
   }
 
-  /**
-   * Add filter badges to product elements
-   */
   _addFilterBadges(element, filters) {
     if (!filters?.length) return;
 
-    // Find container and clear existing badges
     const targetEl = this.vendor.findImageContainer(element);
     element.querySelectorAll(".badge-container").forEach((el) => el.remove());
 
-    // Create badge container
     const badgeContainer = document.createElement("div");
     badgeContainer.className = "badge-container";
 
-    // Add badges for each filter
     filters.forEach((filter) => {
       const badge = document.createElement("div");
       badge.className = `filter-badge ${!filter.value ? "filter-badge-negative" : ""}`;
@@ -305,43 +258,33 @@ class SmartFilterCore {
       badgeContainer.appendChild(badge);
     });
 
-    // Add badges to DOM
     targetEl.appendChild(badgeContainer);
     if (window.getComputedStyle(targetEl).position === "static") {
       targetEl.style.position = "relative";
     }
   }
 
-  /**
-   * Reset all filtering
-   */
   resetFiltering() {
     this.filteredProducts = null;
     this.lastResults = { total: 0, matched: 0 };
 
-    // Remove all UI indicators
-    this.hiddenElements.forEach((el) => {
-      el.classList.remove("smart-filter-hidden");
-    });
+    this.hiddenElements.forEach((el) =>
+      el.classList.remove("smart-filter-hidden"),
+    );
     this.hiddenElements.clear();
 
     document.querySelectorAll(".badge-container").forEach((el) => el.remove());
     document.documentElement.removeAttribute("data-smart-filtered");
   }
 
-  /**
-   * Update threshold without re-fetching data
-   */
   updateFilterThreshold(filterThreshold) {
     if (!this.filteredProducts) return { matched: 0, total: 0 };
 
-    // Reset hidden state
-    this.hiddenElements.forEach((el) => {
-      el.classList.remove("smart-filter-hidden");
-    });
+    this.hiddenElements.forEach((el) =>
+      el.classList.remove("smart-filter-hidden"),
+    );
     this.hiddenElements.clear();
 
-    // Re-apply filters with new threshold
     const matchCount = this._applyFiltersToDOM(
       this.filteredProducts.products,
       this.filteredProducts.items,

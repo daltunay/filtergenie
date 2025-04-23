@@ -6,6 +6,10 @@ class LeboncoinVendor extends VendorInterface {
   name = "leboncoin";
   searchPatterns = [/\/(recherche|c)(\/|$)/];
 
+  isProductPage(url) {
+    return new URL(url).pathname.includes("/ad/");
+  }
+
   getProductItems() {
     return document.querySelectorAll('article[data-test-id="ad"]');
   }

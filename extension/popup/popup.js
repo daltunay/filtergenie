@@ -1,674 +1,564 @@
-/**
- * SmartFilter - Popup UI
- * Simplified version with cleaner code organization
- */
 (function () {
   const CONFIG = {
     SUPPORTED_DOMAINS: ["leboncoin.fr", "vinted.fr", "ebay.fr"],
     SETTINGS: {
-      MAX_ITEMS: {
-        DEFAULT: 5,
-        MIN: 1,
-        MAX: 10,
-      },
-      FILTER_THRESHOLD: {
-        DEFAULT: 0,
-        MIN: 0,
-      },
-      API: {
-        DEFAULT_ENDPOINT: "http://localhost:8000",
-      },
+      MAX_ITEMS: { DEFAULT: 5, MIN: 1, MAX: 10 },
+      FILTER_THRESHOLD: { DEFAULT: 0, MIN: 0 },
+      API: { DEFAULT_ENDPOINT: "http://localhost:8000" },
     },
   };
 
   const DOM = {};
-
-  const State = {
+  let CURRENT_STATE = {
     currentSite: "",
     isSupported: false,
     filterCount: 0,
     results: null,
-
-    async load() {
-      const hostname = await API.getCurrentHostname();
-      this.currentSite = hostname;
-
-      const stored = await chrome.storage.local.get([
-        `filters_${hostname}`,
-        `settings_${hostname}`,
-        `lastApplied_${hostname}`,
-      ]);
-
-      return {
-        filters: stored[`filters_${hostname}`] || [],
-        settings: stored[`settings_${hostname}`] || {
-          maxItems: CONFIG.SETTINGS.MAX_ITEMS.DEFAULT,
-          filterThreshold: CONFIG.SETTINGS.FILTER_THRESHOLD.DEFAULT,
-        },
-      };
-    },
-
-    async saveFilters(filters) {
-      this.filterCount = filters.length || 1;
-      await chrome.storage.local.set({
-        [`filters_${this.currentSite}`]: filters,
-      });
-    },
-
-    async saveSettings(settings) {
-      await chrome.storage.local.set({
-        [`settings_${this.currentSite}`]: settings,
-      });
-    },
-
-    async saveApiSettings(endpoint, key) {
-      await chrome.storage.local.set({
-        api_settings: { endpoint, key },
-      });
-
-      return API.notifySettingsChanged(endpoint, key);
-    },
   };
 
-  const API = {
-    async getCurrentTab() {
-      const [tab] = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
+  // Core functions
+  async function getCurrentTab() {
+    const [tab] = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+    return tab;
+  }
+
+  async function sendMessageToTab(action, data = {}) {
+    const tab = await getCurrentTab();
+    try {
+      return await chrome.tabs.sendMessage(tab.id, { action, ...data });
+    } catch {
+      return { success: false, error: "Content script not ready" };
+    }
+  }
+
+  async function getCurrentHostname() {
+    const tab = await getCurrentTab();
+    if (!tab?.url) return "";
+    try {
+      return new URL(tab.url).hostname;
+    } catch {
+      return "";
+    }
+  }
+
+  // Storage operations
+  async function loadState() {
+    const hostname = await getCurrentHostname();
+    CURRENT_STATE.currentSite = hostname;
+
+    const stored = await chrome.storage.local.get([
+      `filters_${hostname}`,
+      `settings_${hostname}`,
+      `lastApplied_${hostname}`,
+    ]);
+
+    return {
+      filters: stored[`filters_${hostname}`] || [],
+      settings: stored[`settings_${hostname}`] || {
+        maxItems: CONFIG.SETTINGS.MAX_ITEMS.DEFAULT,
+        filterThreshold: CONFIG.SETTINGS.FILTER_THRESHOLD.DEFAULT,
+      },
+    };
+  }
+
+  async function saveFilters() {
+    const filters = Array.from(document.querySelectorAll(".filter-row input"))
+      .map((input) => input.value.trim())
+      .filter((text) => text !== "");
+
+    CURRENT_STATE.filterCount = filters.length || 1;
+
+    await chrome.storage.local.set({
+      [`filters_${CURRENT_STATE.currentSite}`]: filters,
+    });
+
+    return filters;
+  }
+
+  async function saveSettings() {
+    const settings = {
+      maxItems:
+        parseInt(DOM["max-items"].value) || CONFIG.SETTINGS.MAX_ITEMS.DEFAULT,
+      filterThreshold:
+        parseInt(DOM["filter-threshold"].value) ||
+        CONFIG.SETTINGS.FILTER_THRESHOLD.DEFAULT,
+    };
+
+    await chrome.storage.local.set({
+      [`settings_${CURRENT_STATE.currentSite}`]: settings,
+    });
+
+    return settings;
+  }
+
+  async function saveApiSettings() {
+    const endpoint =
+      DOM["api-endpoint"].value.trim() || CONFIG.SETTINGS.API.DEFAULT_ENDPOINT;
+    const key = DOM["api-key"].value.trim();
+
+    if (!validateUrl(endpoint)) {
+      showApiSettingsStatus("Invalid API endpoint format", true);
+      return false;
+    }
+
+    showButton(DOM["save-api-settings"], true, "Saving...");
+
+    try {
+      const response = await chrome.runtime.sendMessage({
+        action: "apiSettingsChanged",
+        settings: { endpoint, key },
       });
-      return tab;
-    },
-
-    async getCurrentHostname() {
-      const tab = await this.getCurrentTab();
-      if (!tab?.url) return "";
-      try {
-        return new URL(tab.url).hostname;
-      } catch {
-        return "";
-      }
-    },
-
-    async sendMessageToTab(action, data = {}) {
-      const tab = await this.getCurrentTab();
-      try {
-        return await chrome.tabs.sendMessage(tab.id, { action, ...data });
-      } catch (error) {
-        return { success: false, error: "Content script not ready" };
-      }
-    },
-
-    async getVendorInfo() {
-      return this.sendMessageToTab("getVendorInfo");
-    },
-
-    async getFilterState() {
-      return this.sendMessageToTab("getFilterState");
-    },
-
-    async updateFilterThreshold(filterThreshold) {
-      return this.sendMessageToTab("updateFilterThreshold", {
-        filterThreshold,
-      });
-    },
-
-    async applyFilters(filters, maxItems, filterThreshold) {
-      return this.sendMessageToTab("applyFilters", {
-        filters,
-        maxItems,
-        filterThreshold,
-      });
-    },
-
-    async resetFilters() {
-      return this.sendMessageToTab("resetFilters");
-    },
-
-    async notifySettingsChanged(endpoint, key) {
-      try {
-        return await chrome.runtime.sendMessage({
-          action: "apiSettingsChanged",
-          settings: { endpoint, key },
-        });
-      } catch (error) {
-        return { success: false, error: "Background script error" };
-      }
-    },
-
-    async loadApiSettings() {
-      const stored = await chrome.storage.local.get(["api_settings"]);
-      return (
-        stored.api_settings || {
-          endpoint: CONFIG.SETTINGS.API.DEFAULT_ENDPOINT,
-          key: "",
-        }
-      );
-    },
-  };
-
-  const UI = {
-    async init() {
-      this.cacheElements();
-      this.setupEventListeners();
-      await this.detectCurrentSite();
-
-      if (this.isSupported) {
-        await this.loadStoredState();
-        await this.syncWithContentScript();
-      }
-    },
-
-    cacheElements() {
-      const elementIds = [
-        "status-icon",
-        "current-site",
-        "site-message",
-        "filter-panel",
-        "filter-list",
-        "max-items",
-        "filter-threshold",
-        "threshold-value",
-        "add-filter-btn",
-        "apply-btn",
-        "reset-btn",
-        "results-counter",
-        "increase-max",
-        "decrease-max",
-        "toggle-advanced",
-        "advanced-panel",
-        "api-endpoint",
-        "api-key",
-        "save-api-settings",
-        "api-settings-status",
-      ];
-
-      elementIds.forEach((id) => (DOM[id] = document.getElementById(id)));
-    },
-
-    setupEventListeners() {
-      DOM["add-filter-btn"].addEventListener("click", () =>
-        this.addFilterRow(),
-      );
-      DOM["max-items"].addEventListener("change", () => this.saveSettings());
-      DOM["filter-threshold"].addEventListener("input", () =>
-        this.updateThresholdDisplay(),
-      );
-      DOM["filter-threshold"].addEventListener("change", () =>
-        this.handleThresholdChange(),
-      );
-      DOM["increase-max"].addEventListener("click", () =>
-        this.changeMaxItems(1),
-      );
-      DOM["decrease-max"].addEventListener("click", () =>
-        this.changeMaxItems(-1),
-      );
-      DOM["apply-btn"].addEventListener("click", () => this.applyFilters());
-      DOM["reset-btn"].addEventListener("click", () => this.resetFilters());
-      DOM["toggle-advanced"].addEventListener("click", () =>
-        this.toggleAdvancedPanel(),
-      );
-      DOM["save-api-settings"].addEventListener("click", () =>
-        this.saveApiSettings(),
-      );
-      DOM["api-endpoint"].addEventListener("input", () => {
-        this.validateInput(DOM["api-endpoint"], this.validateApiEndpoint);
-      });
-    },
-
-    validateApiEndpoint(endpoint) {
-      if (!endpoint) return true;
-      try {
-        const url = new URL(endpoint);
-        return url.protocol === "http:" || url.protocol === "https:";
-      } catch {
-        return false;
-      }
-    },
-
-    validateApiKey(key) {
-      // Always allow empty keys - they're optional
-      return true;
-    },
-
-    validateInput(inputEl, validationFn) {
-      const isValid = validationFn(inputEl.value);
-      inputEl.classList.toggle("invalid", !isValid);
-      return isValid;
-    },
-
-    showApiSettingsStatus(message, isError = false, duration = 3000) {
-      const statusEl = DOM["api-settings-status"];
-      statusEl.textContent = message;
-      statusEl.className = `settings-status ${isError ? "settings-error" : "settings-success"}`;
-      statusEl.style.display = "block";
-
-      clearTimeout(this._statusTimeoutId);
-      this._statusTimeoutId = setTimeout(() => {
-        statusEl.style.display = "none";
-      }, duration);
-    },
-
-    async refreshApiSettings() {
-      const settings = await API.loadApiSettings();
-      DOM["api-endpoint"].value =
-        settings.endpoint || CONFIG.SETTINGS.API.DEFAULT_ENDPOINT;
-      DOM["api-key"].value = settings.key || "";
-      return settings;
-    },
-
-    changeMaxItems(delta) {
-      const input = DOM["max-items"];
-      const newValue = Math.min(
-        Math.max(CONFIG.SETTINGS.MAX_ITEMS.MIN, parseInt(input.value) + delta),
-        CONFIG.SETTINGS.MAX_ITEMS.MAX,
-      );
-      input.value = newValue;
-      this.saveSettings();
-    },
-
-    updateThresholdDisplay() {
-      const value = parseInt(DOM["filter-threshold"].value);
-      const maxValue = State.filterCount;
-
-      let text;
-      if (value === CONFIG.SETTINGS.FILTER_THRESHOLD.MIN) {
-        text = "Show all products";
-      } else if (value === maxValue) {
-        text = maxValue === 1 ? "Criterion required" : "All criteria required";
-      } else if (value === 1) {
-        text = "At least 1 criterion";
-      } else {
-        text = `At least ${value} criteria`;
-      }
-
-      DOM["threshold-value"].textContent = text;
-    },
-
-    async handleThresholdChange() {
-      this.saveSettings();
-
-      if (State.results) {
-        const response = await API.updateFilterThreshold(
-          parseInt(DOM["filter-threshold"].value),
-        );
-
-        if (response?.success) {
-          State.results.matched = response.matched;
-          this.updateResultsDisplay();
-        }
-      }
-    },
-
-    async detectCurrentSite() {
-      const hostname = await API.getCurrentHostname();
-
-      const isDomainSupported = CONFIG.SUPPORTED_DOMAINS.some((domain) =>
-        hostname.includes(domain),
-      );
-
-      if (!isDomainSupported) {
-        this.updateSiteStatus(false);
-        return;
-      }
-
-      const response = await API.getVendorInfo();
 
       if (response?.success) {
-        this.isSupported = true;
-        this.updateSiteStatus(true, response.vendor);
+        await chrome.storage.local.set({ api_settings: { endpoint, key } });
+        showApiSettingsStatus("Settings saved successfully!");
+        return true;
       } else {
-        this.isSupported = true;
-        this.updateSiteStatus(true, {
-          name: CONFIG.SUPPORTED_DOMAINS.find((domain) =>
-            hostname.includes(domain),
-          ),
-        });
+        throw new Error(response?.error || "Failed to update settings");
       }
-    },
+    } catch (error) {
+      showApiSettingsStatus(`Error: ${error.message}`, true);
+      return false;
+    } finally {
+      showButton(DOM["save-api-settings"], false);
+    }
+  }
 
-    updateSiteStatus(isCompatible, vendor = null) {
-      document.body.classList.toggle("site-not-supported", !isCompatible);
+  async function loadApiSettings() {
+    const stored = await chrome.storage.local.get(["api_settings"]);
+    return (
+      stored.api_settings || {
+        endpoint: CONFIG.SETTINGS.API.DEFAULT_ENDPOINT,
+        key: "",
+      }
+    );
+  }
 
-      DOM["status-icon"].className =
-        `status-icon ${isCompatible ? "compatible" : "not-compatible"}`;
-      DOM["status-icon"].innerHTML =
-        `<img src="../assets/images/${isCompatible ? "check-icon.svg" : "warning-icon.svg"}" alt="" class="status-svg">`;
+  // UI Operations
+  function updateThresholdDisplay() {
+    const value = parseInt(DOM["filter-threshold"].value);
+    const maxValue = CURRENT_STATE.filterCount;
 
-      DOM["current-site"].textContent = isCompatible
-        ? vendor?.name || "Compatible site"
-        : "Not a supported site";
+    let text;
+    if (value === CONFIG.SETTINGS.FILTER_THRESHOLD.MIN) {
+      text = "Show all products";
+    } else if (value === maxValue) {
+      text = maxValue === 1 ? "Criterion required" : "All criteria required";
+    } else if (value === 1) {
+      text = "At least 1 criterion";
+    } else {
+      text = `At least ${value} criteria`;
+    }
 
-      DOM["site-message"].textContent = isCompatible
-        ? "You can use filters on this site!"
-        : "Navigate to a supported e-commerce site to use this extension.";
+    DOM["threshold-value"].textContent = text;
+  }
 
-      DOM["filter-panel"].style.display = isCompatible ? "flex" : "none";
-    },
+  function updateSiteStatus(isCompatible, vendor = null) {
+    const { name = "Compatible site" } = vendor || {};
+    const status = isCompatible ? "compatible" : "not-compatible";
+    const icon = isCompatible ? "check-icon.svg" : "warning-icon.svg";
 
-    async loadStoredState() {
-      if (!this.isSupported) return;
+    document.body.classList.toggle("site-not-supported", !isCompatible);
 
-      const { filters, settings } = await State.load();
+    DOM["status-icon"].className = `status-icon ${status}`;
+    DOM["status-icon"].innerHTML =
+      `<img src="../assets/images/${icon}" alt="" class="status-svg">`;
 
-      DOM["max-items"].value = settings.maxItems;
+    DOM["current-site"].textContent = isCompatible
+      ? name
+      : "Not a supported site";
+    DOM["site-message"].textContent = isCompatible
+      ? "You can use filters on this site!"
+      : "Navigate to a supported e-commerce site to use this extension.";
 
-      DOM["filter-list"].innerHTML = "";
-      if (filters.length > 0) {
-        filters.forEach((filter) => this.addFilterRow(filter));
-      } else {
-        this.addFilterRow("");
+    DOM["filter-panel"].style.display = isCompatible ? "flex" : "none";
+  }
+
+  function addFilterRow(value = "") {
+    const filterList = DOM["filter-list"];
+
+    const row = document.createElement("div");
+    row.className = "filter-row";
+
+    const statusIndicator = document.createElement("div");
+    statusIndicator.className = `filter-status ${value.trim() ? "ready" : "empty"}`;
+    statusIndicator.innerHTML = value.trim() ? "✓" : "?";
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.value = value;
+    input.placeholder = value ? "" : "Enter filter criteria";
+
+    const removeBtn = document.createElement("button");
+    removeBtn.innerHTML = "×";
+    removeBtn.title = "Remove filter";
+    removeBtn.onclick = () => removeFilterRow(row);
+
+    input.addEventListener("input", () => {
+      statusIndicator.className = `filter-status ${input.value.trim() ? "ready" : "empty"}`;
+      statusIndicator.innerHTML = input.value.trim() ? "✓" : "?";
+      updateFilterControls();
+    });
+
+    input.addEventListener("change", saveFilters);
+    input.addEventListener("blur", saveFilters);
+
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        saveFilters();
+        addFilterRow();
+      }
+    });
+
+    row.appendChild(statusIndicator);
+    row.appendChild(input);
+    row.appendChild(removeBtn);
+    filterList.appendChild(row);
+
+    if (!value) {
+      setTimeout(() => input.focus(), 50);
+    }
+
+    updateFilterControls();
+    return row;
+  }
+
+  function removeFilterRow(row) {
+    const filterRows = document.querySelectorAll(".filter-row");
+    if (filterRows.length <= 1) return;
+
+    row.style.opacity = "0";
+    row.style.transform = "translateY(10px)";
+
+    setTimeout(() => {
+      row.remove();
+      saveFilters();
+
+      if (document.querySelectorAll(".filter-row").length === 0) {
+        addFilterRow("");
       }
 
-      DOM["filter-threshold"].max = State.filterCount;
-      DOM["filter-threshold"].value = Math.min(
-        settings.filterThreshold || CONFIG.SETTINGS.FILTER_THRESHOLD.DEFAULT,
-        State.filterCount,
-      );
+      updateFilterControls();
+    }, 300);
+  }
 
-      this.updateThresholdDisplay();
-      this.updateFilterControls();
+  function updateFilterControls() {
+    const filterInputs = document.querySelectorAll(".filter-row input");
 
-      await this.refreshApiSettings();
-    },
+    const lastInput = filterInputs[filterInputs.length - 1];
+    DOM["add-filter-btn"].disabled = lastInput && lastInput.value.trim() === "";
 
-    async syncWithContentScript() {
-      if (!this.isSupported) return;
+    const disableRemove = filterInputs.length <= 1;
+    document.querySelectorAll(".filter-row button").forEach((btn) => {
+      btn.disabled = disableRemove;
+      btn.title = disableRemove
+        ? "Cannot remove the last filter"
+        : "Remove filter";
+    });
 
-      const response = await API.getFilterState();
+    const validFilters = Array.from(filterInputs).filter(
+      (input) => input.value.trim() !== "",
+    ).length;
 
-      if (response?.success && response.isApplied) {
-        State.results = {
-          matched: response.matched,
-          total: response.total,
-          timestamp: Date.now(),
-        };
-        this.updateResultsDisplay();
-      }
-    },
+    CURRENT_STATE.filterCount = Math.max(1, validFilters);
 
-    updateResultsDisplay() {
-      const { results } = State;
-      const resultsCounter = DOM["results-counter"];
+    const threshold = DOM["filter-threshold"];
+    threshold.max = CURRENT_STATE.filterCount;
 
-      if (!results) {
-        resultsCounter.innerHTML = `
-          <div class="results-indicator">
-            <div class="status-dot"></div>
-            <span class="results-text">No filters applied yet</span>
-          </div>
-          <div class="results-details"></div>
-        `;
-        return;
-      }
+    if (parseInt(threshold.value) > CURRENT_STATE.filterCount) {
+      threshold.value = CURRENT_STATE.filterCount;
+    }
 
-      const { matched, total } = results;
-      const statusClass = matched === 0 ? "no-matches" : "success";
+    updateThresholdDisplay();
+  }
 
+  function updateResultsDisplay() {
+    const { results } = CURRENT_STATE;
+    const resultsCounter = DOM["results-counter"];
+
+    if (!results) {
       resultsCounter.innerHTML = `
-        <div class="results-indicator ${statusClass}">
+        <div class="results-indicator">
           <div class="status-dot"></div>
-          <span class="results-text">
-            Matched <strong>${matched}</strong> of ${total} items
-          </span>
+          <span class="results-text">No filters applied yet</span>
         </div>
         <div class="results-details"></div>
       `;
-    },
+      return;
+    }
 
-    addFilterRow(value = "") {
-      const filterList = DOM["filter-list"];
+    const { matched, total } = results;
+    const statusClass = matched === 0 ? "no-matches" : "success";
 
-      const row = document.createElement("div");
-      row.className = "filter-row";
+    resultsCounter.innerHTML = `
+      <div class="results-indicator ${statusClass}">
+        <div class="status-dot"></div>
+        <span class="results-text">
+          Matched <strong>${matched}</strong> of ${total} items
+        </span>
+      </div>
+      <div class="results-details"></div>
+    `;
+  }
 
-      const statusIndicator = document.createElement("div");
-      statusIndicator.className = `filter-status ${value.trim() ? "ready" : "empty"}`;
-      statusIndicator.innerHTML = value.trim() ? "✓" : "?";
+  function showApiSettingsStatus(message, isError = false, duration = 3000) {
+    const statusEl = DOM["api-settings-status"];
+    statusEl.textContent = message;
+    statusEl.className = `settings-status ${isError ? "settings-error" : "settings-success"}`;
+    statusEl.style.display = "block";
 
-      const input = document.createElement("input");
-      input.type = "text";
-      input.value = value;
-      input.placeholder = value ? "" : "Enter filter criteria";
+    clearTimeout(statusEl._timeoutId);
+    statusEl._timeoutId = setTimeout(() => {
+      statusEl.style.display = "none";
+    }, duration);
+  }
 
-      const removeBtn = document.createElement("button");
-      removeBtn.innerHTML = "×";
-      removeBtn.title = "Remove filter";
-      removeBtn.onclick = () => this.removeFilterRow(row);
+  function showButton(button, loading = false, loadingText = null) {
+    if (!button._originalText) button._originalText = button.textContent;
 
-      input.addEventListener("input", () => {
-        statusIndicator.className = `filter-status ${input.value.trim() ? "ready" : "empty"}`;
-        statusIndicator.innerHTML = input.value.trim() ? "✓" : "?";
-        this.updateFilterControls();
+    button.disabled = loading;
+    button.classList.toggle("btn-loading", loading);
+    button.textContent = loading
+      ? loadingText || "Loading..."
+      : button._originalText;
+  }
+
+  // Utility functions
+  function validateUrl(str) {
+    if (!str) return true;
+    try {
+      const url = new URL(str);
+      return url.protocol === "http:" || url.protocol === "https:";
+    } catch {
+      return false;
+    }
+  }
+
+  function changeMaxItems(delta) {
+    const input = DOM["max-items"];
+    const newValue = Math.min(
+      Math.max(CONFIG.SETTINGS.MAX_ITEMS.MIN, parseInt(input.value) + delta),
+      CONFIG.SETTINGS.MAX_ITEMS.MAX,
+    );
+    input.value = newValue;
+    saveSettings();
+  }
+
+  function toggleAdvancedPanel() {
+    const isActive = DOM["advanced-panel"].classList.contains("active");
+
+    DOM["toggle-advanced"].classList.toggle("active", !isActive);
+    DOM["advanced-panel"].classList.toggle("active", !isActive);
+
+    if (!isActive) {
+      refreshApiSettings();
+    }
+  }
+
+  // Main actions
+  async function detectCurrentSite() {
+    const hostname = await getCurrentHostname();
+    const isDomainSupported = CONFIG.SUPPORTED_DOMAINS.some((domain) =>
+      hostname.includes(domain),
+    );
+
+    if (!isDomainSupported) {
+      updateSiteStatus(false);
+      return false;
+    }
+
+    const response = await sendMessageToTab("getVendorInfo");
+
+    if (response?.success) {
+      CURRENT_STATE.isSupported = true;
+      updateSiteStatus(true, response.vendor);
+      return true;
+    } else {
+      CURRENT_STATE.isSupported = true;
+      updateSiteStatus(true, {
+        name: CONFIG.SUPPORTED_DOMAINS.find((domain) =>
+          hostname.includes(domain),
+        ),
       });
-      input.addEventListener("change", () => this.saveFilters());
-      input.addEventListener("blur", () => this.saveFilters());
+      return true;
+    }
+  }
 
-      // Add keyboard support for creating new filters
-      input.addEventListener("keydown", (event) => {
-        if (event.key === "Enter" && !event.shiftKey) {
-          event.preventDefault();
-          this.saveFilters();
-          this.addFilterRow();
-        }
-      });
+  async function applyFilters() {
+    if (!CURRENT_STATE.isSupported) return;
 
-      row.appendChild(statusIndicator);
-      row.appendChild(input);
-      row.appendChild(removeBtn);
-      filterList.appendChild(row);
+    const filters = await saveFilters();
+    if (filters.length === 0) {
+      alert("Please add at least one filter");
+      return;
+    }
 
-      if (!value) {
-        setTimeout(() => input.focus(), 50);
-      }
+    showButton(DOM["apply-btn"], true, "Filtering...");
+    DOM["results-counter"].innerHTML =
+      "<span class='loading'>Processing...</span>";
 
-      this.updateFilterControls();
-      return row;
-    },
+    const settings = await saveSettings();
+    const response = await sendMessageToTab("applyFilters", {
+      filters,
+      maxItems: settings.maxItems,
+      filterThreshold: settings.filterThreshold,
+    });
 
-    removeFilterRow(row) {
-      const filterRows = document.querySelectorAll(".filter-row");
-
-      if (filterRows.length <= 1) return;
-
-      row.style.opacity = "0";
-      row.style.transform = "translateY(10px)";
-
-      setTimeout(() => {
-        row.remove();
-        this.saveFilters();
-
-        if (document.querySelectorAll(".filter-row").length === 0) {
-          this.addFilterRow("");
-        }
-
-        this.updateFilterControls();
-      }, 300);
-    },
-
-    updateFilterControls() {
-      const filterInputs = document.querySelectorAll(".filter-row input");
-
-      const lastInput = filterInputs[filterInputs.length - 1];
-      DOM["add-filter-btn"].disabled =
-        lastInput && lastInput.value.trim() === "";
-
-      const disableRemove = filterInputs.length <= 1;
-      document.querySelectorAll(".filter-row button").forEach((btn) => {
-        btn.disabled = disableRemove;
-        btn.title = disableRemove
-          ? "Cannot remove the last filter"
-          : "Remove filter";
-      });
-
-      const validFilters = Array.from(filterInputs).filter(
-        (input) => input.value.trim() !== "",
-      ).length;
-
-      State.filterCount = Math.max(1, validFilters);
-
-      const threshold = DOM["filter-threshold"];
-      threshold.max = State.filterCount;
-
-      if (parseInt(threshold.value) > State.filterCount) {
-        threshold.value = State.filterCount;
-      }
-
-      this.updateThresholdDisplay();
-    },
-
-    saveFilters() {
-      const filters = Array.from(document.querySelectorAll(".filter-row input"))
-        .map((input) => input.value.trim())
-        .filter((text) => text !== "");
-
-      State.saveFilters(filters);
-      this.updateFilterControls();
-    },
-
-    saveSettings() {
-      const settings = {
-        maxItems:
-          parseInt(DOM["max-items"].value) || CONFIG.SETTINGS.MAX_ITEMS.DEFAULT,
-        filterThreshold:
-          parseInt(DOM["filter-threshold"].value) ||
-          CONFIG.SETTINGS.FILTER_THRESHOLD.DEFAULT,
+    if (response?.success) {
+      CURRENT_STATE.results = {
+        matched: response.matched,
+        total: response.total,
+        timestamp: Date.now(),
+        filters,
       };
 
-      State.saveSettings(settings);
-    },
-
-    async applyFilters() {
-      if (!this.isSupported) return;
-
-      const filters = Array.from(document.querySelectorAll(".filter-row input"))
-        .map((input) => input.value.trim())
-        .filter((text) => text !== "");
-
-      this.saveFilters();
-
-      if (filters.length === 0) {
-        alert("Please add at least one filter");
-        return;
-      }
-
-      const applyBtn = DOM["apply-btn"];
-      applyBtn.textContent = "Filtering...";
-      applyBtn.disabled = true;
-      applyBtn.classList.add("btn-loading");
+      chrome.storage.local.set({
+        [`lastApplied_${CURRENT_STATE.currentSite}`]: CURRENT_STATE.results,
+      });
+    } else {
+      const errorMessage = response?.error || "Unknown error";
       DOM["results-counter"].innerHTML =
-        "<span class='loading'>Processing...</span>";
+        `<span class="no-matches">Error: ${errorMessage}</span>`;
+    }
 
-      const maxItems =
-        parseInt(DOM["max-items"].value) || CONFIG.SETTINGS.MAX_ITEMS.DEFAULT;
-      const filterThreshold =
-        parseInt(DOM["filter-threshold"].value) ||
-        CONFIG.SETTINGS.FILTER_THRESHOLD.DEFAULT;
+    updateResultsDisplay();
+    showButton(DOM["apply-btn"], false);
+  }
 
-      this.saveSettings();
+  async function resetFilters() {
+    if (!CURRENT_STATE.isSupported) return;
 
-      const response = await API.applyFilters(
-        filters,
-        maxItems,
-        filterThreshold,
-      );
+    DOM["filter-list"].innerHTML = "";
+    addFilterRow("");
+    await saveFilters();
+    await sendMessageToTab("resetFilters");
+
+    CURRENT_STATE.results = null;
+    chrome.storage.local.remove([`lastApplied_${CURRENT_STATE.currentSite}`]);
+    DOM["results-counter"].innerHTML = "<span>Filters reset</span>";
+  }
+
+  async function handleThresholdChange() {
+    await saveSettings();
+
+    if (CURRENT_STATE.results) {
+      const response = await sendMessageToTab("updateFilterThreshold", {
+        filterThreshold: parseInt(DOM["filter-threshold"].value),
+      });
 
       if (response?.success) {
-        State.results = {
-          matched: response.matched,
-          total: response.total,
-          timestamp: Date.now(),
-          filters,
-        };
-
-        chrome.storage.local.set({
-          [`lastApplied_${State.currentSite}`]: State.results,
-        });
-
-        this.updateResultsDisplay();
-      } else {
-        const errorMessage = response?.error || "Unknown error";
-        DOM["results-counter"].innerHTML =
-          `<span class="no-matches">Error: ${errorMessage}</span>`;
+        CURRENT_STATE.results.matched = response.matched;
+        updateResultsDisplay();
       }
+    }
+  }
 
-      applyBtn.innerHTML = `<svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>Apply Filters`;
-      applyBtn.disabled = false;
-      applyBtn.classList.remove("btn-loading");
-    },
+  async function refreshApiSettings() {
+    const settings = await loadApiSettings();
+    DOM["api-endpoint"].value =
+      settings.endpoint || CONFIG.SETTINGS.API.DEFAULT_ENDPOINT;
+    DOM["api-key"].value = settings.key || "";
+    return settings;
+  }
 
-    async resetFilters() {
-      if (!this.isSupported) return;
+  async function loadStoredState() {
+    if (!CURRENT_STATE.isSupported) return;
 
-      DOM["filter-list"].innerHTML = "";
-      this.addFilterRow("");
-      this.saveFilters();
+    const { filters, settings } = await loadState();
 
-      await API.resetFilters();
+    DOM["max-items"].value = settings.maxItems;
+    DOM["filter-list"].innerHTML = "";
 
-      State.results = null;
-      chrome.storage.local.remove([`lastApplied_${State.currentSite}`]);
-      DOM["results-counter"].innerHTML = "<span>Filters reset</span>";
-    },
+    if (filters.length > 0) {
+      filters.forEach((filter) => addFilterRow(filter));
+    } else {
+      addFilterRow("");
+    }
 
-    toggleAdvancedPanel() {
-      const advancedToggle = document.getElementById("toggle-advanced");
-      const advancedContent = document.getElementById("advanced-panel");
+    DOM["filter-threshold"].max = CURRENT_STATE.filterCount;
+    DOM["filter-threshold"].value = Math.min(
+      settings.filterThreshold || CONFIG.SETTINGS.FILTER_THRESHOLD.DEFAULT,
+      CURRENT_STATE.filterCount,
+    );
 
-      const isActive = advancedContent.classList.contains("active");
+    updateThresholdDisplay();
+    updateFilterControls();
+    await refreshApiSettings();
+  }
 
-      if (isActive) {
-        advancedToggle.classList.remove("active");
-        advancedContent.classList.remove("active");
-      } else {
-        advancedToggle.classList.add("active");
-        advancedContent.classList.add("active");
-        this.refreshApiSettings();
-      }
-    },
+  async function syncWithContentScript() {
+    if (!CURRENT_STATE.isSupported) return;
 
-    async saveApiSettings() {
-      const endpoint =
-        DOM["api-endpoint"].value.trim() ||
-        CONFIG.SETTINGS.API.DEFAULT_ENDPOINT;
-      // Allow empty key (it's optional)
-      const key = DOM["api-key"].value.trim();
+    const response = await sendMessageToTab("getFilterState");
 
-      if (!this.validateApiEndpoint(endpoint)) {
-        this.showApiSettingsStatus("Invalid API endpoint format", true);
-        return;
-      }
+    if (response?.success && response.isApplied) {
+      CURRENT_STATE.results = {
+        matched: response.matched,
+        total: response.total,
+        timestamp: Date.now(),
+      };
+      updateResultsDisplay();
+    }
+  }
 
-      // We don't need to validate the key - empty is allowed
+  // Initialize
+  async function init() {
+    cacheElements();
+    setupEventListeners();
 
-      const saveBtn = DOM["save-api-settings"];
-      const originalText = saveBtn.textContent;
-      saveBtn.textContent = "Saving...";
-      saveBtn.disabled = true;
+    const siteSupported = await detectCurrentSite();
 
-      try {
-        const response = await State.saveApiSettings(endpoint, key);
+    if (siteSupported) {
+      await loadStoredState();
+      await syncWithContentScript();
+    }
+  }
 
-        if (response?.success) {
-          this.showApiSettingsStatus("Settings saved successfully!");
-        } else {
-          throw new Error(response?.error || "Failed to update settings");
-        }
+  function cacheElements() {
+    [
+      "status-icon",
+      "current-site",
+      "site-message",
+      "filter-panel",
+      "filter-list",
+      "max-items",
+      "filter-threshold",
+      "threshold-value",
+      "add-filter-btn",
+      "apply-btn",
+      "reset-btn",
+      "results-counter",
+      "increase-max",
+      "decrease-max",
+      "toggle-advanced",
+      "advanced-panel",
+      "api-endpoint",
+      "api-key",
+      "save-api-settings",
+      "api-settings-status",
+    ].forEach((id) => (DOM[id] = document.getElementById(id)));
+  }
 
-        await this.refreshApiSettings();
-      } catch (error) {
-        this.showApiSettingsStatus(
-          `Error saving settings: ${error.message}`,
-          true,
-        );
-        await this.refreshApiSettings();
-      } finally {
-        saveBtn.textContent = originalText;
-        saveBtn.disabled = false;
-      }
-    },
-  };
+  function setupEventListeners() {
+    DOM["add-filter-btn"].addEventListener("click", () => addFilterRow());
+    DOM["max-items"].addEventListener("click", () => saveSettings());
+    DOM["filter-threshold"].addEventListener("change", handleThresholdChange);
+    DOM["filter-threshold"].addEventListener("input", updateThresholdDisplay);
+    DOM["increase-max"].addEventListener("click", () => changeMaxItems(1));
+    DOM["decrease-max"].addEventListener("click", () => changeMaxItems(-1));
+    DOM["apply-btn"].addEventListener("click", applyFilters);
+    DOM["reset-btn"].addEventListener("click", resetFilters);
+    DOM["toggle-advanced"].addEventListener("click", toggleAdvancedPanel);
+    DOM["save-api-settings"].addEventListener("click", saveApiSettings);
 
-  document.addEventListener("DOMContentLoaded", () => UI.init());
+    DOM["api-endpoint"].addEventListener("blur", () =>
+      validateUrl(DOM["api-endpoint"].value),
+    );
+  }
+
+  document.addEventListener("DOMContentLoaded", init);
 })();
