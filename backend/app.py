@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 import structlog
@@ -5,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.api.routes import authenticated_router, public_router
+from backend.common.cache import cache_cleanup_task
 from backend.config import settings
 
 log = structlog.get_logger(__name__=__name__)
@@ -17,8 +19,14 @@ async def lifespan(app: FastAPI):
         "Starting the application",
         config=settings.model_dump(exclude={"api_key", "gemini_api_key"}),
     )
+
+    # Start background cache cleanup task
+    cleanup_task = asyncio.create_task(cache_cleanup_task())
+
     yield
+
     # Shutdown event code
+    cleanup_task.cancel()
     log.info("Shutting down the application")
 
 

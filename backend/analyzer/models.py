@@ -1,7 +1,7 @@
 import typing as tp
 
 from PIL.Image import Image
-from pydantic import BaseModel, Field, computed_field
+from pydantic import BaseModel, Field, computed_field, field_serializer
 from pydantic.networks import HttpUrl
 from pydantic.types import Base64UrlStr, FilePath
 
@@ -11,18 +11,18 @@ from backend.common.utils import img_to_base64, load_img, resize_img, sanitize_t
 class ProductImage(BaseModel):
     url_or_path: HttpUrl | FilePath = Field(default=None)
 
-    model_config = {"arbitrary_types_allowed": True}
-
-    @computed_field
     @property
     def image(self) -> Image:
         img = load_img(self.url_or_path.__str__())
         return resize_img(img)
 
-    @computed_field
     @property
     def base64(self) -> Base64UrlStr:
         return img_to_base64(self.image)
+
+    @field_serializer("url_or_path")
+    def serialize_url(self, value: HttpUrl | FilePath) -> str:
+        return str(value)
 
 
 class ProductFilter(BaseModel):
@@ -45,3 +45,7 @@ class Product(BaseModel):
     title: str = Field(default="")
     description: str = Field(default="")
     images: list[ProductImage] = Field(default_factory=list)
+
+    @field_serializer("url")
+    def serialize_url(self, value: HttpUrl | None) -> str:
+        return str(value)
