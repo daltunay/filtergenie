@@ -10,19 +10,14 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 
 ARG USE_LOCAL=false
-
-ENV UV_COMPILE_BYTECODE=1
-ENV UV_FROZEN=1
-ENV UV_LINK_MODE=copy
-ENV UV_NO_INSTALLER_METADATA=1
-ENV UV_PROJECT_ENVIRONMENT="/usr/local/"
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_FROZEN=1 \
+    UV_LINK_MODE=copy \
+    UV_NO_INSTALLER_METADATA=1 \
+    UV_PROJECT_ENVIRONMENT="/usr/local/"
 
 RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    if [ "$USE_LOCAL" = "true" ]; then \
-        EXTRA_ARGS="--extra local"; \
-    fi; \
+    if [ "$USE_LOCAL" = "true" ]; then EXTRA_ARGS="--extra local"; fi; \
     uv sync --no-install-project --no-dev $EXTRA_ARGS
 
 COPY backend/ ./backend
