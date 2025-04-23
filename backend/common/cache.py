@@ -1,6 +1,7 @@
 import asyncio
 import functools
 import json
+import sys
 import time
 import typing as tp
 from dataclasses import dataclass
@@ -82,7 +83,12 @@ def async_cache(ttl: int = 600):
 
             _CACHE[cache_key] = CacheEntry(value=result, created=now, ttl=ttl)
 
-            log.debug("Cache miss - stored new result", function=func.__name__)
+            log.debug(
+                "Cache miss - stored new result",
+                function=func.__name__,
+                size_bytes=sys.getsizeof(result),
+                total_size_bytes=sys.getsizeof(_CACHE),
+            )
             return result
 
         return wrapper
@@ -116,7 +122,13 @@ async def cache_cleanup_task(cleanup_interval: int = 60, max_size: int = 1000):
             _CACHE.pop(key)
 
         if expired_keys:
+            # Calculate total cache size
+            total_size_bytes = sum(
+                sys.getsizeof(entry.value) for entry in _CACHE.values()
+            )
+
             log.debug(
                 f"Cleaned {len(expired_keys)} expired cache entries",
                 remaining=len(_CACHE),
+                total_size_bytes=total_size_bytes,
             )
