@@ -127,9 +127,3 @@ class BaseScraper(ABC):
     def extract_product_images(soup: BeautifulSoup) -> list[str]:
         """Extract the product image URLs from the product page."""
         pass
-
-    @staticmethod
-    @abstractmethod
-    def extract_product_urls(soup: BeautifulSoup) -> list[str]:
-        """Extract product URLs from the search results page."""
-        pass

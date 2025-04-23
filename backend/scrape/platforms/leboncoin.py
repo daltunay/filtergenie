@@ -58,19 +58,3 @@ class LeboncoinScraper(BaseScraper):
                         image_urls.append(image_url)
 
         return image_urls
-
-    @staticmethod
-    def extract_product_urls(soup: BeautifulSoup) -> list[str]:
-        ad_articles = soup.find_all(
-            "article", attrs={"data-test-id": "ad", "data-qa-id": "aditem_container"}
-        )
-
-        product_urls = []
-
-        for article in ad_articles:
-            anchor = article.find("a")
-            relative_url = anchor["href"].strip("/")
-            product_url = f"https://www.leboncoin.fr/{relative_url}"
-            product_urls.append(product_url)
-
-        return product_urls

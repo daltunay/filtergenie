@@ -82,10 +82,6 @@ class TestBaseScraper:
             def extract_product_images(soup: BeautifulSoup) -> list[str]:
                 return []
 
-            @staticmethod
-            def extract_product_urls(soup: BeautifulSoup) -> list[str]:
-                return []
-
         assert TestScraper.can_handle_url("https://www.example.com/product/123")
         assert TestScraper.can_handle_url("https://sub.test.org/item/456")
         assert not TestScraper.can_handle_url("https://www.other.com/product/789")
@@ -113,10 +109,6 @@ class TestBaseScraper:
 
             @staticmethod
             def extract_product_images(soup: BeautifulSoup) -> list[str]:
-                return []
-
-            @staticmethod
-            def extract_product_urls(soup: BeautifulSoup) -> list[str]:
                 return []
 
         assert (

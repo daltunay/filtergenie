@@ -100,7 +100,7 @@ async function fetchHtmlContent(url) {
 }
 
 async function analyzeProducts(data) {
-  const { filters, productUrls, htmlContents, threshold = 1 } = data;
+  const { filters, productUrls, htmlContents } = data;
 
   const headers = { "Content-Type": "application/json" };
   if (config.api.key?.trim()) {
@@ -115,7 +115,7 @@ async function analyzeProducts(data) {
   const response = await fetch(`${config.api.url}/products/analyze`, {
     method: "POST",
     headers,
-    body: JSON.stringify({ filters, products, threshold }),
+    body: JSON.stringify({ filters, products }),
   });
 
   if (!response.ok) {

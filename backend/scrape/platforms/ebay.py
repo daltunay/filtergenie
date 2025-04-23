@@ -56,19 +56,3 @@ class EbayScraper(BaseScraper):
             if image_url := (img.get("src") or img.get("data-src")):
                 image_urls.append(image_url)
         return image_urls
-
-    @staticmethod
-    def extract_product_urls(soup: BeautifulSoup) -> list[str]:
-        product_urls = []
-
-        # Find search results items
-        item_links = soup.select(
-            "li.s-item a.s-item__link, div.srp-results a.s-item__link"
-        )
-
-        for link in item_links:
-            href = link.get("href")
-            if href and "/itm/" in href:
-                product_urls.append(href)
-
-        return product_urls

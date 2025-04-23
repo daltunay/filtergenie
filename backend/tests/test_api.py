@@ -35,7 +35,6 @@ def test_analyze_products_unauthorized() -> None:
                 "html": "<html><body>Test product</body></html>",
             }
         ],
-        "threshold": 1,
     }
 
     # Mock API key requirement
@@ -46,7 +45,7 @@ def test_analyze_products_unauthorized() -> None:
 
 def test_analyze_products_empty(disable_auth: None) -> None:
     """Test analyzing with empty product list."""
-    payload = {"filters": ["Test filter"], "products": [], "threshold": 1}
+    payload = {"filters": ["Test filter"], "products": []}
     response = client.post("/products/analyze", json=payload)
     assert response.status_code == 200
     assert response.json() == {"products": []}
@@ -75,7 +74,6 @@ def test_analyze_products(disable_auth: None) -> None:
                     "html": "<html><body>Test product</body></html>",
                 }
             ],
-            "threshold": 1,
         }
         response = client.post("/products/analyze", json=payload)
         assert response.status_code == 200
@@ -124,7 +122,6 @@ def test_analyze_products_with_multiple_items(disable_auth: None) -> None:
                     "html": "<html><body>Product 2</body></html>",
                 },
             ],
-            "threshold": 1,
         }
         response = client.post("/products/analyze", json=payload)
         assert response.status_code == 200
@@ -171,7 +168,6 @@ def test_analyze_products_service_error(disable_auth: None) -> None:
                     "html": "<html><body>Test product</body></html>",
                 }
             ],
-            "threshold": 1,
         }
         response = client.post("/products/analyze", json=payload)
         assert response.status_code == 500

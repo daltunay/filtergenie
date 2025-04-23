@@ -3,11 +3,13 @@ default_install_hook_types:
   - post-checkout
   - post-merge
   - post-rewrite
+
 repos:
   - repo: https://github.com/astral-sh/uv-pre-commit
     rev: 0.6.16
     hooks:
       - id: uv-sync
+
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.11.6
     hooks:

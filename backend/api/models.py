@@ -47,9 +47,6 @@ class ProductsAnalysisRequest(BaseModel):
 
     filters: list[str] = Field(..., description="List of filter descriptions to apply")
     products: list[ProductHtml] = Field(..., description="Products' HTML to analyze")
-    threshold: int = Field(
-        1, ge=1, description="Minimum number of filters that must match"
-    )
 
 
 class ExtensionResponse(BaseModel):
