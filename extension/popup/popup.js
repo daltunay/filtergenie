@@ -459,7 +459,9 @@
 
   async function refreshApiSettings() {
     const settings = await loadApiSettings();
-    DOM["api-endpoint"].value =
+    const apiEndpointInput = DOM["api-endpoint"];
+    apiEndpointInput.placeholder = CONFIG.SETTINGS.API.DEFAULT_ENDPOINT;
+    apiEndpointInput.value =
       settings.endpoint || CONFIG.SETTINGS.API.DEFAULT_ENDPOINT;
     DOM["api-key"].value = settings.key || "";
     return settings;
@@ -470,7 +472,13 @@
 
     const { filters, settings } = await loadState();
 
-    DOM["max-items"].value = settings.maxItems;
+    // Set max-items attributes from CONFIG
+    const maxItemsInput = DOM["max-items"];
+    maxItemsInput.min = CONFIG.SETTINGS.MAX_ITEMS.MIN;
+    maxItemsInput.max = CONFIG.SETTINGS.MAX_ITEMS.MAX;
+    maxItemsInput.value =
+      settings.maxItems || CONFIG.SETTINGS.MAX_ITEMS.DEFAULT;
+
     DOM["filter-list"].innerHTML = "";
 
     if (filters.length > 0) {
@@ -479,8 +487,11 @@
       addFilterRow("");
     }
 
-    DOM["filter-threshold"].max = CURRENT_STATE.filterCount;
-    DOM["filter-threshold"].value = Math.min(
+    // Set filter-threshold attributes from CONFIG
+    const thresholdInput = DOM["filter-threshold"];
+    thresholdInput.min = CONFIG.SETTINGS.FILTER_THRESHOLD.MIN;
+    thresholdInput.max = CURRENT_STATE.filterCount;
+    thresholdInput.value = Math.min(
       settings.filterThreshold || CONFIG.SETTINGS.FILTER_THRESHOLD.DEFAULT,
       CURRENT_STATE.filterCount,
     );
