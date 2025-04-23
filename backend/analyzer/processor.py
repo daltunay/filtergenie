@@ -4,7 +4,7 @@ from textwrap import dedent
 import structlog
 from pydantic import BaseModel, Field, create_model
 
-from backend.analyzer import Product, ProductImage
+from backend.analyzer import Product, ProductImage, ProductFilter
 from backend.config import settings
 
 if tp.TYPE_CHECKING:
@@ -134,7 +134,7 @@ class ProductAnalyzer:
 
     @staticmethod
     def _create_filter_schema(
-        filters: list[tp.Any],
+        filters: list[ProductFilter],
     ) -> type[DynamicSchema]:
         """Create a Pydantic model schema based on filters list."""
         field_definitions = {
@@ -146,13 +146,17 @@ class ProductAnalyzer:
         }
         return create_model("DynamicSchema", **field_definitions)
 
-    async def analyze_product(self, product: Product) -> Product:
-        """Analyze a single product and update its filters with results."""
+    async def analyze_product(
+        self, product: Product, filter_descriptions: list[str]
+    ) -> tuple[Product, list[ProductFilter]]:
+        """Analyze a single product against the provided filter descriptions."""
+        filters = [ProductFilter(description=desc) for desc in filter_descriptions]
+
         log.debug(
             "Analyzing product",
             product_id=product.id,
             platform=product.platform,
-            num_filters=len(product.filters),
+            num_filters=len(filters),
             num_images=len(product.images),
         )
 
@@ -162,17 +166,17 @@ class ProductAnalyzer:
             images="<image>" * len(product.images),
         )
 
-        DynamicSchema = self._create_filter_schema(product.filters)
+        DynamicSchema = self._create_filter_schema(filters)
         response = await self.predict(prompt, product.images, DynamicSchema)
 
-        for filter_ in product.filters:
+        for filter_ in filters:
             filter_.value = getattr(response, filter_.name)
 
-        if product.matches_all_filters():
+        if filters and all(f.value for f in filters):
             log.info(
                 "Found matching product",
                 product_id=product.id,
-                filter_results=[(f.description, f.value) for f in product.filters],
+                filter_results=[(f.description, f.value) for f in filters],
             )
         else:
             log.debug(
@@ -181,4 +185,4 @@ class ProductAnalyzer:
                 matches_all_filters=False,
             )
 
-        return product
+        return product, filters

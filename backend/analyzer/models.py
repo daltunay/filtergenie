@@ -28,10 +28,11 @@ class ProductImage(BaseModel):
 class ProductFilter(BaseModel):
     description: str = Field(default="")
     value: bool | None = Field(default=None, init=False)
-    name: str = Field(default="", init=False)
 
-    def model_post_init(self, __context):
-        self.name = sanitize_text(self.description)
+    @computed_field
+    @property
+    def name(self) -> str:
+        return sanitize_text(self.description)
 
 
 class Product(BaseModel):
@@ -44,45 +45,3 @@ class Product(BaseModel):
     title: str = Field(default="")
     description: str = Field(default="")
     images: list[ProductImage] = Field(default_factory=list)
-    filters: list[ProductFilter] = Field(default_factory=list)
-
-    def matches_min_filters(self, min_count: int) -> bool:
-        """Check if the product matches at least min_count filters."""
-        if not self.filters:
-            return True
-
-        matching_count = sum(1 for filter_ in self.filters if filter_.value)
-        return matching_count >= min_count
-
-    def matches_all_filters(self) -> bool:
-        """Check if the product matches all filters."""
-        return self.matches_min_filters(len(self.filters)) if self.filters else True
-
-    @computed_field
-    @property
-    def filter_descriptions(self) -> list[str]:
-        """Get a list of filter descriptions for this product."""
-        return [f.description for f in self.filters] if self.filters else []
-
-    # def __getitem__(self, key):
-    #     """Make Product objects subscriptable to be compatible with dictionary access."""
-    #     if hasattr(self, key):
-    #         return getattr(self, key)
-    #     raise KeyError(f"'{key}' not found in Product")
-
-    def to_extension_dict(self) -> dict:
-        """Convert the product to a dictionary format suitable for extension API responses."""
-        match_count = sum(1 for f in self.filters if f.value)
-        total_filters = len(self.filters)
-
-        return {
-            "url": self.url,
-            "id": self.id,
-            "title": self.title,
-            "matches_all_filters": self.matches_all_filters(),
-            "filters": [
-                {"description": f.description, "value": f.value} for f in self.filters
-            ],
-            "match_count": match_count,
-            "total_filters": total_filters,
-        }

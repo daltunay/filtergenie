@@ -3,7 +3,7 @@ import asyncio
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from backend.api.models import ExtensionResponse, ProductsAnalysisRequest
+from backend.api.models import ProductAnalysisResponse, ProductsAnalysisRequest
 from backend.auth.middleware import verify_api_key
 from backend.services.analyzer_service import analyze_product
 from backend.services.scraper_service import process_product_from_html
@@ -21,7 +21,7 @@ async def health_check():
 
 
 @authenticated_router.post(
-    "/products/analyze", response_model=ExtensionResponse, tags=["Products"]
+    "/products/analyze", response_model=ProductAnalysisResponse, tags=["Products"]
 )
 async def analyze_products(request: ProductsAnalysisRequest):
     """RESTful endpoint to analyze multiple products based on HTML content."""
@@ -71,8 +71,27 @@ async def process_and_analyze(url: str, html: str, filters: list[str]) -> dict |
         if not product:
             return None
 
-        analyzed = await analyze_product(product, filters)
-        return analyzed.to_extension_dict()
+        analyzed_product, analyzed_filters = await analyze_product(product, filters)
+
+        # Construct response dictionary directly
+        match_count = sum(1 for f in analyzed_filters if f.value)
+        total_filters = len(analyzed_filters)
+
+        # Convert to the response format
+        return {
+            "url": analyzed_product.url,
+            "id": analyzed_product.id,
+            "title": analyzed_product.title,
+            "platform": analyzed_product.platform,
+            "matches_all_filters": bool(analyzed_filters)
+            and all(f.value for f in analyzed_filters),
+            "filters": [
+                {"description": f.description, "value": f.value}
+                for f in analyzed_filters
+            ],
+            "match_count": match_count,
+            "total_filters": total_filters,
+        }
 
     except Exception as e:
         log.error("Product processing failed", url=url, error=str(e), exc_info=True)

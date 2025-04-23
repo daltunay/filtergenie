@@ -10,7 +10,8 @@ analyzer = ProductAnalyzer(use_local=settings.use_local_model)
 log.info("Analyzer initialized", use_local=settings.use_local_model)
 
 
-async def analyze_product(product: Product, filters: list[str]) -> Product:
+async def analyze_product(
+    product: Product, filter_descriptions: list[str]
+) -> tuple[Product, list[ProductFilter]]:
     """Apply filters to a product and analyze it."""
-    product.filters = [ProductFilter(description=f) for f in filters]
-    return await analyzer.analyze_product(product)
+    return await analyzer.analyze_product(product, filter_descriptions)
