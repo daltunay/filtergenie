@@ -16,7 +16,7 @@ class ProductBase(BaseModel):
     id: int | None = None
     url: str
     title: str
-    vendor: str | None = None
+    platform: str | None = None
 
 
 class AnalysisRequest(BaseModel):

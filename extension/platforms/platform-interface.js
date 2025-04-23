@@ -1,7 +1,7 @@
-window.SmartFilterVendors = window.SmartFilterVendors || {};
+window.SmartFilterPlatforms = window.SmartFilterPlatforms || {};
 
-class VendorInterface {
-  name = "Unknown Vendor";
+class PlatformInterface {
+  name = "Unknown Platform";
   searchPatterns = [];
   pageType = null;
 
@@ -43,10 +43,10 @@ class VendorInterface {
   }
 }
 
-function registerVendor(hostname, implementation) {
-  if (!(implementation.prototype instanceof VendorInterface)) {
-    console.error(`Invalid vendor implementation for ${hostname}`);
+function registerPlatform(hostname, implementation) {
+  if (!(implementation.prototype instanceof PlatformInterface)) {
+    console.error(`Invalid platform implementation for ${hostname}`);
     return;
   }
-  window.SmartFilterVendors[hostname] = implementation;
+  window.SmartFilterPlatforms[hostname] = implementation;
 }

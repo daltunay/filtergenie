@@ -28,7 +28,7 @@ class TestProductModels:
         """Test product filter matching logic."""
         product = Product(
             id=1,
-            vendor="leboncoin",
+            platform="leboncoin",
             title="Test Product",
             description="A test product for unit tests",
             url="https://www.example.com/product/1",
@@ -62,7 +62,7 @@ class TestProductModels:
         """Test converting product to extension API format."""
         product = Product(
             id=1,
-            vendor="leboncoin",
+            platform="leboncoin",
             title="Test Product",
             description="A test product for unit tests",
             url="https://www.example.com/product/1",
@@ -131,7 +131,7 @@ class TestProductAnalyzer:
         # Create a product with filters
         product = Product(
             id=1,
-            vendor="leboncoin",
+            platform="leboncoin",
             title="Test Product",
             description="Test description",
             url="https://www.example.com/product/1",
@@ -176,7 +176,7 @@ class TestProductAnalyzer:
         # Create a product with filters
         product = Product(
             id=1,
-            vendor="leboncoin",
+            platform="leboncoin",
             title="Test Product",
             description="Test description",
             url="https://www.example.com/product/1",

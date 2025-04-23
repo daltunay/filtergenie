@@ -91,7 +91,7 @@ def _init_db_schema(conn: duckdb.DuckDBPyConnection):
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS products (
-            vendor VARCHAR,
+            platform VARCHAR,
             id BIGINT,
             url VARCHAR UNIQUE,
             title VARCHAR,
@@ -99,7 +99,7 @@ def _init_db_schema(conn: duckdb.DuckDBPyConnection):
             images VARCHAR, -- Stored as JSON string of image URLs
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             last_accessed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (vendor, id)
+            PRIMARY KEY (platform, id)
         )
     """
     )
@@ -108,14 +108,14 @@ def _init_db_schema(conn: duckdb.DuckDBPyConnection):
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS filters (
-            product_vendor VARCHAR,
+            product_platform VARCHAR,
             product_id BIGINT,
             description VARCHAR,
             name VARCHAR,
             value BOOLEAN,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (product_vendor, product_id, description),
-            FOREIGN KEY (product_vendor, product_id) REFERENCES products(vendor, id)
+            PRIMARY KEY (product_platform, product_id, description),
+            FOREIGN KEY (product_platform, product_id) REFERENCES products(platform, id)
         )
     """
     )
@@ -127,8 +127,8 @@ def store_product(
     product: Product, conn: duckdb.DuckDBPyConnection | None = None
 ) -> bool:
     """Store a product in the database."""
-    if not product.vendor or product.id is None:
-        logger.warning("Cannot store product without vendor and id")
+    if not product.platform or product.id is None:
+        logger.warning("Cannot store product without platform and id")
         return False
 
     try:
@@ -142,7 +142,7 @@ def store_product(
         logger.error(
             "Error storing product",
             error=str(e),
-            vendor=product.vendor,
+            platform=product.platform,
             product_id=product.id,
         )
         return False
@@ -151,10 +151,10 @@ def store_product(
 def _store_product_with_conn(product: Product, conn: duckdb.DuckDBPyConnection) -> bool:
     """Helper to store a product using an existing connection."""
     if not product.cache_key:
-        logger.warning("Cannot store product without valid cache key (vendor and id)")
+        logger.warning("Cannot store product without valid cache key (platform and id)")
         return False
 
-    vendor, product_id = product.cache_key
+    platform, product_id = product.cache_key
     product_dict = product.model_dump(exclude_none=True)
 
     # Convert images list to JSON string
@@ -165,7 +165,7 @@ def _store_product_with_conn(product: Product, conn: duckdb.DuckDBPyConnection) 
     try:
         # Check if product exists
         result = conn.execute(
-            "SELECT 1 FROM products WHERE vendor = ? AND id = ?", [vendor, product_id]
+            "SELECT 1 FROM products WHERE platform = ? AND id = ?", [platform, product_id]
         ).fetchone()
 
         if result:
@@ -174,14 +174,14 @@ def _store_product_with_conn(product: Product, conn: duckdb.DuckDBPyConnection) 
                 """
                 UPDATE products 
                 SET title = ?, description = ?, images = ?, last_accessed_at = ? 
-                WHERE vendor = ? AND id = ?
+                WHERE platform = ? AND id = ?
                 """,
                 [
                     product_dict["title"],
                     product_dict["description"],
                     images_json,
                     datetime.datetime.now(),
-                    vendor,
+                    platform,
                     product_id,
                 ],
             )
@@ -189,11 +189,11 @@ def _store_product_with_conn(product: Product, conn: duckdb.DuckDBPyConnection) 
             # Insert new product
             conn.execute(
                 """
-                INSERT INTO products (vendor, id, url, title, description, images)
+                INSERT INTO products (platform, id, url, title, description, images)
                 VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 [
-                    vendor,
+                    platform,
                     product_id,
                     product_dict["url"].__str__(),
                     product_dict["title"],
@@ -228,7 +228,7 @@ def store_product_filters(
         logger.error(
             "Error storing filters",
             error=str(e),
-            vendor=product.vendor,
+            platform=product.platform,
             product_id=product.id,
         )
         return False
@@ -241,23 +241,23 @@ def _store_product_filters_with_conn(
     conn.execute("BEGIN TRANSACTION")
 
     try:
-        vendor, product_id = product.cache_key
+        platform, product_id = product.cache_key
 
         # Delete old filters
         conn.execute(
-            "DELETE FROM filters WHERE product_vendor = ? AND product_id = ?",
-            [vendor, product_id],
+            "DELETE FROM filters WHERE product_platform = ? AND product_id = ?",
+            [platform, product_id],
         )
 
         # Insert new filters
         for filter_item in product.filters:
             conn.execute(
                 """
-                INSERT INTO filters (product_vendor, product_id, description, name, value)
+                INSERT INTO filters (product_platform, product_id, description, name, value)
                 VALUES (?, ?, ?, ?, ?)
                 """,
                 [
-                    vendor,
+                    platform,
                     product_id,
                     filter_item.description,
                     filter_item.name,
@@ -274,28 +274,28 @@ def _store_product_filters_with_conn(
 
 
 def get_product(
-    vendor: str, product_id: int, conn: duckdb.DuckDBPyConnection | None = None
+    platform: str, product_id: int, conn: duckdb.DuckDBPyConnection | None = None
 ) -> Product | None:
     """Retrieve a product from the database."""
     try:
         if conn:
-            return _get_product_with_conn(vendor, product_id, conn)
+            return _get_product_with_conn(platform, product_id, conn)
         else:
             with db_connection() as new_conn:
-                return _get_product_with_conn(vendor, product_id, new_conn)
+                return _get_product_with_conn(platform, product_id, new_conn)
 
     except Exception as e:
         logger.error(
             "Error retrieving product",
             error=str(e),
-            vendor=vendor,
+            platform=platform,
             product_id=product_id,
         )
         return None
 
 
 def _get_product_with_conn(
-    vendor: str, product_id: int, conn: duckdb.DuckDBPyConnection
+    platform: str, product_id: int, conn: duckdb.DuckDBPyConnection
 ) -> Product | None:
     """Helper to retrieve a product using an existing connection."""
     # Get product details including images JSON
@@ -303,9 +303,9 @@ def _get_product_with_conn(
         """
         SELECT url, title, description, images
         FROM products
-        WHERE vendor = ? AND id = ?
+        WHERE platform = ? AND id = ?
         """,
-        [vendor, product_id],
+        [platform, product_id],
     ).fetchone()
 
     if not product_data:
@@ -315,8 +315,8 @@ def _get_product_with_conn(
 
     # Update last accessed timestamp
     conn.execute(
-        "UPDATE products SET last_accessed_at = ? WHERE vendor = ? AND id = ?",
-        [datetime.datetime.now(), vendor, product_id],
+        "UPDATE products SET last_accessed_at = ? WHERE platform = ? AND id = ?",
+        [datetime.datetime.now(), platform, product_id],
     )
 
     # Parse images from JSON
@@ -329,16 +329,16 @@ def _get_product_with_conn(
         description=description,
     )
 
-    # Set images, vendor and id manually
+    # Set images, platform and id manually
     product.images = [ProductImage(url_or_path=img_url) for img_url in image_urls]
     product.id = product_id
-    product.vendor = vendor
+    product.platform = platform
 
     return product
 
 
 def get_product_filters(
-    vendor: str,
+    platform: str,
     product_id: int,
     filter_descriptions: list[str],
     conn: duckdb.DuckDBPyConnection | None = None,
@@ -347,26 +347,26 @@ def get_product_filters(
     try:
         if conn:
             return _get_product_filters_with_conn(
-                vendor, product_id, filter_descriptions, conn
+                platform, product_id, filter_descriptions, conn
             )
         else:
             with db_connection() as new_conn:
                 return _get_product_filters_with_conn(
-                    vendor, product_id, filter_descriptions, new_conn
+                    platform, product_id, filter_descriptions, new_conn
                 )
 
     except Exception as e:
         logger.error(
             "Error retrieving filters",
             error=str(e),
-            vendor=vendor,
+            platform=platform,
             product_id=product_id,
         )
         return []
 
 
 def _get_product_filters_with_conn(
-    vendor: str,
+    platform: str,
     product_id: int,
     filter_descriptions: list[str],
     conn: duckdb.DuckDBPyConnection,
@@ -379,13 +379,13 @@ def _get_product_filters_with_conn(
 
     # Fetch all filters at once with a parameterized query
     placeholders = ",".join(["?"] * len(filter_descriptions))
-    query_params = [vendor, product_id] + filter_descriptions
+    query_params = [platform, product_id] + filter_descriptions
 
     filter_data = conn.execute(
         f"""
         SELECT description, name, value 
         FROM filters
-        WHERE product_vendor = ? AND product_id = ? AND description IN ({placeholders})
+        WHERE product_platform = ? AND product_id = ? AND description IN ({placeholders})
         """,
         query_params,
     ).fetchall()

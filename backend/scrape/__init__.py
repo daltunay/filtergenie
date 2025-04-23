@@ -4,9 +4,9 @@ import structlog
 
 from backend.analyzer import Product
 from backend.scrape.base import BaseScraper
-from backend.scrape.vendors.ebay import EbayScraper
-from backend.scrape.vendors.leboncoin import LeboncoinScraper
-from backend.scrape.vendors.vinted import VintedScraper
+from backend.scrape.platforms.ebay import EbayScraper
+from backend.scrape.platforms.leboncoin import LeboncoinScraper
+from backend.scrape.platforms.vinted import VintedScraper
 
 # Set up logger
 log = structlog.get_logger(__name__=__name__)
@@ -39,16 +39,16 @@ def get_scraper_for_url(url: str) -> BaseScraper | None:
 
 
 def get_product_info_from_url(url: str) -> tuple[str | None, int | None]:
-    """Extract the vendor name and product ID from a URL."""
+    """Extract the platform name and product ID from a URL."""
     scraper_class = get_scraper_class_for_url(url)
     if scraper_class:
         try:
-            vendor = scraper_class.get_vendor_name()
+            platform = scraper_class.get_platform_name()
             product_id = scraper_class.extract_product_id(url)
-            return vendor, product_id
+            return platform, product_id
         except Exception as e:
             log.error(
-                "Failed to extract vendor and product ID from URL",
+                "Failed to extract platform and product ID from URL",
                 url=url,
                 exception=str(e),
             )
@@ -63,9 +63,9 @@ async def scrape_product_from_html(html_content: str, url: str) -> Product | Non
 
     product = scraper.scrape_product_detail(html_content, url)
 
-    # Set vendor and ID directly
+    # Set platform and ID directly
     if product.url:
-        product.vendor, product.id = get_product_info_from_url(str(product.url))
+        product.platform, product.id = get_product_info_from_url(str(product.url))
 
     return product
 

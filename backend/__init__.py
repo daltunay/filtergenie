@@ -1,7 +1,7 @@
 """
-E-Commerce Smart Filtering Backend
+FilterGenie Backend
 
-A backend service that analyzes e-commerce products against natural language filters
+A backend service that analyzes website products against natural language filters
 using vision-language models.
 """
 

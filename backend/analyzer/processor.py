@@ -149,7 +149,7 @@ class ProductAnalyzer:
         log.debug(
             "Analyzing product",
             product_id=product.id,
-            vendor=product.vendor,
+            platform=product.platform,
             num_filters=len(product.filters),
             num_images=len(product.images),
         )

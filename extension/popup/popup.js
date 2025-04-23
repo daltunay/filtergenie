@@ -156,8 +156,8 @@
     DOM["threshold-value"].textContent = text;
   }
 
-  function updateSiteStatus(isCompatible, vendor = null) {
-    const { name = "Compatible site" } = vendor || {};
+  function updateSiteStatus(isCompatible, platform = null) {
+    const { name = "Compatible site" } = platform || {};
     const status = isCompatible ? "compatible" : "not-compatible";
     const icon = isCompatible ? "check-icon.svg" : "warning-icon.svg";
 
@@ -371,11 +371,11 @@
       return false;
     }
 
-    const response = await sendMessageToTab("getVendorInfo");
+    const response = await sendMessageToTab("getPlatformInfo");
 
     if (response?.success) {
       CURRENT_STATE.isSupported = true;
-      updateSiteStatus(true, response.vendor);
+      updateSiteStatus(true, response.platform);
       return true;
     } else {
       CURRENT_STATE.isSupported = true;

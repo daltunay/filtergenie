@@ -11,9 +11,9 @@ from backend.scrape import (
     scrape_product_from_html,
 )
 from backend.scrape.base import BaseScraper
-from backend.scrape.vendors.ebay import EbayScraper
-from backend.scrape.vendors.leboncoin import LeboncoinScraper
-from backend.scrape.vendors.vinted import VintedScraper
+from backend.scrape.platforms.ebay import EbayScraper
+from backend.scrape.platforms.leboncoin import LeboncoinScraper
+from backend.scrape.platforms.vinted import VintedScraper
 
 
 def load_test_html(filename: str) -> str:
@@ -141,7 +141,7 @@ async def test_scrape_product_from_html() -> None:
 
     mock_product = Product(
         id=2134567890,
-        vendor="leboncoin",
+        platform="leboncoin",
         title="Test Product",
         description="Product description",
         url=leboncoin_url,
@@ -157,12 +157,12 @@ async def test_scrape_product_from_html() -> None:
 
         assert product is not None
         assert product.id == 2134567890
-        assert product.vendor == "leboncoin"
+        assert product.platform == "leboncoin"
         assert product.title == "Test Product"
 
 
-class TestVendorSpecificScrapers:
-    """Tests for vendor-specific scraper implementations."""
+class TestPlatformSpecificScrapers:
+    """Tests for platform-specific scraper implementations."""
 
     def test_leboncoin_extract_product_id(self) -> None:
         """Test extracting product ID for Leboncoin."""

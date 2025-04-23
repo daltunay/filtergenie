@@ -1,10 +1,10 @@
-# E-commerce Smart Filtering
+# FilterGenie
 
-A browser extension that uses AI to filter e-commerce search results based on natural language criteria.
+A browser extension that uses AI to filter search results based on natural language criteria.
 
 ## 📋 Overview
 
-This project lets users apply natural language filters to e-commerce search results. Instead of relying on rigid category filters, users can express what they're looking for in plain language:
+This project lets users apply natural language filters to search results. Instead of relying on rigid category filters, users can express what they're looking for in plain language:
 
 - "Has no visible damage or scratches"
 - "Includes original packaging"
@@ -26,7 +26,7 @@ The project consists of two main components:
 
 | Component | Description |
 |-----------|-------------|
-| **Chrome Extension** | Browser extension that injects into supported e-commerce sites, captures product information, and displays filtering UI |
+| **Chrome Extension** | Browser extension that injects into supported websites, captures product information, and displays filtering UI |
 | **Backend API** | Python [FastAPI](https://fastapi.tiangolo.com/) service that handles product analysis using vision-language models |
 
 <!-- ### Directory Structure
@@ -38,7 +38,7 @@ graph TD
 
 ## 🔄 How It Works
 
-1. User visits a supported e-commerce site and runs a search
+1. User visits a supported website and runs a search
 2. Browser extension detects the site and shows filtering UI
 3. User enters natural language filters and clicks "Apply"
 4. Extension sends product URLs to backend API
@@ -135,14 +135,14 @@ A smart caching system reduces redundant work by caching product scraping result
 
    ```bash
    # Build without local VLM support (OpenAI API)
-   docker build -t smartfilter .
+   docker build -t filtergenie .
    ```
 
    or
 
    ```bash
    # Build with local VLM support (offline)
-   docker build --build-arg USE_LOCAL=true -t smartfilter:local .
+   docker build --build-arg USE_LOCAL=true -t filtergenie:local .
    ```
 
 2. Run the Docker container:
@@ -153,7 +153,7 @@ A smart caching system reduces redundant work by caching product scraping result
      -e OPENAI_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/" \
      -e OPENAI_API_KEY=your_api_key_here \
      -e USE_LOCAL=false \
-     smartfilter
+     filtergenie
    ```
 
    or
@@ -162,7 +162,7 @@ A smart caching system reduces redundant work by caching product scraping result
    # When using local VLM version
    docker run -p 8000:8000 \
      -e USE_LOCAL=true \
-     smartfilter:local
+     filtergenie:local
    ```
 
    The API will be available at `http://localhost:8000`. Configure your Chrome extension to use this endpoint.
@@ -172,7 +172,7 @@ A smart caching system reduces redundant work by caching product scraping result
 - `OPENAI_BASE_URL`: The base URL for the Gemini API
 - `OPENAI_API_KEY`: Your Gemini API key (required for API-based analysis)
 - `USE_LOCAL`: Set to "true" to use local VLM models instead of Gemini API
-- `API_KEY`: Optional API key for securing your SmartFilter API (only needed if you want to deploy and protect your API)
+- `API_KEY`: Optional API key for securing your FilterGenie API (only needed if you want to deploy and protect your API)
 
 #### Testing Your Docker Deployment
 
@@ -206,7 +206,7 @@ The project uses pytest for testing. To run the tests:
 
 ## 📝 Usage
 
-1. Go to a supported e-commerce website (leboncoin.fr, vinted.fr, or ebay.fr)
+1. Go to a supported website (leboncoin.fr, vinted.fr, or ebay.fr)
 2. Search for products you're interested in
 3. Click the extension icon in your browser toolbar
 4. Enter natural language filter criteria:

@@ -1,10 +1,10 @@
 /**
- * SmartFilter Core - Handles product filtering logic
+ * FilterGenie Core - Handles product filtering logic
  * Simplified implementation
  */
 class SmartFilterCore {
-  constructor(vendor) {
-    this.vendor = vendor;
+  constructor(platform) {
+    this.platform = platform;
     this.lastResults = { total: 0, matched: 0 };
     this.filteredProducts = null;
     this.hiddenElements = new Set();
@@ -21,7 +21,7 @@ class SmartFilterCore {
       this.resetFiltering();
 
       let productData;
-      if (this.vendor.pageType === "product") {
+      if (this.platform.pageType === "product") {
         productData = await this._getProductPageData();
       } else {
         productData = await this._getSearchPageData(maxItems);
@@ -43,7 +43,7 @@ class SmartFilterCore {
       }
 
       let matchCount = 0;
-      if (this.vendor.pageType === "product") {
+      if (this.platform.pageType === "product") {
         const product = analysisResult.products[0];
         if (product) {
           const targetContainer =
@@ -157,12 +157,12 @@ class SmartFilterCore {
   }
 
   _getValidProductItems(maxItems) {
-    return Array.from(this.vendor.getProductItems())
+    return Array.from(this.platform.getProductItems())
       .map((item) => {
         const link = item.querySelector("a");
         if (!link) return null;
 
-        const url = this.vendor.extractUrl(link);
+        const url = this.platform.extractUrl(link);
         if (!url) return null;
 
         return { element: item, url };
@@ -245,7 +245,7 @@ class SmartFilterCore {
   _addFilterBadges(element, filters) {
     if (!filters?.length) return;
 
-    const targetEl = this.vendor.findImageContainer(element);
+    const targetEl = this.platform.findImageContainer(element);
     element.querySelectorAll(".badge-container").forEach((el) => el.remove());
 
     const badgeContainer = document.createElement("div");

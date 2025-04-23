@@ -23,13 +23,13 @@ class BaseScraper(ABC):
     def __init__(self):
         """Initialize the scraper."""
         global log
-        log = log.bind(vendor=self.get_vendor_name())
+        log = log.bind(platform=self.get_platform_name())
 
     @classmethod
-    def get_vendor_name(cls) -> str:
-        """Extract vendor name from the scraper class name."""
-        vendor = cls.__name__.replace("Scraper", "").lower()
-        return vendor
+    def get_platform_name(cls) -> str:
+        """Extract platform name from the scraper class name."""
+        platform = cls.__name__.replace("Scraper", "").lower()
+        return platform
 
     def scrape_product_detail(self, html_content: str, url: str) -> Product:
         """

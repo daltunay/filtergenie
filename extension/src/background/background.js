@@ -139,7 +139,7 @@ setInterval(() => {
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status === "complete" && tab.url) {
     try {
-      const response = await chrome.tabs.sendMessage(tabId, { action: "getVendorInfo" });
+      const response = await chrome.tabs.sendMessage(tabId, { action: "getPlatformInfo" });
 
       if (response?.success) {
         chrome.action.setBadgeText({ tabId, text: "✓" });
@@ -148,7 +148,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
         chrome.action.setBadgeText({ tabId, text: "" });
       }
     } catch (error) {
-      console.error("Error checking vendor support:", error);
+      console.error("Error checking platform support:", error);
       chrome.action.setBadgeText({ tabId, text: "" });
     }
   }

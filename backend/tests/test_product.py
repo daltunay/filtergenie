@@ -12,14 +12,14 @@ class TestProduct:
         """Test basic product creation and properties."""
         product = Product(
             id=123,
-            vendor="leboncoin",
+            platform="leboncoin",
             url="https://www.example.com/product/123",
             title="Test Product",
             description="A sample product for testing",
         )
 
         assert product.id == 123
-        assert product.vendor == "leboncoin"
+        assert product.platform == "leboncoin"
         assert str(product.url) == "https://www.example.com/product/123"
         assert product.title == "Test Product"
         assert product.description == "A sample product for testing"
@@ -28,13 +28,13 @@ class TestProduct:
         """Test that Product objects are subscriptable like dictionaries."""
         product = Product(
             id=123,
-            vendor="ebay",
+            platform="ebay",
             url="https://www.example.com/product/123",
             title="Subscriptable Product",
         )
 
         assert product.id == 123
-        assert product.vendor == "ebay"
+        assert product.platform == "ebay"
         assert product.title == "Subscriptable Product"
         assert product.matches_all_filters() is True  # Default with no filters
 

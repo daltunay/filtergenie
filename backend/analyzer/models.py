@@ -38,7 +38,7 @@ class Product(BaseModel):
     """Class to hold product data scraped from websites."""
 
     id: int | None = Field(default=None)
-    vendor: tp.Literal["ebay", "leboncoin", "vinted"] | None = Field(default=None)
+    platform: tp.Literal["ebay", "leboncoin", "vinted"] | None = Field(default=None)
 
     url: HttpUrl | None = Field(default=None)
     title: str = Field(default="")

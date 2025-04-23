@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "SmartFilter",
+  "name": "FilterGenie",
   "version": "1.0",
-  "description": "Filter e-commerce search results using AI",
+  "description": "Filter search results using AI",
   "permissions": ["activeTab", "scripting", "storage", "webRequest"],
   "host_permissions": ["<all_urls>"],
   "background": {
@@ -21,8 +21,8 @@
     {
       "matches": ["https://*.leboncoin.fr/*"],
       "js": [
-        "vendors/vendor-interface.js",
-        "vendors/leboncoin.js",
+        "platforms/platform-interface.js",
+        "platforms/leboncoin.js",
         "src/content/content-core.js",
         "src/content/content.js"
       ],

@@ -1,8 +1,8 @@
 /**
- * SmartFilter - leboncoin Vendor Implementation
+ * FilterGenie - leboncoin Platform Implementation
  */
 
-class LeboncoinVendor extends VendorInterface {
+class LeboncoinPlatform extends PlatformInterface {
   name = "leboncoin";
   searchPatterns = [/\/(recherche|c)(\/|$)/];
 
@@ -25,4 +25,4 @@ class LeboncoinVendor extends VendorInterface {
   }
 }
 
-registerVendor("leboncoin.fr", LeboncoinVendor);
+registerPlatform("leboncoin.fr", LeboncoinPlatform);

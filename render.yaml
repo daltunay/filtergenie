@@ -1,10 +1,10 @@
 services:
   - type: web
-    name: smartfilter-api
+    name: filtergenie-api
     plan: free
 
     # Source code information
-    repo: https://github.com/daltunay/ecommerce-smart-filtering
+    repo: https://github.com/daltunay/filtergenie
     runtime: docker
     dockerfilePath: ./Dockerfile
 
