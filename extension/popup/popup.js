@@ -443,6 +443,15 @@
       input.addEventListener("change", () => this.saveFilters());
       input.addEventListener("blur", () => this.saveFilters());
 
+      // Add keyboard support for creating new filters
+      input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault();
+          this.saveFilters();
+          this.addFilterRow();
+        }
+      });
+
       row.appendChild(statusIndicator);
       row.appendChild(input);
       row.appendChild(removeBtn);
@@ -632,7 +641,7 @@
       }
 
       // We don't need to validate the key - empty is allowed
-      
+
       const saveBtn = DOM["save-api-settings"];
       const originalText = saveBtn.textContent;
       saveBtn.textContent = "Saving...";
