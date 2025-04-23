@@ -28,10 +28,6 @@ jobs:
         run: |
           uv sync --dev
 
-      - name: Set up Playwright
-        run: |
-          uv run playwright install --with-deps firefox
-
       - name: Run tests
         run: |
           uv run pytest backend/tests -v
