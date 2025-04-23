@@ -5,12 +5,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from backend.api.models import ExtensionResponse, ProductsAnalysisRequest
 from backend.auth.middleware import verify_api_key
-from backend.services.product_service import process_product
+from backend.services.analyzer_service import analyze_product
+from backend.services.scraper_service import process_product_from_html
 
-# Create logger
 log = structlog.get_logger(__name__=__name__)
 
-# Create routers with proper organization
 public_router = APIRouter(tags=["System"])
 authenticated_router = APIRouter(dependencies=[Depends(verify_api_key)])
 
@@ -36,30 +35,22 @@ async def analyze_products(request: ProductsAnalysisRequest):
         if not request.products:
             return {"products": []}
 
-        # Create tasks for each product using the service
-        tasks = [
-            process_product(
-                url=str(product.url),
-                filters=request.filters,
-                html_content=product.html,
-            )
-            for product in request.products
-        ]
+        tasks = []
+        for product_data in request.products:
+            url = str(product_data.url)
+            html = product_data.html
+            tasks.append(process_and_analyze(url, html, request.filters))
 
-        # Run all tasks concurrently
         start_time = __import__("time").time()
         results = await asyncio.gather(*tasks)
         duration = __import__("time").time() - start_time
 
-        # Filter out failed results
         valid_results = [result for result in results if result is not None]
-        matched_results = [r for r in valid_results if r["matches_all_filters"]]
 
         log.info(
             "Product analysis complete",
             total=len(request.products),
             successful=len(valid_results),
-            matched=len(matched_results),
             duration_seconds=round(duration, 2),
         )
 
@@ -71,3 +62,18 @@ async def analyze_products(request: ProductsAnalysisRequest):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error analyzing products: {str(e)}",
         ) from e
+
+
+async def process_and_analyze(url: str, html: str, filters: list[str]) -> dict | None:
+    """Process and analyze a single product."""
+    try:
+        product = await process_product_from_html(url, html)
+        if not product:
+            return None
+
+        analyzed = await analyze_product(product, filters)
+        return analyzed.to_extension_dict()
+
+    except Exception as e:
+        log.error("Product processing failed", url=url, error=str(e), exc_info=True)
+        return None

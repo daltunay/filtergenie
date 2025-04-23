@@ -33,14 +33,14 @@ class TestProduct:
             title="Subscriptable Product",
         )
 
-        assert product["id"] == 123
-        assert product["vendor"] == "ebay"
-        assert product["title"] == "Subscriptable Product"
-        assert product["matches_all_filters"] is True  # Default with no filters
+        assert product.id == 123
+        assert product.vendor == "ebay"
+        assert product.title == "Subscriptable Product"
+        assert product.matches_all_filters() is True  # Default with no filters
 
         # Test invalid key
-        with pytest.raises(KeyError):
-            _ = product["invalid_key"]
+        with pytest.raises(AttributeError):
+            _ = product.invalid_key
 
     def test_filter_descriptions(self) -> None:
         """Test getting filter descriptions."""

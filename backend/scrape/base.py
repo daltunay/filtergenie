@@ -6,7 +6,6 @@ import structlog
 from bs4 import BeautifulSoup
 
 from backend.analyzer import Product, ProductImage
-from backend.common.cache import cached
 
 log = structlog.get_logger(__name__=__name__)
 
@@ -32,7 +31,6 @@ class BaseScraper(ABC):
         vendor = cls.__name__.replace("Scraper", "").lower()
         return vendor
 
-    @cached
     def scrape_product_detail(self, html_content: str, url: str) -> Product:
         """
         Scrape a product from HTML content.

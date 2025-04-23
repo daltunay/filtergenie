@@ -51,11 +51,11 @@ class TestProductModels:
         assert product.matches_min_filters(3) is False
 
         # Test matches_all_filters property
-        assert product.matches_all_filters is False
+        assert product.matches_all_filters() is False
 
         # Make all filters true
         product.filters[2].value = True
-        assert product.matches_all_filters is True
+        assert product.matches_all_filters() is True
 
     def test_product_extension_dict(self) -> None:
         """Test converting product to extension API format."""

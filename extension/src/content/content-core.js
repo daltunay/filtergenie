@@ -49,7 +49,7 @@ class SmartFilterCore {
           const targetContainer =
             document.querySelector("main") || document.body;
           this._addFilterBadges(targetContainer, product.filters);
-          matchCount = product.matches_all_filters ? 1 : 0;
+          matchCount = product.matches_all_filters() ? 1 : 0;
         }
       } else {
         matchCount = this._applyFiltersToDOM(

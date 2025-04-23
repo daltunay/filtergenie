@@ -5,7 +5,6 @@ import structlog
 from pydantic import BaseModel, Field, create_model
 
 from backend.analyzer import Product, ProductImage
-from backend.common.cache import cached
 from backend.config import settings
 
 if tp.TYPE_CHECKING:
@@ -145,7 +144,6 @@ class ProductAnalyzer:
         }
         return create_model("DynamicSchema", **field_definitions)
 
-    @cached
     async def analyze_product(self, product: Product) -> Product:
         """Analyze a single product and update its filters with results."""
         log.debug(
@@ -168,7 +166,7 @@ class ProductAnalyzer:
         for filter_ in product.filters:
             filter_.value = getattr(response, filter_.name)
 
-        if product.matches_all_filters:
+        if product.matches_all_filters():
             log.info(
                 "Found matching product",
                 product_id=product.id,
