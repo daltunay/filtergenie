@@ -1,3 +1,4 @@
+import typing as tp
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -90,7 +91,7 @@ class TestProductModels:
 
 
 @pytest.fixture
-def mock_image() -> MagicMock:
+def mock_image() -> tp.Generator[MagicMock, None, None]:
     """Create a mock for PIL Image."""
     mock_img = MagicMock()
     with patch("backend.analyzer.models.load_img", return_value=mock_img), patch(
@@ -224,5 +225,5 @@ class TestProductAnalyzer:
         schema_fields = schema.__annotations__
         assert "filter_1" in schema_fields
         assert "filter_2_with_spaces" in schema_fields
-        assert schema_fields["filter_1"] == bool
-        assert schema_fields["filter_2_with_spaces"] == bool
+        assert schema_fields["filter_1"] is bool
+        assert schema_fields["filter_2_with_spaces"] is bool
