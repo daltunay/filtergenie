@@ -13,4 +13,5 @@ wheels/
 .env
 *.wal
 *.ipynb
+*.db
 TODO.txt

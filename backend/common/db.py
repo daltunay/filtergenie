@@ -1,9 +1,13 @@
+import asyncio
 import os
+import pickle
+import typing as tp
 from contextlib import asynccontextmanager, contextmanager
+from datetime import datetime, timezone
 from pathlib import Path
 
 import structlog
-from sqlmodel import Session, SQLModel, create_engine
+from sqlmodel import Field, Session, SQLModel, create_engine, select
 
 log = structlog.get_logger(__name__=__name__)
 
@@ -11,6 +15,15 @@ DB_PATH = os.environ.get("CACHE_DB_PATH", "cache.db")
 DB_URL = f"sqlite:///{DB_PATH}"
 
 engine = create_engine(DB_URL, connect_args={"check_same_thread": False}, echo=False)
+
+
+class DBEntry(SQLModel, table=True):
+    """SQLModel for cache entries."""
+
+    key: str = Field(primary_key=True)
+    value_pickle: bytes = Field()
+    created: datetime = Field(default=datetime.now(timezone.utc))
+    function_name: str = Field(index=True)
 
 
 def init_db() -> None:
@@ -43,3 +56,33 @@ async def get_async_session():
     """Async context manager for database session (using sync session underneath)."""
     with get_session() as session:
         yield session
+
+
+async def store_in_db(cache_key: str, value: tp.Any, function_name: str) -> bool:
+    """Store an item in the database cache."""
+    try:
+        value_pickle = pickle.dumps(value)
+
+        async with get_async_session() as session:
+            db_entry = DBEntry(
+                key=cache_key,
+                value_pickle=value_pickle,
+                function_name=function_name,
+            )
+
+            await asyncio.to_thread(session.add, db_entry)
+            await asyncio.to_thread(session.commit)
+
+        return True
+    except Exception as e:
+        log.error(f"DB cache store error: {str(e)}", exc_info=True)
+        return False
+
+
+async def get_from_db(cache_key: str) -> tp.Any | None:
+    """Get an item from the database cache."""
+    async with get_async_session() as session:
+        statement = select(DBEntry).where(DBEntry.key == cache_key)
+        result = await asyncio.to_thread(session.exec, statement)
+        entry: DBEntry | None = result.first()
+        return pickle.loads(entry.value_pickle) if entry else None

@@ -22,22 +22,15 @@ async def health_check():
 
 
 @authenticated_router.post("/cache/clear", response_model=dict, tags=["System"])
-async def clear_cache_endpoint(memory: bool = True, database: bool = False):
-    """Clear cache entries from memory, database, or both."""
+async def clear_cache_endpoint():
+    """Clear cache entries."""
     try:
-        if not memory and not database:
-            return {
-                "status": "nothing_to_clear",
-                "message": "No cache selected to clear",
-            }
+        log.info("Cache clearing requested")
 
-        log.info("Cache clearing requested", memory=memory, database=database)
-
-        count = await clear_cache(memory=memory, database=database)
+        count = await clear_cache()
 
         result = {
             "status": "success",
-            "cleared": {"memory": memory, "database": database},
             "entries_cleared": count,
         }
 

@@ -1,4 +1,3 @@
-import asyncio
 from contextlib import asynccontextmanager
 
 import structlog
@@ -6,7 +5,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.api.routes import authenticated_router, public_router
-from backend.common.cache import maintain_memory_cache  # Updated import
 from backend.common.db import init_db
 from backend.config import settings
 
@@ -24,13 +22,9 @@ async def lifespan(app: FastAPI):
     # Initialize the database
     init_db()
 
-    # Start background memory cache maintenance task
-    memory_cache_task = asyncio.create_task(maintain_memory_cache())
-
     yield
 
     # Shutdown event code
-    memory_cache_task.cancel()
     log.info("Shutting down the application")
 
 

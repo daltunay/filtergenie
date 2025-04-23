@@ -16,8 +16,8 @@ The extension analyzes product images and descriptions using vision-language mod
 <details>
 <summary><b>Screenshots</b> (click to expand)</summary>
 
-![Demo screenshot 1](chrome-extension/screenshots/screenshot_1.png)
-![Demo screenshot 2](chrome-extension/screenshots/screenshot_2.png)
+![Demo screenshot 1](extension/screenshots/screenshot_1.png)
+![Demo screenshot 2](extension/screenshots/screenshot_2.png)
 </details>
 
 ## 🏗️ Architecture

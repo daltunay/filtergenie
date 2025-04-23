@@ -3,13 +3,13 @@ import time
 import structlog
 
 from backend.analyzer import Product
-from backend.common.cache import async_cache
+from backend.common.cache import cached
 from backend.scrape import scrape_product_from_html
 
 log = structlog.get_logger(__name__=__name__)
 
 
-@async_cache(ttl=3600)  # Cache product scraping for 1 hour
+@cached
 async def process_product_from_html(url: str, html_content: str) -> Product | None:
     """Process a product from URL and HTML content."""
     start_time = time.time()
