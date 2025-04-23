@@ -165,7 +165,8 @@ def _store_product_with_conn(product: Product, conn: duckdb.DuckDBPyConnection) 
     try:
         # Check if product exists
         result = conn.execute(
-            "SELECT 1 FROM products WHERE platform = ? AND id = ?", [platform, product_id]
+            "SELECT 1 FROM products WHERE platform = ? AND id = ?",
+            [platform, product_id],
         ).fetchone()
 
         if result:
