@@ -1,5 +1,4 @@
 import os
-import typing as tp
 
 from dotenv import load_dotenv
 from pydantic import Field
@@ -21,19 +20,53 @@ class Settings(BaseSettings):
         alias="USE_LOCAL",
     )
     gemini_api_key: str = Field(
-        default=os.getenv("GEMINI_API_KEY", ""), alias="GEMINI_API_KEY"
+        default=os.getenv("GEMINI_API_KEY", ""),
+        description="API key for Gemini API",
+        alias="GEMINI_API_KEY",
     )
     gemini_base_url: str = Field(
-        default="https://generativelanguage.googleapis.com/v1beta/openai/"
+        default=os.environ.get(
+            "GEMINI_BASE_URL",
+            "https://generativelanguage.googleapis.com/v1beta/openai/",
+        ),
+        description="Base URL for Gemini API",
+        alias="GEMINI_BASE_URL",
     )
-    gemini_model_name: str = Field(default="gemini-2.0-flash-lite")
+    gemini_model_name: str = Field(
+        default=os.environ.get("GEMINI_MODEL_NAME", "gemini-2.0-flash-lite"),
+        description="Gemini model name",
+        alias="GEMINI_MODEL_NAME",
+    )
 
     # Local model settings
-    local_model_name: str = Field(default="HuggingFaceTB/SmolVLM-Instruct")
-    local_model_dtype: tp.Literal["float16", "float32", "bfloat16"] = Field(
-        default="bfloat16"
+    local_model_name: str = Field(
+        default=os.environ.get("LOCAL_MODEL_NAME", "HuggingFaceTB/SmolVLM-Instruct"),
+        description="Local model name or path",
+        alias="LOCAL_MODEL_NAME",
+    )
+    local_model_dtype: str = Field(
+        default=os.environ.get("LOCAL_MODEL_DTYPE", "bfloat16"),
+        description="Data type for local model",
+        alias="LOCAL_MODEL_DTYPE",
     )
     local_model_device: str = Field(default="auto")
+
+    # Cache database settings
+    cache_db_path: str = Field(
+        default=os.environ.get("CACHE_DB_PATH", "data/cache.db"),
+        description="Path to SQLite database file for cache",
+        alias="CACHE_DB_PATH",
+    )
+    cache_cleanup_interval: int = Field(
+        default=int(os.environ.get("CACHE_CLEANUP_INTERVAL", "300")),
+        description="Interval in seconds for cache cleanup",
+        alias="CACHE_CLEANUP_INTERVAL",
+    )
+    cache_max_size: int = Field(
+        default=int(os.environ.get("CACHE_MAX_SIZE", "1000")),
+        description="Maximum number of entries in the cache",
+        alias="CACHE_MAX_SIZE",
+    )
 
 
 # Create settings instance

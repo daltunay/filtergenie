@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from backend.api.models import ProductAnalysisResponse, ProductsAnalysisRequest
 from backend.auth.middleware import verify_api_key
+from backend.common.cache import clear_cache  # Import the clear_cache function
 from backend.services.analyzer_service import analyze_product
 from backend.services.scraper_service import process_product_from_html
 
@@ -18,6 +19,36 @@ authenticated_router = APIRouter(dependencies=[Depends(verify_api_key)])
 async def health_check():
     """Health check endpoint without authentication."""
     return {"status": "ok"}
+
+
+@authenticated_router.post("/cache/clear", response_model=dict, tags=["System"])
+async def clear_cache_endpoint(memory: bool = True, database: bool = False):
+    """Clear cache entries from memory, database, or both."""
+    try:
+        if not memory and not database:
+            return {
+                "status": "nothing_to_clear",
+                "message": "No cache selected to clear",
+            }
+
+        log.info("Cache clearing requested", memory=memory, database=database)
+
+        count = await clear_cache(memory=memory, database=database)
+
+        result = {
+            "status": "success",
+            "cleared": {"memory": memory, "database": database},
+            "entries_cleared": count,
+        }
+
+        return result
+
+    except Exception as e:
+        log.error("Cache clearing error", error=str(e), exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error clearing cache: {str(e)}",
+        ) from e
 
 
 @authenticated_router.post(
