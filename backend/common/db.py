@@ -9,9 +9,11 @@ from pathlib import Path
 import structlog
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 
+from backend.config import settings
+
 log = structlog.get_logger(__name__=__name__)
 
-DB_PATH = os.environ.get("CACHE_DB_PATH", "cache.db")
+DB_PATH = settings.cache_db_path
 DB_URL = f"sqlite:///{DB_PATH}"
 
 engine = create_engine(DB_URL, connect_args={"check_same_thread": False}, echo=False)

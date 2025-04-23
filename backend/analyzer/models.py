@@ -34,6 +34,11 @@ class ProductFilter(BaseModel):
     def name(self) -> str:
         return sanitize_text(self.description)
 
+    def __eq__(self, other: tp.Any) -> bool:
+        if not isinstance(other, ProductFilter):
+            return False
+        return self.description == other.description
+
 
 class Product(BaseModel):
     """Class to hold product data scraped from websites."""
@@ -45,6 +50,7 @@ class Product(BaseModel):
     title: str = Field(default="")
     description: str = Field(default="")
     images: list[ProductImage] = Field(default_factory=list)
+    filters: list[ProductFilter] = Field(default_factory=list)
 
     @field_serializer("url")
     def serialize_url(self, value: HttpUrl | None) -> str:

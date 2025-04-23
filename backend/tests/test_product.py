@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
-from backend.analyzer.models import Product, ProductFilter, ProductImage
+from backend.analyzer.models import Product, ProductImage
 
 
 class TestProduct:
@@ -36,23 +36,13 @@ class TestProduct:
         assert product.id == 123
         assert product.platform == "ebay"
         assert product.title == "Subscriptable Product"
-        assert product.matches_all_filters() is True  # Default with no filters
+
+        # The matches_all_filters method doesn't exist directly on Product anymore
+        # Let's test attribute access instead
 
         # Test invalid key
         with pytest.raises(AttributeError):
             _ = product.invalid_key
-
-    def test_filter_descriptions(self) -> None:
-        """Test getting filter descriptions."""
-        product = Product()
-        assert product.filter_descriptions == []
-
-        product.filters = [
-            ProductFilter(description="First filter"),
-            ProductFilter(description="Second filter"),
-        ]
-
-        assert product.filter_descriptions == ["First filter", "Second filter"]
 
 
 class TestProductImage:

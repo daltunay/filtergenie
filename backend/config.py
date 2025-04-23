@@ -57,16 +57,6 @@ class Settings(BaseSettings):
         description="Path to SQLite database file for cache",
         alias="CACHE_DB_PATH",
     )
-    cache_cleanup_interval: int = Field(
-        default=int(os.environ.get("CACHE_CLEANUP_INTERVAL", "300")),
-        description="Interval in seconds for cache cleanup",
-        alias="CACHE_CLEANUP_INTERVAL",
-    )
-    cache_max_size: int = Field(
-        default=int(os.environ.get("CACHE_MAX_SIZE", "1000")),
-        description="Maximum number of entries in the cache",
-        alias="CACHE_MAX_SIZE",
-    )
 
 
 # Create settings instance
