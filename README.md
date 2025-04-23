@@ -140,8 +140,7 @@ A smart caching system reduces redundant work by caching product scraping result
    ```bash
    # When using API-based version
    docker run -p 8000:8000 \
-     -e OPENAI_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/" \
-     -e OPENAI_API_KEY=your_api_key_here \
+     -e GEMINI_API_KEY=your_api_key_here \
      -e USE_LOCAL=false \
      filtergenie
    ```
@@ -159,8 +158,7 @@ A smart caching system reduces redundant work by caching product scraping result
 
 #### Environment Variables
 
-- `OPENAI_BASE_URL`: The base URL for the Gemini API
-- `OPENAI_API_KEY`: Your Gemini API key (required for API-based analysis)
+- `GEMINI_API_KEY`: Your Gemini API key (required for API-based analysis)
 - `USE_LOCAL`: Set to "true" to use local VLM models instead of Gemini API
 - `API_KEY`: Optional API key for securing your FilterGenie API (only needed if you want to deploy and protect your API)
 

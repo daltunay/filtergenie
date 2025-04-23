@@ -15,7 +15,7 @@ async def lifespan(app: FastAPI):
     # Startup event code
     log.info(
         "Starting the application",
-        config=settings.model_dump(exclude={"api_key", "openai_api_key"}),
+        config=settings.model_dump(exclude={"api_key", "gemini_api_key"}),
     )
     yield
     # Shutdown event code

@@ -15,9 +15,7 @@ services:
 
     # Environment variables
     envVars:
-      - key: OPENAI_BASE_URL
-        value: "https://generativelanguage.googleapis.com/v1beta/openai/"
-      - key: OPENAI_API_KEY
+      - key: GEMINI_API_KEY
         sync: false
       - key: API_KEY
         generateValue: true

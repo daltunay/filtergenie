@@ -54,7 +54,9 @@ class ProductAnalyzer:
             )
             self.predict = self._predict_local
         else:
-            self.model = self._create_openai_model(model_name=settings.model_name)
+            self.model = self._create_openai_model(
+                model_name=settings.gemini_model_name
+            )
             self.predict = self._predict_openai
 
     def _create_local_model(
@@ -100,8 +102,8 @@ class ProductAnalyzer:
         log.debug("Creating API-based model", model_name=model_name)
         self.model_name = model_name
         return OpenAI(
-            base_url=settings.openai_base_url,
-            api_key=settings.openai_api_key,
+            base_url=settings.gemini_base_url,
+            api_key=settings.gemini_api_key,
         )
 
     async def _predict_openai(

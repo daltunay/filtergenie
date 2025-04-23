@@ -1,8 +1,11 @@
 import os
 import typing as tp
 
+from dotenv import load_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings
+
+load_dotenv()
 
 
 class Settings(BaseSettings):
@@ -17,9 +20,13 @@ class Settings(BaseSettings):
         description="Use local VLM model instead of API",
         alias="USE_LOCAL",
     )
-    openai_api_key: str = Field(default="", alias="OPENAI_API_KEY")
-    openai_base_url: str | None = Field(default=None, alias="OPENAI_BASE_URL")
-    model_name: str = Field(default="gemini-2.0-flash-lite")
+    gemini_api_key: str = Field(
+        default=os.getenv("GEMINI_API_KEY", ""), alias="GEMINI_API_KEY"
+    )
+    gemini_base_url: str = Field(
+        default="https://generativelanguage.googleapis.com/v1beta/openai/"
+    )
+    gemini_model_name: str = Field(default="gemini-2.0-flash-lite")
 
     # Local model settings
     local_model_name: str = Field(default="HuggingFaceTB/SmolVLM-Instruct")
