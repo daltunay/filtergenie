@@ -3,14 +3,25 @@ import functools
 import json
 import time
 import typing as tp
+from dataclasses import dataclass
 from hashlib import md5
 
 import structlog
 
 log = structlog.get_logger(__name__=__name__)
 
-_CACHE: dict[str, tp.Any] = {}
-_CACHE_METADATA: dict[str, dict[str, float]] = {}
+
+@dataclass
+class CacheEntry:
+    """Holds a cached value and its metadata."""
+
+    value: tp.Any
+    created: float
+    ttl: int
+
+
+# Single in-memory cache with integrated metadata
+_CACHE: dict[str, CacheEntry] = {}
 
 
 def _create_key(
@@ -56,22 +67,20 @@ def async_cache(ttl: int = 600):
 
             now = time.time()
             if cache_key in _CACHE:
-                metadata = _CACHE_METADATA.get(cache_key, {})
-                created = metadata.get("created", 0)
+                entry = _CACHE[cache_key]
 
-                if now - created < ttl:
+                if now - entry.created < entry.ttl:
                     log.debug(
                         "Cache hit",
                         function=func.__name__,
-                        age=round(now - created, 2),
-                        ttl=ttl,
+                        age=round(now - entry.created, 2),
+                        ttl=entry.ttl,
                     )
-                    return _CACHE[cache_key]
+                    return entry.value
 
             result = await func(*args, **kwargs)
 
-            _CACHE[cache_key] = result
-            _CACHE_METADATA[cache_key] = {"created": now, "ttl": ttl}
+            _CACHE[cache_key] = CacheEntry(value=result, created=now, ttl=ttl)
 
             log.debug("Cache miss - stored new result", function=func.__name__)
             return result
@@ -95,17 +104,16 @@ async def cache_cleanup_task(cleanup_interval: int = 60, max_size: int = 1000):
         now = time.time()
         expired_keys = []
 
-        for key, metadata in list(_CACHE_METADATA.items()):
-            created = metadata.get("created", 0)
-            ttl = metadata.get("ttl", 600)
-            if (now - created > ttl) or (
-                len(_CACHE) > max_size and len(expired_keys) < len(_CACHE) - max_size
-            ):
+        for key, entry in list(_CACHE.items()):
+            is_expired = now - entry.created > entry.ttl
+            is_overflow = (len(_CACHE) > max_size) and (
+                len(expired_keys) < len(_CACHE) - max_size
+            )
+            if is_expired or is_overflow:
                 expired_keys.append(key)
 
         for key in expired_keys:
-            _CACHE.pop(key, None)
-            _CACHE_METADATA.pop(key, None)
+            _CACHE.pop(key)
 
         if expired_keys:
             log.debug(
