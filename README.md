@@ -72,10 +72,6 @@ The system uses Pydantic to generate dynamic schemas based on user filters. The 
 | vinted.fr | ❌ Not supported | Product scraping only |
 | ebay.fr | ❌ Not supported | Product scraping only |
 
-## 🔍 Web Scraping
-
-The project uses Playwright for web scraping with browser automation, headless mode, and multi-browser support. Each supported site has its own scraper implementation that extends the `BaseScraper` class. See [`scrape/`](scrape/) for details.
-
 ## ⚡ Performance Optimizations
 
 ### Asynchronous Processing
@@ -117,13 +113,7 @@ A smart caching system reduces redundant work by caching product scraping result
    source .venv/bin/activate
    ```
 
-4. Install playwright dependencies
-
-   ```bash
-   playwright install --with-deps firefox
-   ```
-
-5. Run the API server
+4. Run the API server
 
    ```bash
    fastapi run backend/app.py  # with `USE_LOCAL=true` for local VLM inference
