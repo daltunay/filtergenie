@@ -12,12 +12,10 @@ from backend.api.models import (
 )
 from backend.auth.middleware import verify_api_key
 from backend.common.cache import cached, clear_cache
+from backend.dependencies import get_analyzer
 from backend.scrape import scrape_item_from_html
 
 log = structlog.get_logger(__name__=__name__)
-
-analyzer = Analyzer()
-log.info("Analyzer initialized", model=analyzer.model)
 
 public_router = APIRouter()
 authenticated_router = APIRouter(dependencies=[Depends(verify_api_key)])
@@ -52,7 +50,7 @@ def scrape_item(url: str, html_content: str) -> Item:
 
 
 @authenticated_router.post("/items/analyze", response_model=list[ItemAnalysis], tags=["Items"])
-async def analyze_items(request: FilterAnalysisRequest):
+async def analyze_items(request: FilterAnalysisRequest, analyzer: Analyzer = Depends(get_analyzer)):
     """RESTful endpoint to analyze multiple items based on HTML content."""
     try:
         log.info(

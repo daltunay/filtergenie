@@ -5,7 +5,7 @@ import structlog
 from pydantic import BaseModel, Field, create_model
 
 from backend.analyzer.models import Filter, Image, Item
-from backend.config import settings
+from backend.config import LocalModelConfig, RemoteModelConfig
 
 if tp.TYPE_CHECKING:
     from openai import AsyncOpenAI
@@ -40,34 +40,40 @@ class Analyzer:
         """
     )
 
-    def __init__(self, use_local: bool = settings.model.use_local):
+    def __init__(
+        self,
+        use_local: bool = False,
+        local_config: LocalModelConfig | None = None,
+        remote_config: RemoteModelConfig | None = None,
+    ):
         """Initialize the analyzer with either a local VLM model or AsyncOpenAI."""
         log.info("Initializing Analyzer", use_local=use_local)
 
         if use_local:
+            self.local_config = local_config or LocalModelConfig()
             self.model = self._create_local_model()
             self.predict = self._predict_local
         else:
+            self.remote_config = remote_config or RemoteModelConfig()
             self.model = self._create_openai_model()
             self.predict = self._predict_openai
 
-    def _create_local_model(
-        self,
-        model_name: str = settings.model.local.title,
-        dtype: str = settings.model.local.dtype,
-        device: str = settings.model.local.device,
-    ) -> "TransformersVision":
+    def _create_local_model(self) -> "TransformersVision":
         """Create a local VLM."""
         import torch
         from outlines import models
         from transformers import AutoModelForImageTextToText
 
-        log.debug("Creating local VLM model", model_name=model_name, device=device)
+        log.debug(
+            "Creating local VLM model",
+            model_name=self.local_config.name,
+            device=self.local_config.device,
+        )
         return models.transformers_vision(
-            model_name=model_name,
+            model_name=self.local_config.name,
             model_class=AutoModelForImageTextToText,
-            model_kwargs={"torch_dtype": getattr(torch, dtype)},
-            device=device,
+            model_kwargs={"torch_dtype": getattr(torch, self.local_config.dtype)},
+            device=self.local_config.device,
         )
 
     async def _predict_local(
@@ -81,22 +87,16 @@ class Analyzer:
         from outlines import generate
 
         generator = generate.json(self.model, schema)
-        # Run the CPU-intensive model inference in a thread pool to avoid blocking
         return await asyncio.to_thread(generator, prompt, [image.base64 for image in images])
 
-    def _create_openai_model(
-        self,
-        model_name: str = settings.model.remote.title,
-        base_url: str = settings.model.remote.base_url,
-        api_key: str = settings.model.remote.api_key,
-    ) -> "AsyncOpenAI":
+    def _create_openai_model(self) -> "AsyncOpenAI":
         """Create an AsyncOpenAI model with async client."""
-        log.debug("Creating API-based model", model_name=model_name)
+        log.debug("Creating API-based model", model_name=self.remote_config.name)
 
         from openai import AsyncOpenAI
 
-        self.model_name = model_name
-        return AsyncOpenAI(base_url=base_url, api_key=api_key)
+        self.model_name = self.remote_config.name
+        return AsyncOpenAI(base_url=self.remote_config.base_url, api_key=self.remote_config.api_key)
 
     async def _predict_openai(
         self, prompt: str, images: list[Image], schema: type[DynamicSchema]
@@ -130,7 +130,7 @@ class Analyzer:
         filters: list[Filter],
     ) -> type[DynamicSchema]:
         """Create a Pydantic model schema based on filters list."""
-        field_definitions = {
+        field_definitions: dict[str, tp.Any] = {
             filter_.title: (
                 bool,
                 Field(title=f"Filter {i}", description=filter_.description),
@@ -148,12 +148,20 @@ class Analyzer:
             num_images=len(item.images),
         )
 
+        if item.model_extra is not None:
+            item_details = "\n".join(
+                [
+                    f"- {key.title().replace('_', ' ')}: {value}"
+                    for key, value in item.model_extra.items()
+                ]
+            )
+        else:
+            item_details = "N/A"
+
         prompt = self.PROMPT_TEMPLATE.format(
             item_title=item.title,
             item_images="<image>" * len(item.images),
-            item_details="\n".join(
-                [f"- {key.title()}: {value}" for key, value in item.model_extra.items()]
-            ),
+            item_details=item_details,
         )
 
         DynamicSchema = self._create_filter_schema(filters)

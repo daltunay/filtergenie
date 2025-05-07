@@ -22,18 +22,18 @@ class RemoteModelConfig(BaseModel):
         default="",
         description="API key for model API",
     )
-    title: str = Field(
+    name: str = Field(
         default="gemini-2.0-flash-lite",
-        description="Model title to use",
+        description="Model name to use",
     )
 
 
 class LocalModelConfig(BaseModel):
     """Local model configuration settings."""
 
-    title: str = Field(
+    name: str = Field(
         default="HuggingFaceTB/SmolVLM-Instruct",
-        description="Local model title or path",
+        description="Local model name or path",
     )
     dtype: str = Field(
         default="bfloat16",

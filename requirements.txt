@@ -19,13 +19,10 @@ certifi==2025.1.31
     # via
     #   httpcore
     #   httpx
-    #   requests
 cffi==1.17.1 ; implementation_name == 'pypy'
     # via pyzmq
 cfgv==3.4.0
     # via pre-commit
-charset-normalizer==3.4.1
-    # via requests
 click==8.1.8
     # via
     #   rich-toolkit
@@ -81,7 +78,6 @@ idna==3.10
     #   anyio
     #   email-validator
     #   httpx
-    #   requests
 iniconfig==2.1.0
     # via pytest
 ipykernel==6.29.5
@@ -180,8 +176,6 @@ pyzmq==26.4.0
     # via
     #   ipykernel
     #   jupyter-client
-requests==2.32.3
-    # via filtergenie
 rich==14.0.0
     # via
     #   rich-toolkit
@@ -240,8 +234,6 @@ typing-inspection==0.4.0
     # via
     #   pydantic
     #   pydantic-settings
-urllib3==2.4.0
-    # via requests
 uvicorn==0.34.2
     # via
     #   fastapi

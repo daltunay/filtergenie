@@ -42,4 +42,4 @@ repos:
     hooks:
       - id: mypy
         exclude: backend/tests
-        additional_dependencies: [sqlmodel]
+        additional_dependencies: [sqlmodel, types-requests]

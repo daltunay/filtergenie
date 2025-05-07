@@ -103,7 +103,7 @@ class BaseScraper(ABC):
         pass
 
     @classmethod
-    def extract_additional_details(soup: BeautifulSoup) -> dict[str, str]:
+    def extract_additional_details(cls, soup: BeautifulSoup) -> dict[str, str]:
         """Extract additional platform-specific attributes from the item page.
 
         Override this in platform-specific scrapers.
