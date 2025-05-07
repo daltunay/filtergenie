@@ -35,6 +35,4 @@ def img_to_base64(img: Image.Image) -> str:
     """Convert an image to base64 encoding."""
     buffer = io.BytesIO()
     img.save(buffer, format="JPEG")
-    return (
-        f"data:image/jpeg;base64,{base64.b64encode(buffer.getvalue()).decode('utf-8')}"
-    )
+    return f"data:image/jpeg;base64,{base64.b64encode(buffer.getvalue()).decode('utf-8')}"

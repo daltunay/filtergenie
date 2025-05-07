@@ -17,7 +17,7 @@
 
 ### Extension Setup
 
-1. Download the extension from [Chrome Web Store](#) (coming soon)
+1. Download the extension from [Chrome Web Store](https://chromewebstore.google.com/detail/filtergenie/...) (coming soon)
 2. Click the extension icon on a supported website
 3. Enter your natural language filters and apply
 

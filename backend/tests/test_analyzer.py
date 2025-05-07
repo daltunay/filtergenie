@@ -121,9 +121,7 @@ def mock_image() -> tp.Generator[MagicMock, None, None]:
     with (
         patch("backend.analyzer.models.load_img", return_value=mock_img),
         patch("backend.analyzer.models.resize_img", return_value=mock_img),
-        patch(
-            "backend.analyzer.models.img_to_base64", return_value="base64_image_data"
-        ),
+        patch("backend.analyzer.models.img_to_base64", return_value="base64_image_data"),
     ):
         yield mock_img
 
@@ -139,9 +137,7 @@ class TestProductAnalyzer:
         mock_models.transformers_vision.return_value = mock_model
 
         # Need to patch torch and transformers modules
-        with patch.dict(
-            "sys.modules", {"torch": MagicMock(), "transformers": MagicMock()}
-        ):
+        with patch.dict("sys.modules", {"torch": MagicMock(), "transformers": MagicMock()}):
             analyzer = ProductAnalyzer(use_local=True)
             assert analyzer.model == mock_model
             mock_models.transformers_vision.assert_called_once()
@@ -175,9 +171,7 @@ class TestProductAnalyzer:
         # Mock the _predict_local method and _create_local_model
         with (
             patch("backend.analyzer.processor.ProductAnalyzer._create_local_model"),
-            patch(
-                "backend.analyzer.processor.ProductAnalyzer._predict_local"
-            ) as mock_predict,
+            patch("backend.analyzer.processor.ProductAnalyzer._predict_local") as mock_predict,
         ):
             # Create a mock schema instance with filter properties
             DynamicSchema = create_model(
@@ -198,12 +192,8 @@ class TestProductAnalyzer:
             product_filters[1].value = False
 
             # Analyze the product
-            with patch.object(
-                analyzer, "_create_filter_schema", return_value=DynamicSchema
-            ):
-                result, filters = await analyzer.analyze_product(
-                    product, filter_descriptions
-                )
+            with patch.object(analyzer, "_create_filter_schema", return_value=DynamicSchema):
+                result, filters = await analyzer.analyze_product(product, filter_descriptions)
 
                 # Check the mock was called with expected arguments
                 mock_predict.assert_called_once()
@@ -228,9 +218,7 @@ class TestProductAnalyzer:
         filter_descriptions = ["Filter 1", "Filter 2"]
 
         # Mock the _predict_openai method
-        with patch(
-            "backend.analyzer.processor.ProductAnalyzer._predict_openai"
-        ) as mock_predict:
+        with patch("backend.analyzer.processor.ProductAnalyzer._predict_openai") as mock_predict:
             # Create a mock schema instance with filter properties
             DynamicSchema = create_model(
                 "DynamicSchema", filter_1=(bool, True), filter_2=(bool, False)
@@ -250,12 +238,8 @@ class TestProductAnalyzer:
             product_filters[1].value = False
 
             # Analyze the product
-            with patch.object(
-                analyzer, "_create_filter_schema", return_value=DynamicSchema
-            ):
-                result, filters = await analyzer.analyze_product(
-                    product, filter_descriptions
-                )
+            with patch.object(analyzer, "_create_filter_schema", return_value=DynamicSchema):
+                result, filters = await analyzer.analyze_product(product, filter_descriptions)
 
                 # Check predictions are applied to filters
                 assert filters[0].value is True

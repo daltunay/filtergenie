@@ -20,13 +20,9 @@ def verify_api_key(api_key: str = Security(api_key_header)) -> bool:
 
     # Validate the provided API key
     if not api_key:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="API key missing"
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="API key missing")
 
     if api_key != required_key:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Invalid API key"
-        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid API key")
 
     return True

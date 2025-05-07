@@ -27,6 +27,7 @@ local = [
 [dependency-groups]
 dev = [
     "ipykernel>=6.29.5",
+    "pre-commit>=4.2.0",
     "pytest>=8.3.5",
     "pytest-asyncio>=0.26.0",
 ]
@@ -37,3 +38,9 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 packages = ["backend"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.isort]
+profile = "black"

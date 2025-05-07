@@ -14,7 +14,7 @@ log = structlog.get_logger(__name__=__name__)
 def _create_key(func: tp.Callable, args: tuple, kwargs: dict) -> str:
     """Create a unique cache key based on function name and arguments."""
 
-    def _serialize(val: tp.Any) -> str:
+    def _serialize(val: tp.Any) -> tp.Any:
         if hasattr(val, "model_dump"):
             return val.model_dump()
         if isinstance(val, (str, int, float, bool, type(None))):

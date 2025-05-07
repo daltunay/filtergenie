@@ -15,7 +15,7 @@ class BaseScraper(ABC):
 
     SUPPORTED_DOMAINS: list[str] = []
 
-    PAGE_TYPE_PATTERNS: dict[str, list[str]] = {
+    PAGE_TYPE_PATTERNS: dict[tp.Literal["product", "search"], list[str]] = {
         "product": [],
         "search": [],
     }
@@ -88,9 +88,7 @@ class BaseScraper(ABC):
             return False
 
         parsed_url = urlparse(url)
-        return any(
-            parsed_url.netloc.endswith(domain) for domain in cls.SUPPORTED_DOMAINS
-        )
+        return any(parsed_url.netloc.endswith(domain) for domain in cls.SUPPORTED_DOMAINS)
 
     @classmethod
     def find_page_type(cls, url: str) -> tp.Literal["product", "search"] | None:

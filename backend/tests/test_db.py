@@ -35,9 +35,7 @@ class TestDatabase:
         mock_session.close = MagicMock()
 
     @pytest.mark.asyncio
-    async def test_session_lifecycle(
-        self, mock_db_setup: None, mock_session: MagicMock
-    ) -> None:
+    async def test_session_lifecycle(self, mock_db_setup: None, mock_session: MagicMock) -> None:
         """Test the database session lifecycle."""
         with patch("backend.common.db.Session", return_value=mock_session):
             async with get_async_session() as session:

@@ -4,7 +4,7 @@ from textwrap import dedent
 import structlog
 from pydantic import BaseModel, Field, create_model
 
-from backend.analyzer import Product, ProductImage, ProductFilter
+from backend.analyzer import Product, ProductFilter, ProductImage
 from backend.config import settings
 
 if tp.TYPE_CHECKING:
@@ -54,9 +54,7 @@ class ProductAnalyzer:
             )
             self.predict = self._predict_local
         else:
-            self.model = self._create_openai_model(
-                model_name=settings.gemini_model_name
-            )
+            self.model = self._create_openai_model(model_name=settings.gemini_model_name)
             self.predict = self._predict_openai
 
     def _create_local_model(
@@ -89,13 +87,9 @@ class ProductAnalyzer:
 
         import asyncio
 
-        return await asyncio.to_thread(
-            generator, prompt, [image.image for image in images]
-        )
+        return await asyncio.to_thread(generator, prompt, [image.image for image in images])
 
-    def _create_openai_model(
-        self, model_name: str = "gemini-2.0-flash-lite"
-    ) -> "OpenAI":
+    def _create_openai_model(self, model_name: str = "gemini-2.0-flash-lite") -> "OpenAI":
         """Create an OpenAI/Gemini model with async client."""
         from openai import AsyncOpenAI as OpenAI
 
@@ -112,10 +106,7 @@ class ProductAnalyzer:
         """Run prediction using OpenAI/Gemini API asynchronously."""
         content = [
             {"type": "text", "text": prompt},
-            *[
-                {"type": "image_url", "image_url": {"url": image.base64}}
-                for image in images
-            ],
+            *[{"type": "image_url", "image_url": {"url": image.base64}} for image in images],
         ]
 
         log.debug("Sending API request", model=self.model_name, num_images=len(images))

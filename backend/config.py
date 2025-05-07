@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
     # API configuration
-    api_key: str | None = Field(default=None, alias="API_KEY")
+    api_key: str | None = Field(default=os.getenv("API_KEY", None), alias="API_KEY")
 
     # AI model configuration
     use_local_model: bool = Field(

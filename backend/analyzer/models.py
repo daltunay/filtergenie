@@ -9,7 +9,7 @@ from backend.common.utils import img_to_base64, load_img, resize_img, sanitize_t
 
 
 class ProductImage(BaseModel):
-    url_or_path: HttpUrl | FilePath = Field(default=None)
+    url_or_path: HttpUrl | FilePath = Field(...)
 
     @property
     def image(self) -> Image:
@@ -29,8 +29,8 @@ class ProductFilter(BaseModel):
     description: str = Field(default="")
     value: bool | None = Field(default=None, init=False)
 
-    @computed_field
     @property
+    @computed_field
     def name(self) -> str:
         return sanitize_text(self.description)
 
@@ -53,5 +53,5 @@ class Product(BaseModel):
     filters: list[ProductFilter] = Field(default_factory=list)
 
     @field_serializer("url")
-    def serialize_url(self, value: HttpUrl | None) -> str:
+    def serialize_url(self, value: HttpUrl | str | None) -> str:
         return str(value)

@@ -25,9 +25,7 @@ def load_test_html(filename: str) -> str:
     if not os.path.exists(filepath):
         os.makedirs(fixtures_dir, exist_ok=True)
         with open(filepath, "w") as f:
-            f.write(
-                "<html><body><h1>Test Product</h1><div>Test description</div></body></html>"
-            )
+            f.write("<html><body><h1>Test Product</h1><div>Test description</div></body></html>")
 
     with open(filepath, "r") as f:
         return f.read()
@@ -111,17 +109,9 @@ class TestBaseScraper:
             def extract_product_images(soup: BeautifulSoup) -> list[str]:
                 return []
 
-        assert (
-            TestScraper.find_page_type("https://www.example.com/product/123")
-            == "product"
-        )
-        assert (
-            TestScraper.find_page_type("https://www.example.com/item/456") == "product"
-        )
-        assert (
-            TestScraper.find_page_type("https://www.example.com/search?q=test")
-            == "search"
-        )
+        assert TestScraper.find_page_type("https://www.example.com/product/123") == "product"
+        assert TestScraper.find_page_type("https://www.example.com/item/456") == "product"
+        assert TestScraper.find_page_type("https://www.example.com/search?q=test") == "search"
         assert TestScraper.find_page_type("https://www.example.com/catalog") == "search"
         assert TestScraper.find_page_type("https://www.example.com/other/789") is None
 
@@ -140,9 +130,7 @@ async def test_scrape_product_from_html() -> None:
     )
 
     # Mock the scraper's scrape_product_detail method
-    with patch.object(
-        LeboncoinScraper, "scrape_product_detail", return_value=mock_product
-    ):
+    with patch.object(LeboncoinScraper, "scrape_product_detail", return_value=mock_product):
         html_content = "<html><body>Test content</body></html>"
 
         product = await scrape_product_from_html(html_content, leboncoin_url)

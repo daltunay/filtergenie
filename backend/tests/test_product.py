@@ -42,7 +42,7 @@ class TestProduct:
 
         # Test invalid key
         with pytest.raises(AttributeError):
-            _ = product.invalid_key
+            _ = product.invalid_key  #
 
 
 class TestProductImage:

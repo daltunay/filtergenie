@@ -157,9 +157,7 @@ def test_analyze_products_validation_error(disable_auth: None) -> None:
 
 def test_analyze_products_service_error(disable_auth: None) -> None:
     """Test error handling when service fails."""
-    with patch(
-        "backend.api.routes.process_and_analyze", side_effect=Exception("Service error")
-    ):
+    with patch("backend.api.routes.process_and_analyze", side_effect=Exception("Service error")):
         payload = {
             "filters": ["Test filter"],
             "products": [

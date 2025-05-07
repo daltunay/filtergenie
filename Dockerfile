@@ -9,12 +9,13 @@ WORKDIR /app
 
 COPY pyproject.toml uv.lock ./
 
-ARG USE_LOCAL=false
 ENV UV_COMPILE_BYTECODE=1 \
     UV_FROZEN=1 \
     UV_LINK_MODE=copy \
     UV_NO_INSTALLER_METADATA=1 \
-    UV_PROJECT_ENVIRONMENT="/usr/local/"
+    VIRTUAL_ENV=/app/.venv
+
+ARG USE_LOCAL=false
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     if [ "$USE_LOCAL" = "true" ]; then EXTRA_ARGS="--extra local"; fi; \

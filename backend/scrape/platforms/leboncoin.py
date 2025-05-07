@@ -28,15 +28,13 @@ class LeboncoinScraper(BaseScraper):
 
     @staticmethod
     def extract_product_description(soup: BeautifulSoup) -> str:
-        desc_container = soup.find(
-            "div", attrs={"data-qa-id": "adview_description_container"}
-        )
+        desc_container = soup.find("div", attrs={"data-qa-id": "adview_description_container"})
         desc_elem = desc_container.find("p")
         return desc_elem.text.strip()
 
     @staticmethod
     def extract_product_images(soup: BeautifulSoup) -> list[str]:
-        image_urls = []
+        image_urls: list[str] = []
         seen_urls = set()
         gallery_section = soup.find("div", class_="slick-list")
 

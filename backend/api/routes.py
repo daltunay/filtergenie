@@ -109,10 +109,7 @@ async def process_and_analyze(url: str, html: str, filters: list[str]) -> dict |
             "platform": analyzed_product.platform,
             "matches_all_filters": bool(analyzed_filters)
             and all(f.value for f in analyzed_filters),
-            "filters": [
-                {"description": f.description, "value": f.value}
-                for f in analyzed_filters
-            ],
+            "filters": [{"description": f.description, "value": f.value} for f in analyzed_filters],
             "match_count": match_count,
             "total_filters": total_filters,
         }
