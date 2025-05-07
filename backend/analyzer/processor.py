@@ -47,14 +47,16 @@ class Analyzer:
         remote_config: RemoteModelConfig | None = None,
     ):
         """Initialize the analyzer with either a local VLM model or AsyncOpenAI."""
-        log.info("Initializing Analyzer", use_local=use_local)
+        global log
 
         if use_local:
             self.local_config = local_config or LocalModelConfig()
+            log.bind(use_local=True, **self.local_config.model_dump())
             self.model = self._create_local_model()
             self.predict = self._predict_local
         else:
             self.remote_config = remote_config or RemoteModelConfig()
+            log.bind(use_local=False, **self.remote_config.model_dump(exclude={"api_key"}))
             self.model = self._create_openai_model()
             self.predict = self._predict_openai
 
@@ -64,11 +66,8 @@ class Analyzer:
         from outlines import models
         from transformers import AutoModelForImageTextToText
 
-        log.debug(
-            "Creating local VLM model",
-            model_name=self.local_config.name,
-            device=self.local_config.device,
-        )
+        log.debug("Creating local model")
+
         return models.transformers_vision(
             model_name=self.local_config.name,
             model_class=AutoModelForImageTextToText,
@@ -80,32 +79,42 @@ class Analyzer:
         self, prompt: str, images: list[Image], schema: type[DynamicSchema]
     ) -> DynamicSchema:
         """Run prediction using local model asynchronously."""
-        log.debug("Running local prediction", num_images=len(images))
-
-        import asyncio
-
         from outlines import generate
 
+        log.debug(
+            "Running local prediction",
+            prompt=prompt,
+            num_images=len(images),
+            schema=schema,
+        )
+
         generator = generate.json(self.model, schema)
-        return await asyncio.to_thread(generator, prompt, [image.base64 for image in images])
+        return generator(prompt, [image.base64 for image in images])
 
     def _create_openai_model(self) -> "AsyncOpenAI":
         """Create an AsyncOpenAI model with async client."""
-        log.debug("Creating API-based model", model_name=self.remote_config.name)
+        log.debug("Creating AsyncOpenAI model")
 
         from openai import AsyncOpenAI
 
-        self.model_name = self.remote_config.name
-        return AsyncOpenAI(base_url=self.remote_config.base_url, api_key=self.remote_config.api_key)
+        return AsyncOpenAI(
+            base_url=self.remote_config.base_url,
+            api_key=self.remote_config.api_key,
+        )
 
     async def _predict_openai(
         self, prompt: str, images: list[Image], schema: type[DynamicSchema]
     ) -> DynamicSchema:
         """Run prediction using AsyncOpenAI/Gemini API asynchronously."""
-        log.debug("Sending API request", model=self.model_name, num_images=len(images))
+        log.debug(
+            "Running OpenAI prediction",
+            prompt=prompt,
+            num_images=len(images),
+            schema=schema,
+        )
 
         response = await self.model.beta.chat.completions.parse(
-            model=self.model_name,
+            model=self.remote_config.name,
             messages=[
                 {
                     "role": "user",
@@ -120,9 +129,6 @@ class Analyzer:
             ],
             response_format=schema,
         )
-
-        log.debug("Received API response")
-
         return response.choices[0].message.parsed
 
     @staticmethod
@@ -130,12 +136,13 @@ class Analyzer:
         filters: list[Filter],
     ) -> type[DynamicSchema]:
         """Create a Pydantic model schema based on filters list."""
+        log.debug("Creating dynamic schema for filters", filters=filters)
         field_definitions: dict[str, tp.Any] = {
-            filter_.title: (
+            f.name: (
                 bool,
-                Field(title=f"Filter {i}", description=filter_.description),
+                Field(title=f"Filter {i}", description=f.description),
             )
-            for i, filter_ in enumerate(filters, start=1)
+            for i, f in enumerate(filters, start=1)
         }
         return create_model("DynamicSchema", **field_definitions)
 
@@ -149,26 +156,24 @@ class Analyzer:
         )
 
         if item.model_extra is not None:
-            item_details = "\n".join(
-                [
-                    f"- {key.title().replace('_', ' ')}: {value}"
-                    for key, value in item.model_extra.items()
-                ]
-            )
+            item_details = [
+                f"- {key.title().replace('_', ' ')}: {value}"
+                for key, value in item.model_extra.items()
+            ]
         else:
-            item_details = "N/A"
+            item_details = ["N/A"]
 
         prompt = self.PROMPT_TEMPLATE.format(
             item_title=item.title,
             item_images="<image>" * len(item.images),
-            item_details=item_details,
+            item_details="\n".join(item_details),
         )
 
         DynamicSchema = self._create_filter_schema(filters)
         response = await self.predict(prompt=prompt, images=item.images, schema=DynamicSchema)
 
-        for filter_ in filters:
-            filter_.value = getattr(response, filter_.title)
+        for f in filters:
+            f.value = getattr(response, f.name)
 
         log.debug(
             "Item analysis complete",

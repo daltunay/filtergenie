@@ -14,11 +14,8 @@ log = structlog.get_logger(__name__=__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     log.info("Starting the application", config=settings.model_dump())
-
     init_db()
-
     yield
-
     log.info("Shutting down the application")
 
 
@@ -40,7 +37,6 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(public_router)
-
     app.include_router(authenticated_router)
 
     return app

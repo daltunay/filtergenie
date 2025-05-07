@@ -13,7 +13,7 @@ from backend.config import settings
 
 log = structlog.get_logger(__name__=__name__)
 
-DB_PATH = settings.cache_db_path
+DB_PATH = settings.cache.db_path
 DB_URL = f"sqlite:///{DB_PATH}"
 
 engine = create_engine(DB_URL, connect_args={"check_same_thread": False}, echo=False)
@@ -22,10 +22,10 @@ engine = create_engine(DB_URL, connect_args={"check_same_thread": False}, echo=F
 class DBEntry(SQLModel, table=True):
     """SQLModel for cache entries."""
 
-    key: str = Field(primary_key=True)
-    value_pickle: bytes = Field()
-    created: datetime = Field(default=datetime.now(timezone.utc))
-    function_name: str = Field(index=True)
+    key: str = Field(..., primary_key=True)
+    value_pickle: bytes = Field(...)
+    created: datetime = Field(..., default=datetime.now(timezone.utc))
+    function_name: str = Field(..., index=True)
 
 
 def init_db() -> None:

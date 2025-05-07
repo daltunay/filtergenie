@@ -194,7 +194,7 @@
 
     const removeBtn = document.createElement("button");
     removeBtn.innerHTML = "×";
-    removeBtn.title = "Remove filter";
+    removeBtn.name = "Remove filter";
     removeBtn.onclick = () => removeFilterRow(row);
 
     input.addEventListener("input", () => {
@@ -255,7 +255,7 @@
     const disableRemove = filterInputs.length <= 1;
     document.querySelectorAll(".filter-row button").forEach((btn) => {
       btn.disabled = disableRemove;
-      btn.title = disableRemove
+      btn.name = disableRemove
         ? "Cannot remove the last filter"
         : "Remove filter";
     });

@@ -30,5 +30,5 @@ class Filter(BaseModel):
 
     @property
     @computed_field
-    def title(self) -> str:
+    def name(self) -> str:
         return sanitize_text(self.description)
