@@ -15,7 +15,7 @@ services:
 
     # Environment variables
     envVars:
-      - key: GEMINI_API_KEY
+      - key: MODEL_REMOTE_API_KEY
         sync: false
       - key: API_KEY
         generateValue: true

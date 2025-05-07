@@ -144,7 +144,7 @@
 
     let text;
     if (value === CONFIG.SETTINGS.FILTER_THRESHOLD.MIN) {
-      text = "Show all products";
+      text = "Show all items";
     } else if (value === maxValue) {
       text = maxValue === 1 ? "Criterion required" : "All criteria required";
     } else if (value === 1) {

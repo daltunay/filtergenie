@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 import structlog
 from bs4 import BeautifulSoup
 
-from backend.analyzer import Product, ProductImage
+from backend.analyzer.models import Image, Item
 
 log = structlog.get_logger(__name__=__name__)
 
@@ -13,73 +13,61 @@ log = structlog.get_logger(__name__=__name__)
 class BaseScraper(ABC):
     """Abstract base class for all website scrapers."""
 
+    PLATFORM: str = "N/A"
     SUPPORTED_DOMAINS: list[str] = []
-
-    PAGE_TYPE_PATTERNS: dict[tp.Literal["product", "search"], list[str]] = {
-        "product": [],
+    PAGE_TYPE_PATTERNS: dict[tp.Literal["item", "search"], list[str]] = {
+        "item": [],
         "search": [],
     }
 
     def __init__(self):
         """Initialize the scraper."""
         global log
-        log = log.bind(platform=self.get_platform_name())
+        log = log.bind(platform=self.PLATFORM)
 
-    @classmethod
-    def get_platform_name(cls) -> str:
-        """Extract platform name from the scraper class name."""
-        platform = cls.__name__.replace("Scraper", "").lower()
-        return platform
-
-    def scrape_product_detail(self, html_content: str, url: str) -> Product:
-        """
-        Scrape a product from HTML content.
-
-        Args:
-            html_content: HTML content to parse
-            url: The URL of the product page
-        """
-        log.debug("Scraping product details from HTML")
-        start_time = __import__("time").time()
+    def scrape_item_detail(self, html_content: str) -> Item:
+        """Scrape an item from HTML content."""
+        log.debug("Scraping item details from HTML")
 
         soup = BeautifulSoup(html_content, "html.parser")
 
         try:
-            title = self.extract_product_title(soup)
+            title = self.extract_item_title(soup)
         except Exception as e:
             log.error("Error extracting title", exception=str(e), exc_info=True)
             title = ""
 
         try:
-            description = self.extract_product_description(soup)
+            additional_details = self.extract_additional_details(soup)
         except Exception as e:
-            log.error("Error extracting description", exception=str(e), exc_info=True)
-            description = ""
+            log.error(
+                "Error extracting additional attributes",
+                exception=str(e),
+                exc_info=True,
+            )
+            additional_details = {}
 
         try:
-            image_urls = self.extract_product_images(soup)
+            image_urls = self.extract_item_images(soup)
             log.debug(f"Found {len(image_urls)} images")
-            images = [ProductImage(url_or_path=img_url) for img_url in image_urls]
+            images = [Image(url=img_url) for img_url in image_urls]
         except Exception as e:
             log.error("Error extracting images", exception=str(e), exc_info=True)
             images = []
 
-        duration = __import__("time").time() - start_time
-        product = Product(
-            url=url,
-            title=title,
-            description=description,
-            images=images,
-        )
-
         log.debug(
-            "Product scraped",
-            duration_seconds=round(duration, 2),
+            "Item scraped",
             title=title,
             image_count=len(images),
+            **additional_details,
         )
 
-        return product
+        return Item(
+            platform=self.PLATFORM,
+            title=title,
+            images=images,
+            **additional_details,
+        )
 
     @classmethod
     def can_handle_url(cls, url: str) -> bool:
@@ -91,8 +79,8 @@ class BaseScraper(ABC):
         return any(parsed_url.netloc.endswith(domain) for domain in cls.SUPPORTED_DOMAINS)
 
     @classmethod
-    def find_page_type(cls, url: str) -> tp.Literal["product", "search"] | None:
-        """Determine if the URL is a product page or a search page."""
+    def find_page_type(cls, url: str) -> tp.Literal["item", "search"] | None:
+        """Determine if the URL is an item page or a search page."""
         parsed_url = urlparse(url)
 
         for page_type, patterns in cls.PAGE_TYPE_PATTERNS.items():
@@ -104,24 +92,20 @@ class BaseScraper(ABC):
 
     @staticmethod
     @abstractmethod
-    def extract_product_id(url: str) -> int:
-        """Extract the product ID from the product URL."""
+    def extract_item_title(soup: BeautifulSoup) -> str:
+        """Extract the item title from the item page."""
         pass
 
     @staticmethod
     @abstractmethod
-    def extract_product_title(soup: BeautifulSoup) -> str:
-        """Extract the product title from the product page."""
+    def extract_item_images(soup: BeautifulSoup) -> list[str]:
+        """Extract the item image URLs from the item page."""
         pass
 
-    @staticmethod
-    @abstractmethod
-    def extract_product_description(soup: BeautifulSoup) -> str:
-        """Extract the product description from the product page."""
-        pass
+    @classmethod
+    def extract_additional_details(soup: BeautifulSoup) -> dict[str, str]:
+        """Extract additional platform-specific attributes from the item page.
 
-    @staticmethod
-    @abstractmethod
-    def extract_product_images(soup: BeautifulSoup) -> list[str]:
-        """Extract the product image URLs from the product page."""
-        pass
+        Override this in platform-specific scrapers.
+        """
+        return {}

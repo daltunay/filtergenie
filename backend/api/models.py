@@ -1,23 +1,24 @@
-import typing as tp
+from pydantic import BaseModel
 
-from pydantic import BaseModel, Field, HttpUrl
+from backend.analyzer.models import Filter
 
 
-class ProductHtml(BaseModel):
-    """Model for product HTML content"""
+class ScrapedItemInput(BaseModel):
+    """Input model for item detail scraping"""
 
-    url: HttpUrl
+    url: str
     html: str
 
 
-class ProductsAnalysisRequest(BaseModel):
-    """Request model for analyzing multiple products"""
+class FilterAnalysisRequest(BaseModel):
+    """Request model for analyzing multiple items against filters"""
 
-    filters: list[str] = Field(..., description="List of filter descriptions to apply")
-    products: list[ProductHtml] = Field(..., description="Products' HTML to analyze")
+    filters: list[str]
+    items: list[ScrapedItemInput]
 
 
-class ProductAnalysisResponse(BaseModel):
-    """Response model for extension requests"""
+class ItemAnalysis(BaseModel):
+    """Analysis result for a single item"""
 
-    products: list[dict[str, tp.Any]]
+    url: str
+    filters: list[Filter]

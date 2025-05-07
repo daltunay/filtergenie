@@ -47,9 +47,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
     },
 
-    analyzeProducts: async () => {
+    analyzeItems: async () => {
       try {
-        const result = await analyzeProducts(data);
+        const result = await analyzeItems(data);
         sendResponse(result);
       } catch (error) {
         sendResponse({ success: false, error: error.message || "API error" });
@@ -99,23 +99,23 @@ async function fetchHtmlContent(url) {
   }
 }
 
-async function analyzeProducts(data) {
-  const { filters, productUrls, htmlContents } = data;
+async function analyzeItems(data) {
+  const { filters, itemUrls, htmlContents } = data;
 
   const headers = { "Content-Type": "application/json" };
   if (config.api.key?.trim()) {
     headers["X-API-Key"] = config.api.key;
   }
 
-  const products = productUrls.map((url, index) => ({
+  const items = itemUrls.map((url, index) => ({
     url,
     html: htmlContents[index],
   }));
 
-  const response = await fetch(`${config.api.url}/products/analyze`, {
+  const response = await fetch(`${config.api.url}/items/analyze`, {
     method: "POST",
     headers,
-    body: JSON.stringify({ filters, products }),
+    body: JSON.stringify({ filters, items }),
   });
 
   if (!response.ok) {
@@ -124,7 +124,7 @@ async function analyzeProducts(data) {
   }
 
   const result = await response.json();
-  return { success: true, products: result.products };
+  return { success: true, items: result.items };
 }
 
 setInterval(() => {

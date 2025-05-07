@@ -6,19 +6,15 @@ from backend.scrape.base import BaseScraper
 class LeboncoinScraper(BaseScraper):
     """Scraper for leboncoin."""
 
+    PLATFORM = "leboncoin"
     SUPPORTED_DOMAINS = ["leboncoin.fr"]
-
     PAGE_TYPE_PATTERNS = {
-        "product": ["/ad/"],
+        "item": ["/ad/"],
         "search": ["/recherche", "/c/"],
     }
 
     @staticmethod
-    def extract_product_id(url: str) -> int:
-        return int(url.split("/")[-1])
-
-    @staticmethod
-    def extract_product_title(soup: BeautifulSoup) -> str:
+    def extract_item_title(soup: BeautifulSoup) -> str:
         title_elem = soup.find(
             "h1",
             class_="text-headline-1-expanded",
@@ -27,13 +23,7 @@ class LeboncoinScraper(BaseScraper):
         return title_elem.text.strip()
 
     @staticmethod
-    def extract_product_description(soup: BeautifulSoup) -> str:
-        desc_container = soup.find("div", attrs={"data-qa-id": "adview_description_container"})
-        desc_elem = desc_container.find("p")
-        return desc_elem.text.strip()
-
-    @staticmethod
-    def extract_product_images(soup: BeautifulSoup) -> list[str]:
+    def extract_item_images(soup: BeautifulSoup) -> list[str]:
         image_urls: list[str] = []
         seen_urls = set()
         gallery_section = soup.find("div", class_="slick-list")
@@ -56,3 +46,15 @@ class LeboncoinScraper(BaseScraper):
                         image_urls.append(image_url)
 
         return image_urls
+
+    @staticmethod
+    def extract_item_description(soup: BeautifulSoup) -> str:
+        desc_container = soup.find("div", attrs={"data-qa-id": "adview_description_container"})
+        desc_elem = desc_container.find("p")
+        return desc_elem.text.strip()
+
+    @classmethod
+    def extract_additional_details(cls, soup: BeautifulSoup) -> dict[str, str]:
+        return {
+            "description": cls.extract_item_description(soup),
+        }

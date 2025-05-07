@@ -11,8 +11,8 @@ class PlatformInterface {
       return true;
     }
 
-    if (this.isProductPage(url)) {
-      this.pageType = "product";
+    if (this.isItemPage(url)) {
+      this.pageType = "item";
       return true;
     }
 
@@ -26,11 +26,11 @@ class PlatformInterface {
     );
   }
 
-  isProductPage(url) {
+  isItemPage(url) {
     return false;
   }
 
-  getProductItems() {
+  getItemItems() {
     throw new Error("Method not implemented");
   }
 

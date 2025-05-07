@@ -6,11 +6,11 @@ class LeboncoinPlatform extends PlatformInterface {
   name = "leboncoin";
   searchPatterns = [/\/(recherche|c)(\/|$)/];
 
-  isProductPage(url) {
+  isItemPage(url) {
     return new URL(url).pathname.includes("/ad/");
   }
 
-  getProductItems() {
+  getItemItems() {
     return document.querySelectorAll('article[data-test-id="ad"]');
   }
 

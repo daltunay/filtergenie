@@ -37,14 +37,14 @@
         return { success: false, error: "Not initialized" };
       return {
         success: true,
-        isApplied: !!smartFilterInstance.filteredProducts,
+        isApplied: !!smartFilterInstance.filteredItems,
         matched: smartFilterInstance.lastResults.matched,
         total: smartFilterInstance.lastResults.total,
       };
     },
 
     updateFilterThreshold: (request) => {
-      if (!smartFilterInstance?.filteredProducts)
+      if (!smartFilterInstance?.filteredItems)
         return { success: false, error: "No active filters" };
 
       return {

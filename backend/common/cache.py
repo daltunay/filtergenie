@@ -12,15 +12,17 @@ log = structlog.get_logger(__name__=__name__)
 
 
 def _create_key(func: tp.Callable, args: tuple, kwargs: dict) -> str:
-    """Create a unique cache key based on function name and arguments."""
+    """Create a unique cache key based on function title and arguments."""
 
     def _serialize(val: tp.Any) -> tp.Any:
         if hasattr(val, "model_dump"):
             return val.model_dump()
         if isinstance(val, (str, int, float, bool, type(None))):
             return val
-        if isinstance(val, list) and all(isinstance(x, str) for x in val):
-            return sorted(val)
+        if isinstance(val, list):
+            return sorted([_serialize(item) for item in val])
+        if isinstance(val, dict):
+            return {k: _serialize(v) for k, v in val.items()}
         return str(val)
 
     key_data = {
@@ -40,7 +42,6 @@ def cached(func: tp.Callable):
         cache_key = _create_key(func, args, kwargs)
         function_name = func.__name__
 
-        # Try to get from database
         db_value = await get_from_db(cache_key)
         if db_value is not None:
             log.debug(
@@ -50,12 +51,8 @@ def cached(func: tp.Callable):
             )
             return db_value
 
-        # Cache miss, execute the function
         result = await func(*args, **kwargs)
-
-        # Store in database
         await store_in_db(cache_key, result, function_name)
-
         return result
 
     return wrapper

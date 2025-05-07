@@ -1,63 +1,88 @@
-import os
+from pydantic import BaseModel, Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from dotenv import load_dotenv
-from pydantic import Field
-from pydantic_settings import BaseSettings
 
-load_dotenv()
+class ApiConfig(BaseModel):
+    """API configuration settings."""
+
+    key: str | None = Field(
+        default=None,
+        description="API key for authentication",
+    )
+
+
+class RemoteModelConfig(BaseModel):
+    """Remote model configuration settings."""
+
+    base_url: str = Field(
+        default="https://generativelanguage.googleapis.com/v1beta/openai/",
+        description="Base URL for model API",
+    )
+    api_key: str = Field(
+        default="",
+        description="API key for model API",
+    )
+    title: str = Field(
+        default="gemini-2.0-flash-lite",
+        description="Model title to use",
+    )
+
+
+class LocalModelConfig(BaseModel):
+    """Local model configuration settings."""
+
+    title: str = Field(
+        default="HuggingFaceTB/SmolVLM-Instruct",
+        description="Local model title or path",
+    )
+    dtype: str = Field(
+        default="bfloat16",
+        description="Data type for local model",
+    )
+    device: str = Field(
+        default="auto",
+        description="Device for local model",
+    )
+
+
+class ModelConfig(BaseModel):
+    """Unified model configuration settings."""
+
+    use_local: bool = Field(
+        default=False,
+        description="Flag to use local model",
+    )
+    remote: RemoteModelConfig | None = Field(default_factory=RemoteModelConfig)
+    local: LocalModelConfig | None = Field(default_factory=LocalModelConfig)
+
+
+class CacheConfig(BaseModel):
+    """Cache configuration settings."""
+
+    db_path: str = Field(
+        default="data/cache.db",
+        description="Path to SQLite database file for cache",
+    )
 
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
-    # API configuration
-    api_key: str | None = Field(default=os.getenv("API_KEY", None), alias="API_KEY")
-
-    # AI model configuration
-    use_local_model: bool = Field(
-        default=os.getenv("USE_LOCAL", "false") == "true",
-        description="Use local VLM model instead of API",
-        alias="USE_LOCAL",
-    )
-    gemini_api_key: str = Field(
-        default=os.getenv("GEMINI_API_KEY", ""),
-        description="API key for Gemini API",
-        alias="GEMINI_API_KEY",
-    )
-    gemini_base_url: str = Field(
-        default=os.environ.get(
-            "GEMINI_BASE_URL",
-            "https://generativelanguage.googleapis.com/v1beta/openai/",
-        ),
-        description="Base URL for Gemini API",
-        alias="GEMINI_BASE_URL",
-    )
-    gemini_model_name: str = Field(
-        default=os.environ.get("GEMINI_MODEL_NAME", "gemini-2.0-flash-lite"),
-        description="Gemini model name",
-        alias="GEMINI_MODEL_NAME",
+    model_config = SettingsConfigDict(
+        env_ignore_empty=True,
+        env_nested_delimiter="_",
+        env_nested_max_split=2,
     )
 
-    # Local model settings
-    local_model_name: str = Field(
-        default=os.environ.get("LOCAL_MODEL_NAME", "HuggingFaceTB/SmolVLM-Instruct"),
-        description="Local model name or path",
-        alias="LOCAL_MODEL_NAME",
-    )
-    local_model_dtype: str = Field(
-        default=os.environ.get("LOCAL_MODEL_DTYPE", "bfloat16"),
-        description="Data type for local model",
-        alias="LOCAL_MODEL_DTYPE",
-    )
-    local_model_device: str = Field(default="auto")
+    api: ApiConfig = Field(default_factory=ApiConfig)
+    model: ModelConfig = Field(default_factory=ModelConfig)
+    cache: CacheConfig = Field(default_factory=CacheConfig)
 
-    # Cache database settings
-    cache_db_path: str = Field(
-        default=os.environ.get("CACHE_DB_PATH", "data/cache.db"),
-        description="Path to SQLite database file for cache",
-        alias="CACHE_DB_PATH",
-    )
+    def __post_init__(self):
+        if self.model.use_local:
+            self.model.remote = None
+        else:
+            self.model.local = None
 
 
-# Create settings instance
-settings = Settings()
+settings = Settings(_env_file=".env", _env_file_encoding="utf-8")

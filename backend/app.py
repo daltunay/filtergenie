@@ -13,31 +13,24 @@ log = structlog.get_logger(__name__=__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup event code
-    log.info(
-        "Starting the application",
-        config=settings.model_dump(exclude={"api_key", "gemini_api_key"}),
-    )
+    log.info("Starting the application", config=settings.model_dump())
 
-    # Initialize the database
     init_db()
 
     yield
 
-    # Shutdown event code
     log.info("Shutting down the application")
 
 
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
     app = FastAPI(
-        title="Product Filter API",
-        description="API for validating products against filters using AI",
+        title="Item Filter API",
+        description="API for validating items against filters using AI",
         version="1.0.0",
         lifespan=lifespan,
     )
 
-    # Add CORS middleware
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -46,10 +39,8 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Include public routes first (without authentication)
     app.include_router(public_router)
 
-    # Include authenticated API routes
     app.include_router(authenticated_router)
 
     return app

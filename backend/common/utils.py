@@ -7,21 +7,18 @@ from PIL import Image
 
 
 def sanitize_text(text: str) -> str:
-    """Convert text to a valid attribute name."""
+    """Convert text to a valid attribute title."""
     return re.sub(r"[^a-z0-9]+", "_", text.lower()).strip("_")
 
 
-def load_img(url_or_path: str) -> Image.Image:
-    """Load an image from a URL or local path."""
+def load_img(url: str) -> Image.Image:
+    """Load an image from a URL."""
     try:
-        if url_or_path.startswith(("http://", "https://")):
-            response = requests.get(url_or_path, stream=True)
-            response.raise_for_status()
-            return Image.open(io.BytesIO(response.content))
-        else:
-            return Image.open(url_or_path)
+        response = requests.get(url, stream=True)
+        response.raise_for_status()
+        return Image.open(io.BytesIO(response.content))
     except Exception as e:
-        raise ValueError(f"Failed to load image from {url_or_path}: {e}") from e
+        raise ValueError(f"Failed to load image from {url}: {e}") from e
 
 
 def resize_img(img: Image.Image, max_size=(512, 512)) -> Image.Image:
@@ -36,3 +33,10 @@ def img_to_base64(img: Image.Image) -> str:
     buffer = io.BytesIO()
     img.save(buffer, format="JPEG")
     return f"data:image/jpeg;base64,{base64.b64encode(buffer.getvalue()).decode('utf-8')}"
+
+
+def url_to_base64(url: str) -> str:
+    """Convert a URL to base64 encoding."""
+    img = load_img(url)
+    img = resize_img(img)
+    return img_to_base64(img)

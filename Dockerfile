@@ -15,10 +15,10 @@ ENV UV_COMPILE_BYTECODE=1 \
     UV_NO_INSTALLER_METADATA=1 \
     VIRTUAL_ENV=/app/.venv
 
-ARG USE_LOCAL=false
+ARG LOCAL=false
 
 RUN --mount=type=cache,target=/root/.cache/uv \
-    if [ "$USE_LOCAL" = "true" ]; then EXTRA_ARGS="--extra local"; fi; \
+    if [ "$LOCAL" = "true" ]; then EXTRA_ARGS="--extra local"; fi; \
     uv sync --no-install-project --no-dev $EXTRA_ARGS
 
 COPY backend/ ./backend
@@ -26,7 +26,7 @@ COPY backend/ ./backend
 EXPOSE 8000
 
 ENV PYTHONUNBUFFERED=1
-ENV USE_LOCAL=${USE_LOCAL}
+ENV LOCAL=${LOCAL}
 
 CMD ["fastapi", "run", "backend/app.py", "--host", "0.0.0.0", "--port", "8000"]
 

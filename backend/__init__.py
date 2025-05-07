@@ -1,7 +1,7 @@
 """
 FilterGenie Backend
 
-A backend service that analyzes website products against natural language filters
+A backend service that analyzes website items against natural language filters
 using vision-language models.
 """
 

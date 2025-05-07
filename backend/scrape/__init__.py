@@ -1,17 +1,16 @@
-"""Product scraping functionality."""
+"""Item scraping functionality."""
 
 import structlog
 
-from backend.analyzer import Product
-from backend.scrape.base import BaseScraper
-from backend.scrape.platforms.ebay import EbayScraper
-from backend.scrape.platforms.leboncoin import LeboncoinScraper
-from backend.scrape.platforms.vinted import VintedScraper
+from backend.analyzer.models import Item
 
-# Set up logger
+from .base import BaseScraper
+from .platforms.ebay import EbayScraper
+from .platforms.leboncoin import LeboncoinScraper
+from .platforms.vinted import VintedScraper
+
 log = structlog.get_logger(__name__=__name__)
 
-# Register scrapers at module level
 REGISTERED_SCRAPERS: list[type[BaseScraper]] = [
     LeboncoinScraper,
     VintedScraper,
@@ -28,46 +27,16 @@ def get_scraper_class_for_url(url: str) -> type[BaseScraper] | None:
     return None
 
 
-def get_scraper_for_url(url: str) -> BaseScraper | None:
-    """Find and instantiate a suitable scraper for the given URL."""
+def scrape_item_from_html(url: str, html_content: str) -> Item:
+    """Scrape an item from HTML content using the appropriate scraper class."""
     scraper_class = get_scraper_class_for_url(url)
-    if scraper_class:
-        log.debug(f"Using {scraper_class.__name__} for URL", url=url)
-        return scraper_class()
-    log.warning("No scraper found for URL", url=url)
-    return None
+    if not scraper_class:
+        log.error("No suitable scraper found for URL", url=url)
+        raise ValueError(f"No suitable scraper found for URL: {url}")
+    log.debug(f"Using {scraper_class.__name__} for scraping")
+    scraper = scraper_class()
+    item = scraper.scrape_item_detail(html_content)
+    return item
 
 
-def get_product_info_from_url(url: str) -> tuple[str | None, int | None]:
-    """Extract the platform name and product ID from a URL."""
-    scraper_class = get_scraper_class_for_url(url)
-    if scraper_class:
-        try:
-            platform = scraper_class.get_platform_name()
-            product_id = scraper_class.extract_product_id(url)
-            return platform, product_id
-        except Exception as e:
-            log.error(
-                "Failed to extract platform and product ID from URL",
-                url=url,
-                exception=str(e),
-            )
-    return None, None
-
-
-async def scrape_product_from_html(html_content: str, url: str) -> Product | None:
-    """Scrape a product from HTML content using the appropriate scraper."""
-    scraper = get_scraper_for_url(url)
-    if not scraper:
-        return None
-
-    product = scraper.scrape_product_detail(html_content, url)
-
-    # Set platform and ID directly
-    if product.url:
-        product.platform, product.id = get_product_info_from_url(str(product.url))
-
-    return product
-
-
-__all__ = ["scrape_product_from_html"]
+__all__ = ["scrape_item_from_html"]

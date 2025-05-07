@@ -1,12 +1,12 @@
 /**
- * FilterGenie Core - Handles product filtering logic
+ * FilterGenie Core - Handles item filtering logic
  * Simplified implementation
  */
 class SmartFilterCore {
   constructor(platform) {
     this.platform = platform;
     this.lastResults = { total: 0, matched: 0 };
-    this.filteredProducts = null;
+    this.filteredItems = null;
     this.hiddenElements = new Set();
     this.fetchingInProgress = false;
   }
@@ -20,21 +20,21 @@ class SmartFilterCore {
       this.fetchingInProgress = true;
       this.resetFiltering();
 
-      let productData;
-      if (this.platform.pageType === "product") {
-        productData = await this._getProductPageData();
+      let itemData;
+      if (this.platform.pageType === "item") {
+        itemData = await this._getItemPageData();
       } else {
-        productData = await this._getSearchPageData(maxItems);
+        itemData = await this._getSearchPageData(maxItems);
       }
 
-      if (!productData.success) {
-        return productData;
+      if (!itemData.success) {
+        return itemData;
       }
 
-      const analysisResult = await this._analyzeProducts(
+      const analysisResult = await this._analyzeItems(
         filters,
-        productData.urls,
-        productData.htmlContents,
+        itemData.urls,
+        itemData.htmlContents,
         filterThreshold,
       );
 
@@ -43,23 +43,23 @@ class SmartFilterCore {
       }
 
       let matchCount = 0;
-      if (this.platform.pageType === "product") {
-        const product = analysisResult.products[0];
-        if (product) {
+      if (this.platform.pageType === "item") {
+        const item = analysisResult.items[0];
+        if (item) {
           const targetContainer =
             document.querySelector("main") || document.body;
-          this._addFilterBadges(targetContainer, product.filters);
-          matchCount = product.matches_all_filters() ? 1 : 0;
+          this._addFilterBadges(targetContainer, item.filters);
+          matchCount = item.matches_all_filters() ? 1 : 0;
         }
       } else {
         matchCount = this._applyFiltersToDOM(
-          analysisResult.products,
-          productData.items,
+          analysisResult.items,
+          itemData.items,
           filterThreshold,
         );
       }
 
-      const total = productData.items?.length || 1;
+      const total = itemData.items?.length || 1;
 
       this.lastResults = {
         total: total,
@@ -69,9 +69,9 @@ class SmartFilterCore {
 
       document.documentElement.setAttribute("data-smart-filtered", "true");
 
-      this.filteredProducts = {
-        products: analysisResult.products,
-        items: productData.items,
+      this.filteredItems = {
+        items: analysisResult.items,
+        items: itemData.items,
         filterThreshold,
         filters,
       };
@@ -88,7 +88,7 @@ class SmartFilterCore {
     }
   }
 
-  async _getProductPageData() {
+  async _getItemPageData() {
     const url = window.location.href;
     document.body.classList.add("smart-filter-loading");
 
@@ -111,53 +111,53 @@ class SmartFilterCore {
   }
 
   async _getSearchPageData(maxItems) {
-    const productItems = this._getValidProductItems(maxItems);
+    const itemItems = this._getValidItemItems(maxItems);
 
-    if (!productItems.length) {
-      return { success: false, error: "No products found" };
+    if (!itemItems.length) {
+      return { success: false, error: "No items found" };
     }
 
-    const productUrls = productItems.map((item) => item.url);
-    this._toggleLoadingState(productItems, true);
+    const itemUrls = itemItems.map((item) => item.url);
+    this._toggleLoadingState(itemItems, true);
 
     try {
       const htmlContents = await Promise.all(
-        productUrls.map((url) => this._fetchHtml(url)),
+        itemUrls.map((url) => this._fetchHtml(url)),
       );
 
-      const validProductData = this._getValidProductData(
-        productItems,
-        productUrls,
+      const validItemData = this._getValidItemData(
+        itemItems,
+        itemUrls,
         htmlContents,
       );
 
-      if (!validProductData.valid) {
+      if (!validItemData.valid) {
         return { success: false, error: "Failed to fetch HTML content" };
       }
 
       return {
         success: true,
-        urls: validProductData.urls,
-        htmlContents: validProductData.htmlContents,
-        items: validProductData.items,
+        urls: validItemData.urls,
+        htmlContents: validItemData.htmlContents,
+        items: validItemData.items,
       };
     } finally {
-      this._toggleLoadingState(productItems, false);
+      this._toggleLoadingState(itemItems, false);
     }
   }
 
-  async _analyzeProducts(filters, urls, htmlContents, threshold) {
+  async _analyzeItems(filters, urls, htmlContents, threshold) {
     return await chrome.runtime.sendMessage({
-      action: "analyzeProducts",
+      action: "analyzeItems",
       filters,
-      productUrls: urls,
+      itemUrls: urls,
       htmlContents: htmlContents,
       threshold: threshold || 1,
     });
   }
 
-  _getValidProductItems(maxItems) {
-    return Array.from(this.platform.getProductItems())
+  _getValidItemItems(maxItems) {
+    return Array.from(this.platform.getItemItems())
       .map((item) => {
         const link = item.querySelector("a");
         if (!link) return null;
@@ -171,17 +171,17 @@ class SmartFilterCore {
       .slice(0, maxItems);
   }
 
-  _toggleLoadingState(productItems, isLoading) {
-    productItems.forEach(({ element }) => {
+  _toggleLoadingState(itemItems, isLoading) {
+    itemItems.forEach(({ element }) => {
       element.classList.toggle("smart-filter-loading", isLoading);
     });
   }
 
-  _getValidProductData(productItems, productUrls, htmlContents) {
-    const validData = productItems
+  _getValidItemData(itemItems, itemUrls, htmlContents) {
+    const validData = itemItems
       .map((item, index) =>
         htmlContents[index]
-          ? { item, url: productUrls[index], html: htmlContents[index] }
+          ? { item, url: itemUrls[index], html: htmlContents[index] }
           : null,
       )
       .filter(Boolean);
@@ -206,23 +206,23 @@ class SmartFilterCore {
     }
   }
 
-  _applyFiltersToDOM(products, productItems, threshold) {
-    const productsByUrl = Object.fromEntries(
-      products.map((product) => [product.url, product]),
+  _applyFiltersToDOM(items, itemItems, threshold) {
+    const itemsByUrl = Object.fromEntries(
+      items.map((item) => [item.url, item]),
     );
 
     let matchCount = 0;
 
-    productItems.forEach(({ element, url }) => {
-      const product = productsByUrl[url];
-      if (!product) return;
+    itemItems.forEach(({ element, url }) => {
+      const item = itemsByUrl[url];
+      if (!item) return;
 
       if (window.getComputedStyle(element).position === "static") {
         element.style.position = "relative";
       }
 
-      const matchingFilters = product.filters.filter((f) => f.value).length;
-      const totalFilters = product.filters.length;
+      const matchingFilters = item.filters.filter((f) => f.value).length;
+      const totalFilters = item.filters.length;
       const thresholdToApply =
         threshold === totalFilters
           ? totalFilters
@@ -236,7 +236,7 @@ class SmartFilterCore {
         this.hiddenElements.add(element);
       }
 
-      this._addFilterBadges(element, product.filters);
+      this._addFilterBadges(element, item.filters);
     });
 
     return matchCount;
@@ -265,7 +265,7 @@ class SmartFilterCore {
   }
 
   resetFiltering() {
-    this.filteredProducts = null;
+    this.filteredItems = null;
     this.lastResults = { total: 0, matched: 0 };
 
     this.hiddenElements.forEach((el) =>
@@ -278,7 +278,7 @@ class SmartFilterCore {
   }
 
   updateFilterThreshold(filterThreshold) {
-    if (!this.filteredProducts) return { matched: 0, total: 0 };
+    if (!this.filteredItems) return { matched: 0, total: 0 };
 
     this.hiddenElements.forEach((el) =>
       el.classList.remove("smart-filter-hidden"),
@@ -286,8 +286,8 @@ class SmartFilterCore {
     this.hiddenElements.clear();
 
     const matchCount = this._applyFiltersToDOM(
-      this.filteredProducts.products,
-      this.filteredProducts.items,
+      this.filteredItems.items,
+      this.filteredItems.items,
       filterThreshold,
     );
 
