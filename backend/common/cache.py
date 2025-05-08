@@ -2,14 +2,15 @@ import functools
 import hashlib
 import inspect
 import json
-import types as t
+import types as tp
 
+from fastapi import Depends
 from pydantic import BaseModel
-from sqlmodel import select
+from sqlmodel import Session, select
 
 from backend.common.logging import log
 
-from .db import DBEntry, get_from_db, get_session, store_in_db
+from .db import DBEntry, get_async_session, get_from_db, store_in_db
 
 
 def _serialize(val: object) -> object:
@@ -27,7 +28,7 @@ def _serialize(val: object) -> object:
     return str(val)
 
 
-def _create_key(func: t.FunctionType, args: tuple, kwargs: dict) -> str:
+def _create_key(func: tp.FunctionType, args: tuple, kwargs: dict) -> str:
     """Create a unique cache key based on function name and arguments."""
     sig = inspect.signature(func)
     bound = sig.bind(*args, **kwargs)
@@ -42,7 +43,7 @@ def _create_key(func: t.FunctionType, args: tuple, kwargs: dict) -> str:
     return hashlib.md5(key_str.encode()).hexdigest()
 
 
-def cached(func: t.FunctionType) -> t.FunctionType:
+def cached(func: tp.FunctionType) -> tp.FunctionType:
     """Cache decorator that stores results in database."""
 
     @functools.wraps(func)
@@ -50,7 +51,9 @@ def cached(func: t.FunctionType) -> t.FunctionType:
         cache_key = _create_key(func, args, kwargs)
         function_name = func.__name__
 
-        db_value = await get_from_db(cache_key)
+        session = kwargs.get("session")
+
+        db_value = await get_from_db(cache_key, session)
         if db_value is not None:
             log.debug("Cache hit", function=function_name, cache_key=cache_key)
             return db_value
@@ -62,26 +65,24 @@ def cached(func: t.FunctionType) -> t.FunctionType:
         )
         result = await func(*args, **kwargs)
 
-        success = await store_in_db(cache_key, result, function_name)
+        success = await store_in_db(cache_key, result, function_name, session)
         if not success:
-            log.warning(
-                "Failed to cache result", function=function_name, cache_key=cache_key
-            )
+            log.warning("Failed to cache result", function=function_name, cache_key=cache_key)
         return result
 
     return wrapper
 
 
-async def clear_cache() -> int:
+async def clear_cache(session: Session = Depends(get_async_session)) -> int:
     """Clear cache entries from database."""
     log.debug("Attempting to clear cache entries")
-    with get_session() as session:
-        entries = session.exec(select(DBEntry)).all()
-        count = len(entries)
 
-        for entry in entries:
-            session.delete(entry)
+    entries = session.exec(select(DBEntry)).all()  # ty: ignore[no-matching-overload]
+    count = len(entries)
 
-        session.commit()
-        log.debug("Cache entries cleared", count=count)
-        return count
+    for entry in entries:
+        session.delete(entry)
+
+    session.commit()
+    log.debug("Cache entries cleared", count=count)
+    return count

@@ -21,5 +21,5 @@ def verify_api_key(api_key: str = Security(api_key_header)) -> bool:
         log.warning("API request rejected", reason="invalid API key")
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid API key")
 
-    log.debug("API key validated successfully")
+    log.debug("API key validated successfully", api_key="*" * len(api_key))
     return True

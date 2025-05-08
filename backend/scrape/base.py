@@ -18,16 +18,17 @@ class BaseScraper(ABC):
         "search": [],
     }
 
-    def scrape_item_detail(self, html: str) -> Item:
+    @classmethod
+    def scrape_item_detail(cls, html: str) -> Item:
         """Scrape an item from HTML content."""
         soup = BeautifulSoup(html, "html.parser")
 
-        title = self.extract_item_title(soup) or ""
-        image_urls = self.extract_item_images(soup) or []
-        additional_details = self.extract_additional_details(soup) or {}
+        title = cls.extract_item_title(soup) or ""
+        image_urls = cls.extract_item_images(soup) or []
+        additional_details = cls.extract_additional_details(soup) or {}
 
         return Item(
-            platform=self.PLATFORM,
+            platform=cls.PLATFORM,
             title=title,
             images=[Image(url=img_url) for img_url in image_urls],
             **additional_details,

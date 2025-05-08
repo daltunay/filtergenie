@@ -1,8 +1,7 @@
-import asyncio
 import os
 import pickle
 import typing as tp
-from contextlib import asynccontextmanager, contextmanager
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -36,9 +35,18 @@ def init_db() -> None:
     log.info("Database initialized", db_path=DB_PATH)
 
 
-@contextmanager
 def get_session():
-    """Get database session as context manager."""
+    """FastAPI dependency for database session."""
+    with Session(engine) as session:
+        try:
+            yield session
+        except Exception:
+            session.rollback()
+            raise
+
+
+async def get_async_session():
+    """Async FastAPI dependency for database session."""
     session = Session(engine)
     try:
         yield session
@@ -49,29 +57,45 @@ def get_session():
         session.close()
 
 
-@asynccontextmanager
-async def get_async_session():
-    """Async context manager for database session (using sync session underneath)."""
-    with get_session() as session:
+@contextmanager
+def get_session_context():
+    """Context manager for database session (for non-FastAPI code)."""
+    session = Session(engine)
+    try:
         yield session
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
 
 
-async def store_in_db(cache_key: str, value: tp.Any, function_name: str) -> bool:
+async def store_in_db(
+    cache_key: str, value: tp.Any, function_name: str, session: Session | None = None
+) -> bool:
     """Store an item in the database cache."""
     try:
         value_pickle = pickle.dumps(value)
 
-        async with get_async_session() as session:
+        if session is None:
+            with get_session_context() as session:
+                db_entry = DBEntry(
+                    key=cache_key,
+                    value_pickle=value_pickle,
+                    function_name=function_name,
+                )
+                session.add(db_entry)
+                session.commit()
+        else:
             db_entry = DBEntry(
                 key=cache_key,
                 value_pickle=value_pickle,
                 function_name=function_name,
             )
+            session.add(db_entry)
+            session.commit()
 
-            await asyncio.to_thread(session.add, db_entry)
-            await asyncio.to_thread(session.commit)
-
-            log.debug("Cache entry stored", function=function_name, cache_key=cache_key)
+        log.debug("Cache entry stored", function=function_name, cache_key=cache_key)
         return True
     except Exception as e:
         log.error(
@@ -84,18 +108,21 @@ async def store_in_db(cache_key: str, value: tp.Any, function_name: str) -> bool
         return False
 
 
-async def get_from_db(cache_key: str) -> tp.Any | None:
+async def get_from_db(cache_key: str, session: Session | None = None) -> tp.Any | None:
     """Get an item from the database cache."""
     try:
-        async with get_async_session() as session:
+        if session is None:
+            with get_session_context() as session:
+                statement = select(DBEntry).where(DBEntry.key == cache_key)
+                entry: DBEntry | None = session.exec(statement).first()
+        else:
             statement = select(DBEntry).where(DBEntry.key == cache_key)
-            result = await asyncio.to_thread(session.exec, statement)
-            entry: DBEntry | None = result.first()
+            entry: DBEntry | None = session.exec(statement).first()
 
-            if entry:
-                log.debug("Retrieved from cache", function=entry.function_name, cache_key=cache_key)
+        if entry:
+            log.debug("Retrieved from cache", function=entry.function_name, cache_key=cache_key)
 
-            return pickle.loads(entry.value_pickle) if entry else None
+        return pickle.loads(entry.value_pickle) if entry else None
     except Exception as e:
         log.error("Error retrieving from cache", error=str(e), cache_key=cache_key, exc_info=e)
         return None
