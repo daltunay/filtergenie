@@ -190,8 +190,6 @@ stack-data==0.6.3
     # via ipython
 starlette==0.46.2
     # via fastapi
-structlog==25.2.0
-    # via filtergenie
 tornado==6.4.2
     # via
     #   ipykernel

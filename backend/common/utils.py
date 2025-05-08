@@ -13,12 +13,9 @@ def sanitize_text(text: str) -> str:
 
 def load_img(url: str) -> Image.Image:
     """Load an image from a URL."""
-    try:
-        response = requests.get(url, stream=True)
-        response.raise_for_status()
-        return Image.open(io.BytesIO(response.content))
-    except Exception as e:
-        raise ValueError(f"Failed to load image from {url}: {e}") from e
+    response = requests.get(url)
+    response.raise_for_status()
+    return Image.open(io.BytesIO(response.content))
 
 
 def resize_img(img: Image.Image, max_size=(512, 512)) -> Image.Image:
