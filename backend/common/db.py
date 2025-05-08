@@ -6,12 +6,9 @@ from contextlib import asynccontextmanager, contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
-import structlog
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 
 from backend.config import settings
-
-log = structlog.get_logger(__name__=__name__)
 
 DB_PATH = settings.cache.db_path
 DB_URL = f"sqlite:///{DB_PATH}"
@@ -30,8 +27,6 @@ class DBEntry(SQLModel, table=True):
 
 def init_db() -> None:
     """Initialize the database and create tables."""
-    log.info("Initializing database", db_path=DB_PATH)
-
     db_dir = os.path.dirname(DB_PATH)
     if db_dir:
         Path(db_dir).mkdir(parents=True, exist_ok=True)
@@ -45,8 +40,7 @@ def get_session():
     session = Session(engine)
     try:
         yield session
-    except Exception as e:
-        log.error("Database error, rolling back", error=str(e))
+    except Exception:
         session.rollback()
         raise
     finally:
@@ -76,8 +70,7 @@ async def store_in_db(cache_key: str, value: tp.Any, function_name: str) -> bool
             await asyncio.to_thread(session.commit)
 
         return True
-    except Exception as e:
-        log.error(f"DB cache store error: {str(e)}", exc_info=True)
+    except Exception:
         return False
 
 

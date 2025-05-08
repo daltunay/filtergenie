@@ -3,12 +3,9 @@ import hashlib
 import json
 import types as t
 
-import structlog
 from sqlmodel import select
 
 from backend.common.db import DBEntry, get_from_db, get_session, store_in_db
-
-log = structlog.get_logger(__name__=__name__)
 
 
 def _create_key(func: t.FunctionType, args: tuple, kwargs: dict) -> str:
@@ -49,11 +46,6 @@ def cached(func: t.FunctionType) -> t.FunctionType:
 
         db_value = await get_from_db(cache_key)
         if db_value is not None:
-            log.debug(
-                "Cache hit",
-                function=function_name,
-                key=cache_key,
-            )
             return db_value
 
         result = await func(*args, **kwargs)
@@ -74,11 +66,4 @@ async def clear_cache() -> int:
             session.delete(entry)
 
         session.commit()
-
-        if count > 0:
-            log.info(
-                f"Cleared {count} entries from database cache",
-                count=count,
-                cache_type="database",
-            )
         return count

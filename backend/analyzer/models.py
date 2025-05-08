@@ -8,8 +8,8 @@ class Image(BaseModel):
 
     url: str = Field(...)
 
-    @property
     @computed_field
+    @property
     def base64(self) -> str:
         return url_to_base64(self.url)
 
@@ -28,7 +28,7 @@ class Filter(BaseModel):
     description: str = Field(...)
     value: bool | None = Field(default=None, init=False)
 
-    @property
     @computed_field
+    @property
     def name(self) -> str:
         return sanitize_text(self.description)

@@ -2,12 +2,9 @@ import typing as tp
 from abc import ABC, abstractmethod
 from urllib.parse import urlparse
 
-import structlog
 from bs4 import BeautifulSoup
 
 from backend.analyzer.models import Image, Item
-
-log = structlog.get_logger(__name__=__name__)
 
 
 class BaseScraper(ABC):
@@ -20,47 +17,25 @@ class BaseScraper(ABC):
         "search": [],
     }
 
-    def __init__(self):
-        """Initialize the scraper."""
-        global log
-        log = log.bind(platform=self.PLATFORM)
-
     def scrape_item_detail(self, html_content: str) -> Item:
         """Scrape an item from HTML content."""
-        log.debug("Scraping item details from HTML")
-
         soup = BeautifulSoup(html_content, "html.parser")
 
         try:
             title = self.extract_item_title(soup)
-        except Exception as e:
-            log.error("Error extracting title", exception=str(e), exc_info=True)
+        except Exception:
             title = ""
 
         try:
             additional_details = self.extract_additional_details(soup)
-        except Exception as e:
-            log.error(
-                "Error extracting additional attributes",
-                exception=str(e),
-                exc_info=True,
-            )
+        except Exception:
             additional_details = {}
 
         try:
             image_urls = self.extract_item_images(soup)
-            log.debug(f"Found {len(image_urls)} images")
             images = [Image(url=img_url) for img_url in image_urls]
-        except Exception as e:
-            log.error("Error extracting images", exception=str(e), exc_info=True)
+        except Exception:
             images = []
-
-        log.debug(
-            "Item scraped",
-            title=title,
-            image_count=len(images),
-            **additional_details,
-        )
 
         return Item(
             platform=self.PLATFORM,

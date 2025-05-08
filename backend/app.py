@@ -1,22 +1,16 @@
 from contextlib import asynccontextmanager
 
-import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.api.routes import authenticated_router, public_router
 from backend.common.db import init_db
-from backend.config import settings
-
-log = structlog.get_logger(__name__=__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    log.info("Starting the application", config=settings.model_dump())
     init_db()
     yield
-    log.info("Shutting down the application")
 
 
 def create_app() -> FastAPI:
