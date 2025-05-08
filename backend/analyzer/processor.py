@@ -17,11 +17,7 @@ if tp.TYPE_CHECKING:
 
 log = structlog.get_logger(__name__=__name__)
 
-
-class DynamicSchema(BaseModel):
-    """Placeholder for dynamic schema generation. For type hinting only."""
-
-    ...
+DynamicSchema = BaseModel
 
 
 class Analyzer:

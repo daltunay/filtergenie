@@ -24,7 +24,7 @@ class DBEntry(SQLModel, table=True):
 
     key: str = Field(..., primary_key=True)
     value_pickle: bytes = Field(...)
-    created: datetime = Field(..., default=datetime.now(timezone.utc))
+    created: datetime = Field(default=datetime.now(timezone.utc))
     function_name: str = Field(..., index=True)
 
 

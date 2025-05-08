@@ -72,6 +72,8 @@ class Settings(BaseSettings):
         env_ignore_empty=True,
         env_nested_delimiter="_",
         env_nested_max_split=2,
+        env_file=".env",
+        env_file_encoding="utf-8",
     )
 
     api: ApiConfig = Field(default_factory=ApiConfig)
@@ -85,4 +87,4 @@ class Settings(BaseSettings):
             self.model.local = None
 
 
-settings = Settings(_env_file=".env", _env_file_encoding="utf-8")
+settings = Settings()

@@ -32,7 +32,6 @@ colorama==0.4.6 ; sys_platform == 'win32'
     # via
     #   click
     #   ipython
-    #   pytest
     #   tqdm
     #   uvicorn
 comm==0.2.2
@@ -78,8 +77,6 @@ idna==3.10
     #   anyio
     #   email-validator
     #   httpx
-iniconfig==2.1.0
-    # via pytest
 ipykernel==6.29.5
 ipython==9.1.0
     # via ipykernel
@@ -114,9 +111,7 @@ nodeenv==1.9.1
 openai==1.75.0
     # via filtergenie
 packaging==25.0
-    # via
-    #   ipykernel
-    #   pytest
+    # via ipykernel
 parso==0.8.4
     # via jedi
 pexpect==4.9.0 ; sys_platform != 'emscripten' and sys_platform != 'win32'
@@ -127,8 +122,6 @@ platformdirs==4.3.7
     # via
     #   jupyter-core
     #   virtualenv
-pluggy==1.5.0
-    # via pytest
 pre-commit==4.2.0
 prompt-toolkit==3.0.51
     # via ipython
@@ -155,9 +148,6 @@ pygments==2.19.1
     #   ipython
     #   ipython-pygments-lexers
     #   rich
-pytest==8.3.5
-    # via pytest-asyncio
-pytest-asyncio==0.26.0
 python-dateutil==2.9.0.post0
     # via jupyter-client
 python-dotenv==1.1.0

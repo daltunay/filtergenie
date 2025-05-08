@@ -1,7 +1,7 @@
 import functools
+import hashlib
 import json
-import typing as tp
-from hashlib import md5
+import types as t
 
 import structlog
 from sqlmodel import select
@@ -11,15 +11,19 @@ from backend.common.db import DBEntry, get_from_db, get_session, store_in_db
 log = structlog.get_logger(__name__=__name__)
 
 
-def _create_key(func: tp.Callable, args: tuple, kwargs: dict) -> str:
+def _create_key(func: t.FunctionType, args: tuple, kwargs: dict) -> str:
     """Create a unique cache key based on function title and arguments."""
 
-    def _serialize(val: tp.Any) -> tp.Any:
+    def _serialize(val):
         if hasattr(val, "model_dump"):
             return val.model_dump()
         if isinstance(val, (str, int, float, bool, type(None))):
             return val
         if isinstance(val, list):
+            return sorted([_serialize(item) for item in val])
+        if isinstance(val, tuple):
+            return tuple(sorted(_serialize(item) for item in val))
+        if isinstance(val, set):
             return sorted([_serialize(item) for item in val])
         if isinstance(val, dict):
             return {k: _serialize(v) for k, v in val.items()}
@@ -31,10 +35,11 @@ def _create_key(func: tp.Callable, args: tuple, kwargs: dict) -> str:
         "kwargs": {k: _serialize(v) for k, v in kwargs.items()},
     }
 
-    return md5(json.dumps(key_data, sort_keys=True).encode()).hexdigest()
+    key_json = json.dumps(key_data, sort_keys=True, separators=(",", ": "))
+    return hashlib.md5(key_json.encode()).hexdigest()
 
 
-def cached(func: tp.Callable):
+def cached(func: t.FunctionType) -> t.FunctionType:
     """Cache decorator that stores results in database."""
 
     @functools.wraps(func)
