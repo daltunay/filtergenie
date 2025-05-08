@@ -2,12 +2,12 @@ import asyncio
 import traceback
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from loguru import logger
 
 from backend.analyzer.models import Filter, Item
 from backend.analyzer.processor import Analyzer
 from backend.auth.middleware import verify_api_key
 from backend.common.cache import cached, clear_cache
+from backend.common.logging import log
 from backend.dependencies import get_analyzer
 from backend.scrape import scrape_item_from_html
 
@@ -33,13 +33,13 @@ async def health_check():
 async def clear_cache_endpoint():
     """Clear cache entries."""
     try:
-        logger.info("Clearing cache entries")
+        log.info("Clearing cache entries")
         count = await clear_cache()
-        logger.info(f"Cache cleared successfully - {count} entries removed")
+        log.info("Cache cleared successfully", entries_removed=count)
         return {"status": "success", "entries_cleared": count}
 
     except Exception as e:
-        logger.error(f"Error clearing cache: {str(e)}")
+        log.error("Error clearing cache", error=str(e), exc_info=e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error clearing cache: {str(e)}",
@@ -52,8 +52,10 @@ async def analyze_items(
     analyzer: Analyzer = Depends(get_analyzer),
 ):
     """RESTful endpoint to analyze multiple items based on HTML content."""
-    logger.info(
-        f"Received analysis request for {len(request.items)} items and {len(request.filters)} filters"
+    log.info(
+        "Received analysis request",
+        items_count=len(request.items),
+        filters_count=len(request.filters),
     )
     try:
 
@@ -67,27 +69,78 @@ async def analyze_items(
             """Cached analyze item."""
             return await analyzer.analyze_item(item=item, filters=filters)
 
-        async def analyze_single_item(item_request: ItemSource) -> list[Filter]:
-            """Process and analyze a single item and return its results."""
-            item: Item = await cached_scrape_item_from_html(
-                url=item_request.url, html=item_request.html
-            )
-            analyzed_filters: list[Filter] = await cached_analyze_item(
-                item=item,
-                filters=[Filter(desc=desc) for desc in request.filters],
-            )
-            return analyzed_filters
+        async def analyze_single_item(
+            item_request: ItemSource, idx: int
+        ) -> tuple[int, list[Filter]]:
+            """Process and analyze a single item and return its results with index."""
+            url = item_request.url
+            log.debug(f"Processing item {idx + 1}", url=url)
 
-        tasks = [analyze_single_item(item) for item in request.items]
+            try:
+                item: Item = await cached_scrape_item_from_html(url=url, html=item_request.html)
+                log.debug(
+                    f"Item {idx + 1} scraped successfully",
+                    url=url,
+                    platform=item.platform,
+                    title=item.title,
+                    images_count=len(item.images),
+                )
+            except Exception as e:
+                log.error(f"Failed to scrape item {idx + 1}", url=url, error=str(e), exc_info=e)
+                raise
+
+            try:
+                filters = [Filter(desc=desc) for desc in request.filters]
+                analyzed_filters: list[Filter] = await cached_analyze_item(
+                    item=item, filters=filters
+                )
+
+                matched_count = sum(1 for f in analyzed_filters if f.value)
+
+                log.debug(
+                    f"Item {idx + 1} analyzed successfully",
+                    url=url,
+                    title=item.title,
+                    matched_filters=matched_count,
+                    total_filters=len(filters),
+                )
+                return idx, analyzed_filters
+            except Exception as e:
+                log.error(
+                    f"Failed to analyze item {idx + 1}",
+                    url=url,
+                    title=item.title,
+                    error=str(e),
+                    exc_info=e,
+                )
+                raise
+
+        tasks = [analyze_single_item(item, i) for i, item in enumerate(request.items)]
         results = await asyncio.gather(*tasks)
-        logger.info(f"Analysis completed for {len(request.items)} items")
+
+        sorted_results = sorted(results, key=lambda x: x[0])
+        analyzed_results = [r[1] for r in sorted_results]
+
+        log.info(
+            "Analysis completed successfully",
+            items_count=len(request.items),
+            filters_processed=len(request.filters) * len(request.items),
+        )
+
         return AnalysisResponse(
-            filters=[{f.desc: f.value for f in analyzed_filters} for analyzed_filters in results]
+            filters=[
+                {f.desc: f.value for f in analyzed_filters} for analyzed_filters in analyzed_results
+            ]
         )
 
     except Exception as e:
         error_traceback = traceback.format_exc()
-        logger.error(f"Error during analysis: {str(e)}\n{error_traceback}")
+        log.error(
+            "Error during analysis",
+            error=str(e),
+            traceback=error_traceback,
+            exc_info=e,
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={"error": str(e), "traceback": error_traceback},

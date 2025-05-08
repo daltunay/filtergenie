@@ -4,9 +4,10 @@ import inspect
 import json
 import types as t
 
-from loguru import logger
 from pydantic import BaseModel
 from sqlmodel import select
+
+from backend.common.logging import log
 
 from .db import DBEntry, get_from_db, get_session, store_in_db
 
@@ -37,10 +38,8 @@ def _create_key(func: t.FunctionType, args: tuple, kwargs: dict) -> str:
         "func": func.__name__,
         "params": {k: _serialize(v) for k, v in filtered_args.items()},
     }
-
-    return hashlib.md5(
-        json.dumps(key_data, sort_keys=True, separators=(",", ":")).encode()
-    ).hexdigest()
+    key_str = json.dumps(key_data, sort_keys=True, separators=(",", ":"))
+    return hashlib.md5(key_str.encode()).hexdigest()
 
 
 def cached(func: t.FunctionType) -> t.FunctionType:
@@ -53,14 +52,21 @@ def cached(func: t.FunctionType) -> t.FunctionType:
 
         db_value = await get_from_db(cache_key)
         if db_value is not None:
-            logger.debug(f"Cache hit for '{function_name}'")
+            log.debug("Cache hit", function=function_name, cache_key=cache_key)
             return db_value
 
-        logger.debug(f"Cache miss for '{function_name}', executing function")
+        log.debug(
+            "Cache miss, executing function",
+            function=function_name,
+            cache_key=cache_key,
+        )
         result = await func(*args, **kwargs)
+
         success = await store_in_db(cache_key, result, function_name)
         if not success:
-            logger.warning(f"Failed to cache result for '{function_name}'")
+            log.warning(
+                "Failed to cache result", function=function_name, cache_key=cache_key
+            )
         return result
 
     return wrapper
@@ -68,7 +74,7 @@ def cached(func: t.FunctionType) -> t.FunctionType:
 
 async def clear_cache() -> int:
     """Clear cache entries from database."""
-    logger.debug("Attempting to clear cache entries")
+    log.debug("Attempting to clear cache entries")
     with get_session() as session:
         entries = session.exec(select(DBEntry)).all()
         count = len(entries)
@@ -77,5 +83,5 @@ async def clear_cache() -> int:
             session.delete(entry)
 
         session.commit()
-        logger.debug(f"Cleared {count} cache entries")
+        log.debug("Cache entries cleared", count=count)
         return count

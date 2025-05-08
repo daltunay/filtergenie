@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 
 from backend.analyzer.models import Image, Item
+from backend.common.safe import safe_call
 
 
 class BaseScraper(ABC):
@@ -21,26 +22,14 @@ class BaseScraper(ABC):
         """Scrape an item from HTML content."""
         soup = BeautifulSoup(html, "html.parser")
 
-        try:
-            title = self.extract_item_title(soup)
-        except Exception:
-            title = ""
-
-        try:
-            additional_details = self.extract_additional_details(soup)
-        except Exception:
-            additional_details = {}
-
-        try:
-            image_urls = self.extract_item_images(soup)
-            images = [Image(url=img_url) for img_url in image_urls]
-        except Exception:
-            images = []
+        title = self.extract_item_title(soup) or ""
+        image_urls = self.extract_item_images(soup) or []
+        additional_details = self.extract_additional_details(soup) or {}
 
         return Item(
             platform=self.PLATFORM,
             title=title,
-            images=images,
+            images=[Image(url=img_url) for img_url in image_urls],
             **additional_details,
         )
 
@@ -67,17 +56,20 @@ class BaseScraper(ABC):
 
     @staticmethod
     @abstractmethod
+    @safe_call
     def extract_item_title(soup: BeautifulSoup) -> str:
         """Extract the item title from the item page."""
         pass
 
     @staticmethod
     @abstractmethod
+    @safe_call
     def extract_item_images(soup: BeautifulSoup) -> list[str]:
         """Extract the item image URLs from the item page."""
         pass
 
     @classmethod
+    @safe_call
     def extract_additional_details(cls, soup: BeautifulSoup) -> dict[str, str]:
         """Extract additional platform-specific attributes from the item page.
 

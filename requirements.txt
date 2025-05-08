@@ -34,7 +34,6 @@ colorama==0.4.6 ; sys_platform == 'win32'
     # via
     #   click
     #   ipython
-    #   loguru
     #   tqdm
     #   uvicorn
 comm==0.2.2
@@ -97,8 +96,6 @@ jupyter-core==5.7.2
     # via
     #   ipykernel
     #   jupyter-client
-loguru==0.7.3
-    # via filtergenie
 markdown-it-py==3.0.0
     # via rich
 markupsafe==3.0.2
@@ -199,6 +196,8 @@ starlette==0.46.2
     # via
     #   asgi-correlation-id
     #   fastapi
+structlog==25.3.0
+    # via filtergenie
 tornado==6.4.2
     # via
     #   ipykernel
@@ -245,5 +244,3 @@ wcwidth==0.2.13
     # via prompt-toolkit
 websockets==15.0.1
     # via uvicorn
-win32-setctime==1.2.0 ; sys_platform == 'win32'
-    # via loguru

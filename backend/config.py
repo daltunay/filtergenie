@@ -1,8 +1,9 @@
 import typing as tp
 
-from loguru import logger
 from pydantic import BaseModel, Field, computed_field, field_serializer, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from backend.common.logging import log
 
 
 class ApiConfig(BaseModel):
@@ -85,9 +86,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-# Log more concise and informative settings summary
-logger.info(
-    f"Settings loaded: API security {'enabled' if settings.api.is_secure else 'disabled'}, "
-    f"Model: {'local (' + settings.model.local.name + ')' if settings.model.use_local else 'remote (' + settings.model.remote.name + ')'}, "
-    f"Cache DB: {settings.cache.db_path}"
-)
+log.info("Settings loaded", **settings.model.model_dump(exclude_none=True))

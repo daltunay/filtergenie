@@ -8,11 +8,11 @@ dependencies = [
     "asgi-correlation-id>=4.3.4",
     "beautifulsoup4>=4.13.3",
     "fastapi[standard]>=0.115.12",
-    "loguru>=0.7.3",
     "openai>=1.73.0",
     "pillow>=11.1.0",
     "pydantic-settings>=2.8.1",
     "sqlmodel>=0.0.24",
+    "structlog>=25.3.0",
 ]
 
 [project.optional-dependencies]

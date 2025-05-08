@@ -1,10 +1,10 @@
 import typing as tp
 from textwrap import dedent
 
-from loguru import logger
 from pydantic import BaseModel, Field, create_model
 
 from backend.analyzer.models import Filter, Image, Item
+from backend.common.logging import log
 from backend.config import LocalModelConfig, RemoteModelConfig
 
 if tp.TYPE_CHECKING:
@@ -44,12 +44,12 @@ class Analyzer:
         """Initialize the analyzer with either a local VLM model or AsyncOpenAI."""
         if use_local:
             self.local_config = local_config or LocalModelConfig()
-            logger.info(f"Initializing local model: {self.local_config.name}")
+            log.info("Initializing local model", name=self.local_config.name)
             self.model = self._create_local_model()
             self.predict = self._predict_local
         else:
             self.remote_config = remote_config or RemoteModelConfig()
-            logger.info(f"Initializing remote model: {self.remote_config.name}")
+            log.info("Initializing remote model", name=self.remote_config.name)
             self.model = self._create_openai_model()
             self.predict = self._predict_openai
 
@@ -59,8 +59,10 @@ class Analyzer:
         from outlines import models
         from transformers import AutoModelForImageTextToText
 
-        logger.debug(
-            f"Loading local model with dtype: {self.local_config.dtype}, device: {self.local_config.device}"
+        log.debug(
+            "Loading local model",
+            dtype=self.local_config.dtype,
+            device=self.local_config.device,
         )
         return models.transformers_vision(
             model_name=self.local_config.name,
@@ -82,8 +84,7 @@ class Analyzer:
         """Create an AsyncOpenAI model with async client."""
         from openai import AsyncOpenAI
 
-        logger.debug(f"Creating AsyncOpenAI model with base URL: {self.remote_config.base_url}")
-
+        log.debug("Creating AsyncOpenAI model", base_url=self.remote_config.base_url)
         return AsyncOpenAI(
             base_url=self.remote_config.base_url,
             api_key=self.remote_config.api_key,
@@ -127,8 +128,12 @@ class Analyzer:
 
     async def analyze_item(self, item: Item, filters: list[Filter]) -> list[Filter]:
         """Analyze a single item against the provided filter descriptions."""
-        logger.debug(
-            f"Analyzing item: {item.title[:30]}... ({item.platform}) with {len(filters)} filters"
+        log.debug(
+            "Analyzing item",
+            title=item.title,
+            platform=item.platform,
+            filters_count=len(filters),
+            images_count=len(item.images),
         )
 
         if item.model_extra is not None:
@@ -156,10 +161,13 @@ class Analyzer:
                 if f.value:
                     matched_filters += 1
 
-            logger.debug(
-                f"Item analysis complete: {matched_filters}/{len(filters)} filters matched"
+            log.debug(
+                "Item analysis complete",
+                title=item.title,
+                matched_filters=matched_filters,
+                total_filters=len(filters),
             )
             return filters
         except Exception as e:
-            logger.error(f"Error analyzing item '{item.title[:30]}...': {str(e)}")
+            log.error("Error analyzing item", title=item.title, error=str(e), exc_info=e)
             raise

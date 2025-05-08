@@ -1,5 +1,6 @@
 from bs4 import BeautifulSoup
 
+from backend.common.safe import safe_call
 from backend.scrape.base import BaseScraper
 
 
@@ -14,6 +15,7 @@ class LeboncoinScraper(BaseScraper):
     }
 
     @staticmethod
+    @safe_call
     def extract_item_title(soup: BeautifulSoup) -> str:
         title_elem = soup.find(
             "h1",
@@ -23,6 +25,7 @@ class LeboncoinScraper(BaseScraper):
         return title_elem.text.strip()
 
     @staticmethod
+    @safe_call
     def extract_item_images(soup: BeautifulSoup) -> list[str]:
         image_urls: list[str] = []
         seen_urls = set()
@@ -48,13 +51,8 @@ class LeboncoinScraper(BaseScraper):
         return image_urls
 
     @staticmethod
+    @safe_call
     def extract_item_description(soup: BeautifulSoup) -> str:
         desc_container = soup.find("div", attrs={"data-qa-id": "adview_description_container"})
         desc_elem = desc_container.find("p")
         return desc_elem.text.strip()
-
-    @classmethod
-    def extract_additional_details(cls, soup: BeautifulSoup) -> dict[str, str]:
-        return {
-            "description": cls.extract_item_description(soup),
-        }
