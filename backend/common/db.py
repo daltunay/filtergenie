@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager, contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
+from loguru import logger
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 
 from backend.config import settings
@@ -31,6 +32,7 @@ def init_db() -> None:
     if db_dir:
         Path(db_dir).mkdir(parents=True, exist_ok=True)
 
+    logger.info(f"Initializing database at {DB_PATH}")
     SQLModel.metadata.create_all(engine)
 
 
@@ -70,14 +72,19 @@ async def store_in_db(cache_key: str, value: tp.Any, function_name: str) -> bool
             await asyncio.to_thread(session.commit)
 
         return True
-    except Exception:
+    except Exception as e:
+        logger.error(f"Failed to store cache entry: {str(e)}")
         return False
 
 
 async def get_from_db(cache_key: str) -> tp.Any | None:
     """Get an item from the database cache."""
-    async with get_async_session() as session:
-        statement = select(DBEntry).where(DBEntry.key == cache_key)
-        result = await asyncio.to_thread(session.exec, statement)
-        entry: DBEntry | None = result.first()
-        return pickle.loads(entry.value_pickle) if entry else None
+    try:
+        async with get_async_session() as session:
+            statement = select(DBEntry).where(DBEntry.key == cache_key)
+            result = await asyncio.to_thread(session.exec, statement)
+            entry: DBEntry | None = result.first()
+            return pickle.loads(entry.value_pickle) if entry else None
+    except Exception as e:
+        logger.error(f"Error retrieving from cache: {str(e)}")
+        return None

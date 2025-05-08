@@ -1,6 +1,7 @@
 import typing as tp
 from textwrap import dedent
 
+from loguru import logger
 from pydantic import BaseModel, Field, create_model
 
 from backend.analyzer.models import Filter, Image, Item
@@ -41,14 +42,14 @@ class Analyzer:
         remote_config: RemoteModelConfig | None = None,
     ):
         """Initialize the analyzer with either a local VLM model or AsyncOpenAI."""
-        global log
-
         if use_local:
             self.local_config = local_config or LocalModelConfig()
+            logger.info(f"Initializing local model: {self.local_config.name}")
             self.model = self._create_local_model()
             self.predict = self._predict_local
         else:
             self.remote_config = remote_config or RemoteModelConfig()
+            logger.info(f"Initializing remote model: {self.remote_config.name}")
             self.model = self._create_openai_model()
             self.predict = self._predict_openai
 
@@ -58,6 +59,9 @@ class Analyzer:
         from outlines import models
         from transformers import AutoModelForImageTextToText
 
+        logger.debug(
+            f"Loading local model with dtype: {self.local_config.dtype}, device: {self.local_config.device}"
+        )
         return models.transformers_vision(
             model_name=self.local_config.name,
             model_class=AutoModelForImageTextToText,
@@ -77,6 +81,8 @@ class Analyzer:
     def _create_openai_model(self) -> "AsyncOpenAI":
         """Create an AsyncOpenAI model with async client."""
         from openai import AsyncOpenAI
+
+        logger.debug(f"Creating AsyncOpenAI model with base URL: {self.remote_config.base_url}")
 
         return AsyncOpenAI(
             base_url=self.remote_config.base_url,
@@ -121,6 +127,10 @@ class Analyzer:
 
     async def analyze_item(self, item: Item, filters: list[Filter]) -> list[Filter]:
         """Analyze a single item against the provided filter descriptions."""
+        logger.debug(
+            f"Analyzing item: {item.title[:30]}... ({item.platform}) with {len(filters)} filters"
+        )
+
         if item.model_extra is not None:
             item_details = [
                 f"- {key.title().replace('_', ' ')}: {value}"
@@ -136,9 +146,20 @@ class Analyzer:
         )
 
         DynamicSchema = self._create_filter_schema(filters)
-        response = await self.predict(prompt=prompt, images=item.images, schema=DynamicSchema)
 
-        for f in filters:
-            f.value = getattr(response, f.name)
+        try:
+            response = await self.predict(prompt=prompt, images=item.images, schema=DynamicSchema)
 
-        return filters
+            matched_filters = 0
+            for f in filters:
+                f.value = getattr(response, f.name)
+                if f.value:
+                    matched_filters += 1
+
+            logger.debug(
+                f"Item analysis complete: {matched_filters}/{len(filters)} filters matched"
+            )
+            return filters
+        except Exception as e:
+            logger.error(f"Error analyzing item '{item.title[:30]}...': {str(e)}")
+            raise

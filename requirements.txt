@@ -11,6 +11,8 @@ anyio==4.9.0
     #   watchfiles
 appnope==0.1.4 ; sys_platform == 'darwin'
     # via ipykernel
+asgi-correlation-id==4.3.4
+    # via filtergenie
 asttokens==3.0.0
     # via stack-data
 beautifulsoup4==4.13.4
@@ -32,6 +34,7 @@ colorama==0.4.6 ; sys_platform == 'win32'
     # via
     #   click
     #   ipython
+    #   loguru
     #   tqdm
     #   uvicorn
 comm==0.2.2
@@ -94,6 +97,8 @@ jupyter-core==5.7.2
     # via
     #   ipykernel
     #   jupyter-client
+loguru==0.7.3
+    # via filtergenie
 markdown-it-py==3.0.0
     # via rich
 markupsafe==3.0.2
@@ -111,7 +116,9 @@ nodeenv==1.9.1
 openai==1.75.0
     # via filtergenie
 packaging==25.0
-    # via ipykernel
+    # via
+    #   asgi-correlation-id
+    #   ipykernel
 parso==0.8.4
     # via jedi
 pexpect==4.9.0 ; sys_platform != 'emscripten' and sys_platform != 'win32'
@@ -189,7 +196,9 @@ sqlmodel==0.0.24
 stack-data==0.6.3
     # via ipython
 starlette==0.46.2
-    # via fastapi
+    # via
+    #   asgi-correlation-id
+    #   fastapi
 tornado==6.4.2
     # via
     #   ipykernel
@@ -236,3 +245,5 @@ wcwidth==0.2.13
     # via prompt-toolkit
 websockets==15.0.1
     # via uvicorn
+win32-setctime==1.2.0 ; sys_platform == 'win32'
+    # via loguru

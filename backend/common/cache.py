@@ -4,6 +4,7 @@ import inspect
 import json
 import types as t
 
+from loguru import logger
 from pydantic import BaseModel
 from sqlmodel import select
 
@@ -52,10 +53,14 @@ def cached(func: t.FunctionType) -> t.FunctionType:
 
         db_value = await get_from_db(cache_key)
         if db_value is not None:
+            logger.debug(f"Cache hit for '{function_name}'")
             return db_value
 
+        logger.debug(f"Cache miss for '{function_name}', executing function")
         result = await func(*args, **kwargs)
-        await store_in_db(cache_key, result, function_name)
+        success = await store_in_db(cache_key, result, function_name)
+        if not success:
+            logger.warning(f"Failed to cache result for '{function_name}'")
         return result
 
     return wrapper
@@ -63,7 +68,7 @@ def cached(func: t.FunctionType) -> t.FunctionType:
 
 async def clear_cache() -> int:
     """Clear cache entries from database."""
-
+    logger.debug("Attempting to clear cache entries")
     with get_session() as session:
         entries = session.exec(select(DBEntry)).all()
         count = len(entries)
@@ -72,4 +77,5 @@ async def clear_cache() -> int:
             session.delete(entry)
 
         session.commit()
+        logger.debug(f"Cleared {count} cache entries")
         return count

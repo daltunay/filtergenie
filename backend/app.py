@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from loguru import logger
 
 from backend.api.routes import authenticated_router, public_router
 from backend.common.db import init_db
@@ -9,8 +10,10 @@ from backend.common.db import init_db
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    logger.info("Application starting up - initializing database")
     init_db()
     yield
+    logger.info("Application shutting down")
 
 
 def create_app() -> FastAPI:
@@ -30,6 +33,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    logger.info("Registering API routes")
     app.include_router(public_router)
     app.include_router(authenticated_router)
 
@@ -37,3 +41,4 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
+logger.info("FilterGenie API initialized and ready")

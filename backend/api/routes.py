@@ -2,6 +2,7 @@ import asyncio
 import traceback
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from loguru import logger
 
 from backend.analyzer.models import Filter, Item
 from backend.analyzer.processor import Analyzer
@@ -32,10 +33,13 @@ async def health_check():
 async def clear_cache_endpoint():
     """Clear cache entries."""
     try:
+        logger.info("Clearing cache entries")
         count = await clear_cache()
+        logger.info(f"Cache cleared successfully - {count} entries removed")
         return {"status": "success", "entries_cleared": count}
 
     except Exception as e:
+        logger.error(f"Error clearing cache: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error clearing cache: {str(e)}",
@@ -48,6 +52,9 @@ async def analyze_items(
     analyzer: Analyzer = Depends(get_analyzer),
 ):
     """RESTful endpoint to analyze multiple items based on HTML content."""
+    logger.info(
+        f"Received analysis request for {len(request.items)} items and {len(request.filters)} filters"
+    )
     try:
 
         @cached
@@ -73,12 +80,14 @@ async def analyze_items(
 
         tasks = [analyze_single_item(item) for item in request.items]
         results = await asyncio.gather(*tasks)
+        logger.info(f"Analysis completed for {len(request.items)} items")
         return AnalysisResponse(
             filters=[{f.desc: f.value for f in analyzed_filters} for analyzed_filters in results]
         )
 
     except Exception as e:
         error_traceback = traceback.format_exc()
+        logger.error(f"Error during analysis: {str(e)}\n{error_traceback}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={"error": str(e), "traceback": error_traceback},
