@@ -1,39 +1,45 @@
 import functools
 import hashlib
+import inspect
 import json
 import types as t
 
+from pydantic import BaseModel
 from sqlmodel import select
 
-from backend.common.db import DBEntry, get_from_db, get_session, store_in_db
+from .db import DBEntry, get_from_db, get_session, store_in_db
+
+
+def _serialize(val: object) -> object:
+    """Serialize a value for caching."""
+    if isinstance(val, BaseModel):
+        return val.model_dump()
+    if isinstance(val, (str, int, float, bool, type(None))):
+        return val
+    if isinstance(val, (list, set)):
+        return sorted([_serialize(item) for item in val], key=str)
+    if isinstance(val, tuple):
+        return tuple(sorted([_serialize(item) for item in val], key=str))
+    if isinstance(val, dict):
+        return {k: _serialize(v) for k, v in sorted(val.items())}
+    return str(val)
 
 
 def _create_key(func: t.FunctionType, args: tuple, kwargs: dict) -> str:
-    """Create a unique cache key based on function title and arguments."""
+    """Create a unique cache key based on function name and arguments."""
+    sig = inspect.signature(func)
+    bound = sig.bind(*args, **kwargs)
+    bound.apply_defaults()
 
-    def _serialize(val):
-        if hasattr(val, "model_dump"):
-            return val.model_dump()
-        if isinstance(val, (str, int, float, bool, type(None))):
-            return val
-        if isinstance(val, list):
-            return sorted([_serialize(item) for item in val])
-        if isinstance(val, tuple):
-            return tuple(sorted(_serialize(item) for item in val))
-        if isinstance(val, set):
-            return sorted([_serialize(item) for item in val])
-        if isinstance(val, dict):
-            return {k: _serialize(v) for k, v in val.items()}
-        return str(val)
-
+    filtered_args = {k: v for k, v in bound.arguments.items() if not k.startswith("_")}
     key_data = {
         "func": func.__name__,
-        "args": [_serialize(arg) for arg in args],
-        "kwargs": {k: _serialize(v) for k, v in kwargs.items()},
+        "params": {k: _serialize(v) for k, v in filtered_args.items()},
     }
 
-    key_json = json.dumps(key_data, sort_keys=True, separators=(",", ": "))
-    return hashlib.md5(key_json.encode()).hexdigest()
+    return hashlib.md5(
+        json.dumps(key_data, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
 
 
 def cached(func: t.FunctionType) -> t.FunctionType:

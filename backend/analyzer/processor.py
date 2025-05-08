@@ -113,7 +113,7 @@ class Analyzer:
         field_definitions: dict[str, tp.Any] = {
             f.name: (
                 bool,
-                Field(title=f"Filter {i}", description=f.description),
+                Field(title=f"Filter {i}", desc=f.desc),
             )
             for i, f in enumerate(filters, start=1)
         }

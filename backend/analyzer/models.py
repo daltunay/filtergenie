@@ -25,10 +25,10 @@ class Item(BaseModel):
 
 
 class Filter(BaseModel):
-    description: str = Field(...)
+    desc: str = Field(...)
     value: bool | None = Field(default=None, init=False)
 
     @computed_field
     @property
     def name(self) -> str:
-        return sanitize_text(self.description)
+        return sanitize_text(self.desc)

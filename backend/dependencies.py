@@ -1,5 +1,6 @@
 from backend.analyzer.processor import Analyzer
-from backend.config import settings
+
+from .config import settings
 
 _analyzer = Analyzer(
     use_local=settings.model.use_local,

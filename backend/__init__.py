@@ -1,8 +1,4 @@
-"""
-FilterGenie Backend
-
-A backend service that analyzes website items against natural language filters
-using vision-language models.
-"""
+"""FilterGenie Backend"""
 
 __version__ = "1.0.0"
+__author__ = "Daniel Altunay"

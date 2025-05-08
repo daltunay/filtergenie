@@ -16,7 +16,7 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
     app = FastAPI(
-        title="Item Filter API",
+        title="FilterGenie API",
         description="API for validating items against filters using AI",
         version="1.0.0",
         lifespan=lifespan,

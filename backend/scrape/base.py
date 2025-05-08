@@ -17,9 +17,9 @@ class BaseScraper(ABC):
         "search": [],
     }
 
-    def scrape_item_detail(self, html_content: str) -> Item:
+    def scrape_item_detail(self, html: str) -> Item:
         """Scrape an item from HTML content."""
-        soup = BeautifulSoup(html_content, "html.parser")
+        soup = BeautifulSoup(html, "html.parser")
 
         try:
             title = self.extract_item_title(soup)

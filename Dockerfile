@@ -23,12 +23,10 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 COPY backend/ ./backend
 
-EXPOSE 8000
-
 ENV PYTHONUNBUFFERED=1
 ENV LOCAL=${LOCAL}
 
-CMD ["fastapi", "run", "backend/app.py", "--host", "0.0.0.0", "--port", "8000"]
+EXPOSE 8000
+HEALTHCHECK CMD curl --fail http://localhost:8000/health || exit 1
 
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl --fail http://localhost:8000/health || exit 1
+CMD ["fastapi", "run", "backend/app.py", "--host", "0.0.0.0", "--port", "8000"]
