@@ -3,7 +3,7 @@ from backend.analyzer.processor import Analyzer
 from .config import settings
 
 _analyzer = Analyzer(
-    use_local=settings.model.use_local,
+    uselocal=settings.model.uselocal,
     local_config=settings.model.local,
     remote_config=settings.model.remote,
 )

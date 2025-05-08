@@ -31,8 +31,8 @@ docker build -t filtergenie .
 docker run -p 8000:8000 -e MODEL_REMOTE_API_KEY=your_api_key_here filtergenie
 
 # Or with local VLM (offline mode)
-docker build --build-arg MODEL_USE_LOCAL=true -t filtergenie:local .
-docker run -p 8000:8000 -e MODEL_USE_LOCAL=true filtergenie:local
+docker build --build-arg LOCAL=true -t filtergenie:local .
+docker run -p 8000:8000 -e MODEL_USELOCAL=true filtergenie:local
 ```
 
 #### Local Development

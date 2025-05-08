@@ -50,16 +50,18 @@ class LocalModelConfig(BaseModel):
 class ModelConfig(BaseModel):
     """Unified model configuration settings."""
 
-    use_local: bool = Field(default=False)
+    uselocal: bool = Field(default=False)
     remote: RemoteModelConfig | None = Field(default=None)
     local: LocalModelConfig | None = Field(default=None)
 
     @model_validator(mode="after")
     def update_model_config(self) -> tp.Self:
-        if self.use_local:
-            self.local = self.local or LocalModelConfig()
+        if self.uselocal:
+            if self.local is None:
+                self.local = LocalModelConfig()
         else:
-            self.remote = self.remote or RemoteModelConfig()
+            if self.remote is None:
+                self.remote = RemoteModelConfig()
         return self
 
 

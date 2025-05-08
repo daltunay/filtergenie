@@ -21,6 +21,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     if [ "$LOCAL" = "true" ]; then EXTRA_ARGS="--extra local"; fi; \
     uv sync --no-install-project --no-dev $EXTRA_ARGS
 
+ENV PATH="/app/.venv/bin:$PATH"
+
 COPY backend/ ./backend
 
 ENV PYTHONUNBUFFERED=1

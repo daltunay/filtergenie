@@ -37,12 +37,12 @@ class Analyzer:
 
     def __init__(
         self,
-        use_local: bool = False,
+        uselocal: bool = False,
         local_config: LocalModelConfig | None = None,
         remote_config: RemoteModelConfig | None = None,
     ):
         """Initialize the analyzer with either a local VLM model or AsyncOpenAI."""
-        if use_local:
+        if uselocal:
             self.local_config = local_config or LocalModelConfig()
             log.info("Initializing local model", name=self.local_config.name)
             self.model = self._create_local_model()
