@@ -60,9 +60,9 @@ async def analyze_items(
     try:
 
         @cached
-        async def cached_scrape_item_from_html(url: str, html: str) -> Item:
+        async def cached_scrape_item_from_html(platform: str, html: str) -> Item:
             """Cached scrape item from HTML."""
-            return scrape_item_from_html(url=url, html=html)
+            return scrape_item_from_html(platform=platform, html=html)
 
         @cached
         async def cached_analyze_item(item: Item, filters: list[Filter]) -> list[Filter]:
@@ -73,20 +73,23 @@ async def analyze_items(
             item_request: ItemSource, idx: int
         ) -> tuple[int, list[Filter]]:
             """Process and analyze a single item and return its results with index."""
-            url = item_request.url
-            log.debug(f"Processing item {idx + 1}", url=url)
+            platform = item_request.platform
+            log.debug(f"Processing item {idx + 1}", platform=platform)
 
             try:
-                item: Item = await cached_scrape_item_from_html(url=url, html=item_request.html)
+                item: Item = await cached_scrape_item_from_html(
+                    platform=platform, html=item_request.html
+                )
                 log.debug(
                     f"Item {idx + 1} scraped successfully",
-                    url=url,
-                    platform=item.platform,
+                    platform=platform,
                     title=item.title,
                     images_count=len(item.images),
                 )
             except Exception as e:
-                log.error(f"Failed to scrape item {idx + 1}", url=url, error=str(e), exc_info=e)
+                log.error(
+                    f"Failed to scrape item {idx + 1}", platform=platform, error=str(e), exc_info=e
+                )
                 raise
 
             try:
@@ -99,7 +102,7 @@ async def analyze_items(
 
                 log.debug(
                     f"Item {idx + 1} analyzed successfully",
-                    url=url,
+                    platform=platform,
                     title=item.title,
                     matched_filters=matched_count,
                     total_filters=len(filters),
@@ -108,7 +111,7 @@ async def analyze_items(
             except Exception as e:
                 log.error(
                     f"Failed to analyze item {idx + 1}",
-                    url=url,
+                    platform=platform,
                     title=item.title,
                     error=str(e),
                     exc_info=e,

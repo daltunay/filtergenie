@@ -4,7 +4,7 @@ from pydantic import BaseModel
 class ItemSource(BaseModel):
     """Input model for item detail scraping"""
 
-    url: str
+    platform: str
     html: str
 
 

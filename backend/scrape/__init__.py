@@ -8,35 +8,36 @@ from .platforms.ebay import EbayScraper
 from .platforms.leboncoin import LeboncoinScraper
 from .platforms.vinted import VintedScraper
 
-REGISTERED_SCRAPERS: list[type[BaseScraper]] = [
-    LeboncoinScraper,
-    VintedScraper,
-    EbayScraper,
-]
+SCRAPER_BY_PLATFORM: dict[str, type[BaseScraper]] = {
+    scraper.PLATFORM: scraper for scraper in (LeboncoinScraper, VintedScraper, EbayScraper)
+}
 
 
-def scrape_item_from_html(url: str, html: str) -> Item:
+def scrape_item_from_html(platform: str, html: str) -> Item:
     """Scrape an item from HTML content using the appropriate scraper class."""
-    for scraper_class in REGISTERED_SCRAPERS:
-        if scraper_class.can_handle_url(url):
-            log.debug("Using scraper", url=url, platform=scraper_class.PLATFORM)
-            break
-    else:
-        log.error("No suitable scraper found", url=url)
-        raise ValueError(f"No suitable scraper found for URL: {url}")
+    try:
+        scraper_class = SCRAPER_BY_PLATFORM[platform]
+    except KeyError as e:
+        log.error("No scraper found for platform", platform=platform)
+        raise ValueError(f"No scraper found for platform: {platform}") from e
+
+    log.debug(
+        "Using scraper class",
+        platform=platform,
+        scraper_class=scraper_class.__name__,
+    )
 
     try:
         scraper = scraper_class()
         item = scraper.scrape_item_detail(html)
         log.debug(
             "Successfully scraped item",
-            url=url,
+            platform=platform,
             title=item.title,
-            platform=item.platform,
         )
         return item
     except Exception as e:
-        log.error("Error scraping item", url=url, error=str(e), exc_info=e)
+        log.error("Error scraping item", platform=platform, error=str(e), exc_info=e)
         raise
 
 
