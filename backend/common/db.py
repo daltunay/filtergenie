@@ -35,7 +35,7 @@ def init_db() -> None:
     log.info("Database initialized", db_path=DB_PATH)
 
 
-def get_session():
+def get_session() -> tp.Generator[Session, None, None]:
     """FastAPI dependency for database session."""
     with Session(engine) as session:
         try:
@@ -43,18 +43,6 @@ def get_session():
         except Exception:
             session.rollback()
             raise
-
-
-async def get_async_session():
-    """Async FastAPI dependency for database session."""
-    session = Session(engine)
-    try:
-        yield session
-    except Exception:
-        session.rollback()
-        raise
-    finally:
-        session.close()
 
 
 @contextmanager
@@ -76,25 +64,18 @@ async def store_in_db(
     """Store an item in the database cache."""
     try:
         value_pickle = pickle.dumps(value)
-
+        db_entry = DBEntry(
+            key=cache_key,
+            value_pickle=value_pickle,
+            function_name=function_name,
+        )
         if session is None:
-            with get_session_context() as session:
-                db_entry = DBEntry(
-                    key=cache_key,
-                    value_pickle=value_pickle,
-                    function_name=function_name,
-                )
-                session.add(db_entry)
-                session.commit()
+            with get_session_context() as s:
+                s.add(db_entry)
+                s.commit()
         else:
-            db_entry = DBEntry(
-                key=cache_key,
-                value_pickle=value_pickle,
-                function_name=function_name,
-            )
             session.add(db_entry)
             session.commit()
-
         log.debug("Cache entry stored", function=function_name, cache_key=cache_key)
         return True
     except Exception as e:
@@ -111,17 +92,22 @@ async def store_in_db(
 async def get_from_db(cache_key: str, session: Session | None = None) -> tp.Any | None:
     """Get an item from the database cache."""
     try:
-        if session is None:
-            with get_session_context() as session:
-                statement = select(DBEntry).where(DBEntry.key == cache_key)
-                entry: DBEntry | None = session.exec(statement).first()
-        else:
+
+        def fetch_entry(s: Session):
             statement = select(DBEntry).where(DBEntry.key == cache_key)
-            entry: DBEntry | None = session.exec(statement).first()
+            return s.exec(statement).first()
 
+        if session is None:
+            with get_session_context() as s:
+                entry = fetch_entry(s)
+        else:
+            entry = fetch_entry(session)
         if entry:
-            log.debug("Retrieved from cache", function=entry.function_name, cache_key=cache_key)
-
+            log.debug(
+                "Retrieved from cache",
+                function=entry.function_name,
+                cache_key=cache_key,
+            )
         return pickle.loads(entry.value_pickle) if entry else None
     except Exception as e:
         log.error("Error retrieving from cache", error=str(e), cache_key=cache_key, exc_info=e)

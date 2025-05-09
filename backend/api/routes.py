@@ -2,12 +2,13 @@ import asyncio
 import traceback
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlmodel import Session
 
 from backend.analyzer import Analyzer, Filter, Item
 from backend.auth.middleware import verify_api_key
 from backend.common.cache import cached, clear_cache
 from backend.common.logging import log
-from backend.dependencies import get_analyzer
+from backend.dependencies import get_analyzer, get_db_session
 from backend.scrape import scrape_item
 
 from .models import AnalysisRequest, AnalysisResponse, ItemSource
@@ -29,11 +30,11 @@ async def health_check():
 
 
 @authenticated_router.post("/cache/clear")
-async def clear_cache_endpoint():
+async def clear_cache_endpoint(session: Session = Depends(get_db_session)):
     """Clear cache entries."""
     try:
         log.info("Clearing cache entries")
-        count = await clear_cache()
+        count = await clear_cache(session=session)
         log.info("Cache cleared successfully", entries_removed=count)
         return {"status": "success", "entries_cleared": count}
 
@@ -49,6 +50,7 @@ async def clear_cache_endpoint():
 async def analyze_items(
     request: AnalysisRequest,
     analyzer: Analyzer = Depends(get_analyzer),
+    session: Session = Depends(get_db_session),
 ):
     """RESTful endpoint to analyze multiple items based on HTML content."""
     log.info(
@@ -59,12 +61,14 @@ async def analyze_items(
     try:
 
         @cached
-        async def cached_scrape_item_from_html(platform: str, html: str) -> Item:
+        async def cached_scrape_item_from_html(_session: Session, platform: str, html: str) -> Item:
             """Cached scrape item from HTML."""
             return scrape_item(platform=platform, html=html)
 
         @cached
-        async def cached_analyze_item(item: Item, filters: list[Filter]) -> list[Filter]:
+        async def cached_analyze_item(
+            _session: Session, item: Item, filters: list[Filter]
+        ) -> list[Filter]:
             """Cached analyze item."""
             return await analyzer.analyze_item(item=item, filters=filters)
 
@@ -77,7 +81,9 @@ async def analyze_items(
 
             try:
                 item: Item = await cached_scrape_item_from_html(
-                    platform=platform, html=item_request.html
+                    session,
+                    platform=platform,
+                    html=item_request.html,
                 )
                 log.debug(
                     f"Item {idx + 1} scraped successfully",
@@ -96,9 +102,7 @@ async def analyze_items(
 
             try:
                 filters = [Filter(desc=desc) for desc in request.filters]
-                analyzed_filters: list[Filter] = await cached_analyze_item(
-                    item=item, filters=filters
-                )
+                analyzed_filters: list[Filter] = await cached_analyze_item(session, item, filters)
 
                 matched_count = sum(1 for f in analyzed_filters if f.value)
 

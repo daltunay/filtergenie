@@ -17,9 +17,6 @@ if tp.TYPE_CHECKING:
         pass
 
 
-DynamicSchema = BaseModel
-
-
 class Analyzer:
     """A class to analyze items against filters with a reusable model."""
 
@@ -73,8 +70,8 @@ class Analyzer:
         )
 
     async def _predict_local(
-        self, prompt: str, images: list[Image], schema: type[DynamicSchema]
-    ) -> DynamicSchema:
+        self, prompt: str, images: list[Image], schema: type[BaseModel]
+    ) -> BaseModel:
         """Run prediction using local model asynchronously."""
         from outlines import generate
 
@@ -92,8 +89,8 @@ class Analyzer:
         )
 
     async def _predict_openai(
-        self, prompt: str, images: list[Image], schema: type[DynamicSchema]
-    ) -> DynamicSchema:
+        self, prompt: str, images: list[Image], schema: type[BaseModel]
+    ) -> BaseModel:
         """Run prediction using AsyncOpenAI/Gemini API asynchronously."""
         response = await self.model.beta.chat.completions.parse(
             model=self.remote_config.name,
@@ -114,18 +111,15 @@ class Analyzer:
         return response.choices[0].message.parsed
 
     @staticmethod
-    def _create_filter_schema(
-        filters: list[Filter],
-    ) -> type[DynamicSchema]:
+    def _create_filter_schema(filters: list[Filter]) -> type[BaseModel]:
         """Create a Pydantic model schema based on filters list."""
-        field_definitions: dict[str, tp.Any] = {
-            f.name: (
-                bool,
-                Field(title=f"Filter {i}", desc=f.desc),
-            )
-            for i, f in enumerate(filters, start=1)
-        }
-        return create_model("DynamicSchema", **field_definitions)
+        return create_model(
+            "DynamicSchema",
+            **{
+                f.name: (bool, Field(title=f"Filter {i}", desc=f.desc))
+                for i, f in enumerate(filters, start=1)
+            },
+        )
 
     async def analyze_item(self, item: Item, filters: list[Filter]) -> list[Filter]:
         """Analyze a single item against the provided filter descriptions."""

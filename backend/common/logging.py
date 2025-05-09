@@ -41,8 +41,9 @@ def setup_logging() -> None:
         level=getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper(), "INFO"),
     )
 
-    logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
-    logging.getLogger("uvicorn.error").setLevel(logging.INFO)
+    logging.getLogger("uvicorn").propagate = False
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    logging.getLogger("watchfiles").setLevel(logging.WARNING)
 
 
 log = structlog.get_logger()
