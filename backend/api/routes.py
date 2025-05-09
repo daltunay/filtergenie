@@ -4,12 +4,12 @@ import traceback
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
 
-from backend.analyzer import Analyzer, Filter, Item
+from backend.analyzer import Analyzer, FilterModel, ItemModel
 from backend.auth.middleware import verify_api_key
 from backend.common.cache import cached, clear_cache
 from backend.common.logging import log
 from backend.dependencies import get_analyzer, get_db_session
-from backend.scrape import scrape_item
+from backend.scraper import scrape_item
 
 from .models import AnalysisRequest, AnalysisResponse, ItemSource
 
@@ -61,32 +61,34 @@ async def analyze_items(
     try:
 
         @cached
-        async def cached_scrape_item_from_html(_session: Session, platform: str, html: str) -> Item:
+        async def cached_scrape_item_from_html(
+            _session: Session, platform: str, html: str
+        ) -> ItemModel:
             """Cached scrape item from HTML."""
             return scrape_item(platform=platform, html=html)
 
         @cached
         async def cached_analyze_item(
-            _session: Session, item: Item, filters: list[Filter]
-        ) -> list[Filter]:
+            _session: Session, item: ItemModel, filters: list[FilterModel]
+        ) -> list[FilterModel]:
             """Cached analyze item."""
             return await analyzer.analyze_item(item=item, filters=filters)
 
         async def analyze_single_item(
             item_request: ItemSource, idx: int
-        ) -> tuple[int, list[Filter]]:
+        ) -> tuple[int, list[FilterModel]]:
             """Process and analyze a single item and return its results with index."""
             platform = item_request.platform
             log.debug(f"Processing item {idx + 1}", platform=platform)
 
             try:
-                item: Item = await cached_scrape_item_from_html(
+                item: ItemModel = await cached_scrape_item_from_html(
                     session,
                     platform=platform,
                     html=item_request.html,
                 )
                 log.debug(
-                    f"Item {idx + 1} scraped successfully",
+                    f"ItemModel {idx + 1} scraped successfully",
                     platform=platform,
                     title=item.title,
                     images_count=len(item.images),
@@ -101,13 +103,15 @@ async def analyze_items(
                 raise
 
             try:
-                filters = [Filter(desc=desc) for desc in request.filters]
-                analyzed_filters: list[Filter] = await cached_analyze_item(session, item, filters)
+                filters = [FilterModel(desc=desc) for desc in request.filters]
+                analyzed_filters: list[FilterModel] = await cached_analyze_item(
+                    session, item, filters
+                )
 
                 matched_count = sum(1 for f in analyzed_filters if f.value)
 
                 log.debug(
-                    f"Item {idx + 1} analyzed successfully",
+                    f"ItemModel {idx + 1} analyzed successfully",
                     platform=platform,
                     title=item.title,
                     matched_filters=matched_count,

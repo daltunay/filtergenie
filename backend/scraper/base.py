@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup
 
-from backend.analyzer import Image, Item
+from backend.analyzer import ImageModel, ItemModel
 from backend.common.safe import safe_call
 
 
@@ -19,7 +19,7 @@ class BaseScraper(ABC):
     }
 
     @classmethod
-    def scrape_item_detail(cls, html: str) -> Item:
+    def scrape_item_detail(cls, html: str) -> ItemModel:
         """Scrape an item from HTML content."""
         soup = BeautifulSoup(html, "html.parser")
 
@@ -27,10 +27,10 @@ class BaseScraper(ABC):
         image_urls = cls.extract_item_images(soup) or []
         additional_details = cls.extract_additional_details(soup) or {}
 
-        return Item(
+        return ItemModel(
             platform=cls.PLATFORM,
             title=title,
-            images=[Image(url=img_url) for img_url in image_urls],
+            images=[ImageModel(url=img_url) for img_url in image_urls],
             **additional_details,
         )
 

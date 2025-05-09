@@ -1,7 +1,7 @@
 from bs4 import BeautifulSoup
 
 from backend.common.safe import safe_call
-from backend.scrape.base import BaseScraper
+from backend.scraper.base import BaseScraper
 
 
 class VintedScraper(BaseScraper):

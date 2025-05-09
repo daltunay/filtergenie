@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field, create_model
 from backend.common.logging import log
 from backend.config import LocalModelConfig, RemoteModelConfig
 
-from .models import Filter, Image, Item
+from .models import FilterModel, ImageModel, ItemModel
 
 if tp.TYPE_CHECKING:
     from openai import AsyncOpenAI
@@ -70,7 +70,7 @@ class Analyzer:
         )
 
     async def _predict_local(
-        self, prompt: str, images: list[Image], schema: type[BaseModel]
+        self, prompt: str, images: list[ImageModel], schema: type[BaseModel]
     ) -> BaseModel:
         """Run prediction using local model asynchronously."""
         from outlines import generate
@@ -89,7 +89,7 @@ class Analyzer:
         )
 
     async def _predict_openai(
-        self, prompt: str, images: list[Image], schema: type[BaseModel]
+        self, prompt: str, images: list[ImageModel], schema: type[BaseModel]
     ) -> BaseModel:
         """Run prediction using AsyncOpenAI/Gemini API asynchronously."""
         response = await self.model.beta.chat.completions.parse(
@@ -111,17 +111,17 @@ class Analyzer:
         return response.choices[0].message.parsed
 
     @staticmethod
-    def _create_filter_schema(filters: list[Filter]) -> type[BaseModel]:
+    def _create_filter_schema(filters: list[FilterModel]) -> type[BaseModel]:
         """Create a Pydantic model schema based on filters list."""
         return create_model(
             "DynamicSchema",
             **{
-                f.name: (bool, Field(title=f"Filter {i}", desc=f.desc))
+                f.name: (bool, Field(title=f"FilterModel {i}", desc=f.desc))
                 for i, f in enumerate(filters, start=1)
             },
         )
 
-    async def analyze_item(self, item: Item, filters: list[Filter]) -> list[Filter]:
+    async def analyze_item(self, item: ItemModel, filters: list[FilterModel]) -> list[FilterModel]:
         """Analyze a single item against the provided filter descriptions."""
         log.debug(
             "Analyzing item",
@@ -157,7 +157,7 @@ class Analyzer:
                     matched_filters += 1
 
             log.debug(
-                "Item analysis complete",
+                "ItemModel analysis complete",
                 title=item.title,
                 matched_filters=matched_filters,
                 total_filters=len(filters),

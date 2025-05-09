@@ -27,7 +27,6 @@ def setup_logging() -> None:
             structlog.stdlib.add_log_level,
             structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M.%S"),
             structlog.processors.StackInfoRenderer(),
-            structlog.processors.format_exc_info,
             structlog.dev.ConsoleRenderer(colors=True),
         ],
         wrapper_class=structlog.stdlib.BoundLogger,
@@ -42,8 +41,17 @@ def setup_logging() -> None:
     )
 
     logging.getLogger("uvicorn").propagate = False
-    logging.getLogger("urllib3").setLevel(logging.WARNING)
-    logging.getLogger("watchfiles").setLevel(logging.WARNING)
+
+    for logger_name in [
+        "uvicorn",
+        "urllib3",
+        "httpcore",
+        "httpx",
+        "requests",
+        "watchfiles",
+        "openai",
+    ]:
+        logging.getLogger(logger_name).setLevel(logging.WARNING)
 
 
 log = structlog.get_logger()
