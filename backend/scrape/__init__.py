@@ -1,6 +1,6 @@
 """Item scraping functionality."""
 
-from backend.analyzer.models import Item
+from backend.analyzer import Item
 from backend.common.logging import log
 
 from .base import BaseScraper
@@ -13,7 +13,7 @@ SCRAPER_BY_PLATFORM: dict[str, type[BaseScraper]] = {
 }
 
 
-def scrape_item_from_html(platform: str, html: str) -> Item:
+def scrape_item(platform: str, html: str) -> Item:
     """Scrape an item from HTML content using the appropriate scraper class."""
     try:
         scraper_class = SCRAPER_BY_PLATFORM[platform]
@@ -41,4 +41,4 @@ def scrape_item_from_html(platform: str, html: str) -> Item:
         raise
 
 
-__all__ = ["scrape_item_from_html"]
+__all__ = ["scrape_item"]

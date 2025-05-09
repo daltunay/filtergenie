@@ -1,4 +1,4 @@
-from backend.analyzer.processor import Analyzer
+from backend.analyzer import Analyzer
 
 from .config import settings
 

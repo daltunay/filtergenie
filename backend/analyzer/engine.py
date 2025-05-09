@@ -3,9 +3,10 @@ from textwrap import dedent
 
 from pydantic import BaseModel, Field, create_model
 
-from backend.analyzer.models import Filter, Image, Item
 from backend.common.logging import log
 from backend.config import LocalModelConfig, RemoteModelConfig
+
+from .models import Filter, Image, Item
 
 if tp.TYPE_CHECKING:
     from openai import AsyncOpenAI

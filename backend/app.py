@@ -8,9 +8,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from backend.api.routes import authenticated_router, public_router
-from backend.common.db import init_db
-from backend.common.logging import log, setup_logging
+from .api.routes import authenticated_router, public_router
+from .common.db import init_db
+from .common.logging import log, setup_logging
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):

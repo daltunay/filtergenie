@@ -3,7 +3,7 @@ import typing as tp
 from pydantic import BaseModel, Field, computed_field, field_serializer, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from backend.common.logging import log
+from .common.logging import log
 
 
 class ApiConfig(BaseModel):

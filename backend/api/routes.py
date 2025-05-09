@@ -3,13 +3,12 @@ import traceback
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from backend.analyzer.models import Filter, Item
-from backend.analyzer.processor import Analyzer
+from backend.analyzer import Analyzer, Filter, Item
 from backend.auth.middleware import verify_api_key
 from backend.common.cache import cached, clear_cache
 from backend.common.logging import log
 from backend.dependencies import get_analyzer
-from backend.scrape import scrape_item_from_html
+from backend.scrape import scrape_item
 
 from .models import AnalysisRequest, AnalysisResponse, ItemSource
 
@@ -62,7 +61,7 @@ async def analyze_items(
         @cached
         async def cached_scrape_item_from_html(platform: str, html: str) -> Item:
             """Cached scrape item from HTML."""
-            return scrape_item_from_html(platform=platform, html=html)
+            return scrape_item(platform=platform, html=html)
 
         @cached
         async def cached_analyze_item(item: Item, filters: list[Filter]) -> list[Filter]:
@@ -88,7 +87,10 @@ async def analyze_items(
                 )
             except Exception as e:
                 log.error(
-                    f"Failed to scrape item {idx + 1}", platform=platform, error=str(e), exc_info=e
+                    f"Failed to scrape item {idx + 1}",
+                    platform=platform,
+                    error=str(e),
+                    exc_info=e,
                 )
                 raise
 

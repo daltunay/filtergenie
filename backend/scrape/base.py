@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup
 
-from backend.analyzer.models import Image, Item
+from backend.analyzer import Image, Item
 from backend.common.safe import safe_call
 
 
