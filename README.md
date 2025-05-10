@@ -2,6 +2,22 @@
 
 FilterGenie is an AI-powered browser extension and API that filters e-commerce search results using natural language and vision-language models.
 
+## Architecture
+
+```mermaid
+graph TD
+  User[User] -->|filters & items| API
+  API -->|cache| DB
+  API -->|analyze| Analyzer
+  Analyzer -->|remote| RemoteAPI
+  Analyzer -->|local| LocalModel
+  RemoteAPI --> Analyzer
+  LocalModel --> Analyzer
+  Analyzer -->|cache| DB
+  Analyzer -->|results| API
+  API -->|results| User
+```
+
 ## Features
 
 - Filter listings with natural language (e.g., "no scratches", "original packaging")
