@@ -1,4 +1,5 @@
 import functools
+import hashlib
 import json
 import types as t
 
@@ -57,8 +58,13 @@ def analyze_cache(func: t.FunctionType) -> t.FunctionType:
         platform = item.platform
         url = item.url
         filters_json = json.dumps([f.desc for f in filters], sort_keys=True)
-        analysis = session.query(AnalysisResult).filter_by(platform=platform, url=url).first()
-        if analysis and analysis.filters == json.loads(filters_json):
+        filters_hash = hashlib.sha256(filters_json.encode("utf-8")).hexdigest()
+        analysis = (
+            session.query(AnalysisResult)
+            .filter_by(platform=platform, url=url, filters_hash=filters_hash)
+            .first()
+        )
+        if analysis:
             log.debug("Analysis cache hit", platform=platform, url=url)
             return [FilterModel(**f) for f in analysis.filters]
         log.debug("Analysis cache miss", platform=platform, url=url)
@@ -69,6 +75,7 @@ def analyze_cache(func: t.FunctionType) -> t.FunctionType:
                 url=url,
                 item=item.model_dump(),
                 filters=[f.model_dump() for f in result],
+                filters_hash=filters_hash,
             )
         )
         session.commit()
