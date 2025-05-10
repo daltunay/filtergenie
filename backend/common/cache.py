@@ -1,4 +1,5 @@
 import functools
+import hashlib
 import json
 import types as t
 
@@ -28,11 +29,15 @@ def scrape_cache(func: t.FunctionType) -> t.FunctionType:
     """Decorator for caching scraped items."""
 
     @functools.wraps(func)
-    async def wrapper(session: Session, platform: str, url: str, html: str, *args, **kwargs):
+    async def wrapper(
+        session: Session, platform: str, url: str, html: str, *args, **kwargs
+    ):
         item = session.query(ScrapedItem).filter_by(platform=platform, url=url).first()
         if item:
             log.debug("Scrape cache hit", platform=platform, url=url)
-            return func.__globals__["scrape_item"](platform=platform, url=url, html=item.html)
+            return func.__globals__["scrape_item"](
+                platform=platform, url=url, html=item.html
+            )
         log.debug("Scrape cache miss", platform=platform, url=url)
         result = await func(session, platform, url, html, *args, **kwargs)
         session.add(ScrapedItem(platform=platform, url=url, html=html))
@@ -57,8 +62,13 @@ def analyze_cache(func: t.FunctionType) -> t.FunctionType:
         platform = item.platform
         url = item.url
         filters_json = json.dumps([f.desc for f in filters], sort_keys=True)
-        analysis = session.query(AnalysisResult).filter_by(platform=platform, url=url).first()
-        if analysis and analysis.filters == json.loads(filters_json):
+        filters_hash = hashlib.sha256(filters_json.encode("utf-8")).hexdigest()
+        analysis = (
+            session.query(AnalysisResult)
+            .filter_by(platform=platform, url=url, filters_hash=filters_hash)
+            .first()
+        )
+        if analysis:
             log.debug("Analysis cache hit", platform=platform, url=url)
             return [FilterModel(**f) for f in analysis.filters]
         log.debug("Analysis cache miss", platform=platform, url=url)
@@ -69,6 +79,7 @@ def analyze_cache(func: t.FunctionType) -> t.FunctionType:
                 url=url,
                 item=item.model_dump(),
                 filters=[f.model_dump() for f in result],
+                filters_hash=filters_hash,
             )
         )
         session.commit()
@@ -83,7 +94,9 @@ def cached(func: t.FunctionType) -> t.FunctionType:
         return scrape_cache(func)
     elif func.__name__ == "cached_analyze_item":
         return analyze_cache(func)
-    return func
+    raise ValueError(
+        "Function name must be 'cached_scrape_item' or 'cached_analyze_item'"
+    )
 
 
 async def clear_cache(session: Session) -> int:

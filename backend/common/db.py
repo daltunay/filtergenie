@@ -43,8 +43,11 @@ class AnalysisResult(Base):
     url = Column(String, nullable=False)
     item = Column(JSON, nullable=False)
     filters = Column(JSON, nullable=False)
+    filters_hash = Column(String, nullable=False)
     created = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    __table_args__ = (UniqueConstraint("platform", "url", name="_platform_url_analysis_uc"),)
+    __table_args__ = (
+        UniqueConstraint("platform", "url", "filters_hash", name="_platform_url_filters_uc"),
+    )
 
 
 def init_db() -> None:
