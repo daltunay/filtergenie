@@ -22,9 +22,10 @@ class ItemModel(BaseModel):
     platform: str = Field(...)
     title: str = Field(...)
     images: list[ImageModel] = Field(default_factory=list)
+    url: str = Field(...)
 
     @classmethod
-    def from_source(cls, platform: str, html: str) -> "ItemModel":
+    def from_source(cls, platform: str, url: str, html: str) -> "ItemModel":
         from backend.scraper import PARSER_BY_PLATFORM
 
         try:
@@ -38,7 +39,7 @@ class ItemModel(BaseModel):
             )
             raise ValueError(f"No parser found for platform: {platform}") from e
         data = parse_item(html)
-        return cls(platform=platform, **data)
+        return cls(platform=platform, url=url, **data)
 
 
 class FilterModel(BaseModel):

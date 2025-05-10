@@ -1,4 +1,4 @@
-from sqlmodel import Session
+from sqlalchemy.orm import Session
 
 from backend.analyzer import Analyzer
 from backend.analyzer.models import FilterModel, ItemModel
@@ -8,16 +8,17 @@ from backend.scraper import scrape_item
 
 @cached
 async def cached_scrape_item(
-    _session: Session,
+    session: Session,
     platform: str,
+    url: str,
     html: str,
 ) -> ItemModel:
-    return scrape_item(platform=platform, html=html)
+    return scrape_item(platform=platform, url=url, html=html)
 
 
 @cached
 async def cached_analyze_item(
-    _session: Session,
+    session: Session,
     analyzer: Analyzer,
     item: ItemModel,
     filters: list[FilterModel],

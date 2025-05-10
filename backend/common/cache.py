@@ -1,16 +1,14 @@
 import functools
-import hashlib
-import inspect
 import json
 import types as t
-import typing as tp
 
 from pydantic import BaseModel
-from sqlmodel import Session, select
+from sqlalchemy.orm import Session
 
+from backend.analyzer import Analyzer
+from backend.analyzer.models import FilterModel, ItemModel
+from backend.common.db import AnalysisResult, ScrapedItem
 from backend.common.logging import log
-
-from .db import DBEntry, get_from_db, store_in_db
 
 
 def _serialize(val: object) -> object:
@@ -26,68 +24,73 @@ def _serialize(val: object) -> object:
     return str(val)
 
 
-def _create_key(func: t.FunctionType, args: tuple, kwargs: dict) -> tuple[str, str]:
-    """Create a unique cache key based on function name and arguments."""
-    sig = inspect.signature(func)
-    bound = sig.bind(*args, **kwargs)
-    bound.apply_defaults()
-
-    filtered_args = {k: v for k, v in bound.arguments.items() if not k.startswith("_")}
-    key_data = {
-        "func": func.__name__,
-        "params": {k: _serialize(v) for k, v in filtered_args.items()},
-    }
-    key_str = json.dumps(key_data, sort_keys=True)
-    key_hash = hashlib.md5(key_str.encode()).hexdigest()
-    return key_str, key_hash
-
-
-def cached(func: t.FunctionType) -> t.FunctionType:
-    """Cache decorator that stores results in database."""
+def scrape_cache(func: t.FunctionType) -> t.FunctionType:
+    """Decorator for caching scraped items."""
 
     @functools.wraps(func)
-    async def wrapper(session: Session, *args, **kwargs) -> tp.Any:
-        _, key_hash = _create_key(func, (session, *args), kwargs)
-        function_name = func.__name__
-
-        db_value = await get_from_db(key_hash, session)
-        if db_value is not None:
-            log.debug(
-                "Cache hit",
-                function=function_name,
-                key_hash=key_hash,
-            )
-            return db_value
-
-        log.debug(
-            "Cache miss, executing function",
-            function=function_name,
-            key_hash=key_hash,
-        )
-        result = await func(session, *args, **kwargs)
-
-        success = await store_in_db(key_hash, result, function_name, session)
-        if not success:
-            log.warning(
-                "Failed to cache result",
-                function=function_name,
-                key_hash=key_hash,
-            )
+    async def wrapper(session: Session, platform: str, url: str, html: str, *args, **kwargs):
+        item = session.query(ScrapedItem).filter_by(platform=platform, url=url).first()
+        if item:
+            log.debug("Scrape cache hit", platform=platform, url=url)
+            return func.__globals__["scrape_item"](platform=platform, url=url, html=item.html)
+        log.debug("Scrape cache miss", platform=platform, url=url)
+        result = await func(session, platform, url, html, *args, **kwargs)
+        session.add(ScrapedItem(platform=platform, url=url, html=html))
+        session.commit()
         return result
 
     return wrapper
 
 
+def analyze_cache(func: t.FunctionType) -> t.FunctionType:
+    """Decorator for caching analysis results."""
+
+    @functools.wraps(func)
+    async def wrapper(
+        session: Session,
+        analyzer: Analyzer,
+        item: ItemModel,
+        filters: list[FilterModel],
+        *args,
+        **kwargs,
+    ) -> list[FilterModel]:
+        platform = item.platform
+        url = item.url
+        filters_json = json.dumps([f.desc for f in filters], sort_keys=True)
+        analysis = session.query(AnalysisResult).filter_by(platform=platform, url=url).first()
+        if analysis and analysis.filters == json.loads(filters_json):
+            log.debug("Analysis cache hit", platform=platform, url=url)
+            return [FilterModel(**f) for f in analysis.filters]
+        log.debug("Analysis cache miss", platform=platform, url=url)
+        result = await func(session, analyzer, item, filters, *args, **kwargs)
+        session.add(
+            AnalysisResult(
+                platform=platform,
+                url=url,
+                item=item.model_dump(),
+                filters=[f.model_dump() for f in result],
+            )
+        )
+        session.commit()
+        return result
+
+    return wrapper
+
+
+def cached(func: t.FunctionType) -> t.FunctionType:
+    """Decorator that dispatches to scrape_cache or analyze_cache based on function name."""
+    if func.__name__ == "cached_scrape_item":
+        return scrape_cache(func)
+    elif func.__name__ == "cached_analyze_item":
+        return analyze_cache(func)
+    return func
+
+
 async def clear_cache(session: Session) -> int:
     """Clear cache entries from database."""
-    log.debug("Attempting to clear cache entries")
-
-    entries = session.exec(select(DBEntry)).all()  # ty: ignore[no-matching-overload]
-    count = len(entries)
-
-    for entry in entries:
-        session.delete(entry)
-
+    scraped = session.query(ScrapedItem).delete()
+    analyzed = session.query(AnalysisResult).delete()
     session.commit()
+    count = scraped + analyzed
     log.debug("Cache entries cleared", count=count)
     return count

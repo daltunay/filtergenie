@@ -12,7 +12,7 @@ dependencies = [
     "pillow>=11.1.0",
     "pydantic-settings>=2.8.1",
     "requests>=2.32.3",
-    "sqlmodel>=0.0.24",
+    "sqlalchemy>=2.0.40",
     "structlog>=25.3.0",
 ]
 

@@ -18,6 +18,7 @@ async function fetchItemSources(platform, items) {
   return Promise.all(
     items.map(async (item) => ({
       platform: platform.name,
+      url: platform.getItemUrl(item),
       html: await platform.getItemHtml(item),
     })),
   );
@@ -27,11 +28,26 @@ async function callApiAnalyze(items, filters, apiEndpoint, apiKey) {
   const headers = { "Content-Type": "application/json" };
   if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
   apiEndpoint = apiEndpoint.replace(/\/+$/, "");
-  const resp = await fetch(`${apiEndpoint}/items/analyze`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ items, filters }),
-  });
+  let resp;
+  try {
+    resp = await fetch(`${apiEndpoint}/items/analyze`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ items, filters }),
+    });
+    chrome.runtime.sendMessage({
+      type: "API_STATUS",
+      status: resp.status,
+      error: resp.ok ? undefined : await resp.text(),
+    });
+  } catch (e) {
+    chrome.runtime.sendMessage({
+      type: "API_STATUS",
+      status: 0,
+      error: e && e.message ? e.message : String(e),
+    });
+    throw e;
+  }
   return resp.json();
 }
 
@@ -52,7 +68,13 @@ function updateItemStatus(items, filtersData, minMatch) {
   });
 }
 
-async function analyzeItems(filters, minMatch, platform, maxItems = 10) {
+async function analyzeItems(
+  filters,
+  minMatch,
+  platform,
+  maxItems = 10,
+  sendResponse,
+) {
   if (!platform) return;
   const items = Array.from(platform.getItemElements()).slice(0, maxItems);
   if (!items.length) return;
@@ -62,10 +84,15 @@ async function analyzeItems(filters, minMatch, platform, maxItems = 10) {
   try {
     data = await callApiAnalyze(itemSources, filters, apiEndpoint, apiKey);
   } catch {
+    if (sendResponse) sendResponse({ apiResponse: "API error" });
     return;
   }
-  if (!data.filters) return;
+  if (!data.filters) {
+    if (sendResponse) sendResponse({ apiResponse: data });
+    return;
+  }
   updateItemStatus(items, data.filters, minMatch);
+  if (sendResponse) sendResponse({ apiResponse: data });
 }
 
 function updateItemVisibility(minMatch) {
@@ -81,10 +108,18 @@ function updateItemVisibility(minMatch) {
   });
 }
 
-chrome.runtime.onMessage.addListener((msg) => {
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "APPLY_FILTERS") {
     const platform = getPlatform();
-    analyzeItems(msg.activeFilters, msg.minMatch, platform, msg.maxItems ?? 10);
+    analyzeItems(
+      msg.activeFilters,
+      msg.minMatch,
+      platform,
+      msg.maxItems ?? 10,
+      sendResponse,
+    );
+    // Indicate async response
+    return true;
   }
   if (msg.type === "UPDATE_MIN_MATCH") updateItemVisibility(msg.minMatch);
 });

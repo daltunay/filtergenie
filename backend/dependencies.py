@@ -1,9 +1,9 @@
 import typing as tp
 
-from sqlmodel import Session
+from sqlalchemy.orm import Session
 
 from backend.analyzer import Analyzer
-from backend.common.db import get_session
+from backend.common.db import SessionLocal
 
 from .config import settings
 
@@ -21,4 +21,8 @@ def get_analyzer() -> Analyzer:
 
 def get_db_session() -> tp.Generator[Session, None, None]:
     """Dependency that provides a DB session."""
-    yield from get_session()
+    session = SessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()

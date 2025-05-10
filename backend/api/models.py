@@ -5,6 +5,7 @@ class ItemSource(BaseModel):
     """Input model for item detail scraping"""
 
     platform: str
+    url: str
     html: str
 
 

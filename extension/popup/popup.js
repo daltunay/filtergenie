@@ -15,6 +15,7 @@ const ui = {
   apiHealthBtn: document.getElementById("api-health-btn"),
   healthStatus: document.getElementById("health-status"),
   maxItemsInput: document.getElementById("max-items"),
+  apiResponse: document.getElementById("api-response"),
 };
 
 class FilterManager {
@@ -65,6 +66,19 @@ function showMessage(msg) {
   if (ui.filtersForm) ui.filtersForm.style.display = "none";
 }
 
+function setApiResponse(status, error) {
+  if (!ui.apiResponse) return;
+  if (status === undefined || status === null) {
+    ui.apiResponse.textContent = "";
+    return;
+  }
+  if (error && status !== 200) {
+    ui.apiResponse.textContent = `API error (${status}): ${error}`;
+  } else {
+    ui.apiResponse.textContent = `API status: ${status}`;
+  }
+}
+
 function renderFilters() {
   ui.filtersList.innerHTML = "";
   filterManager.getAll().forEach((filter, idx) => {
@@ -94,17 +108,28 @@ function getActiveTab(cb) {
 function sendMessageToContent(msg) {
   getActiveTab((tab) => {
     if (tab?.id) {
-      chrome.tabs.sendMessage(tab.id, msg, () => {
+      chrome.tabs.sendMessage(tab.id, msg, (response) => {
         if (
           chrome.runtime.lastError?.message?.includes(
             "Receiving end does not exist",
           )
-        )
+        ) {
           showMessage("Not available on this page.");
+          setApiResponse();
+        }
       });
-    } else showMessage("No active tab.");
+    } else {
+      showMessage("No active tab.");
+      setApiResponse();
+    }
   });
 }
+
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg.type === "API_STATUS") {
+    setApiResponse(msg.status, msg.error);
+  }
+});
 
 function loadSettings(cb) {
   if (typeof window.getApiSettings === "function")
@@ -183,6 +208,7 @@ function initializeUI() {
   filterManager.filters = [];
   renderFilters();
   setControlsEnabled(false);
+  setApiResponse();
 }
 
 function checkPlatformAndEnableControls() {

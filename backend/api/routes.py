@@ -3,7 +3,7 @@ import time
 import traceback
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlmodel import Session
+from sqlalchemy.orm import Session
 
 from backend.analyzer import Analyzer
 from backend.analyzer.models import FilterModel
@@ -57,14 +57,18 @@ async def _analyze_single_item(
 ) -> tuple[int, list[FilterModel]]:
     """Process and analyze a single item and return its results with index."""
     platform = item_request.platform
-    log.debug(f"Processing item {idx + 1}", platform=platform)
+    url = item_request.url
+    log.debug(f"Processing item {idx + 1}", platform=platform, url=url)
     try:
-        item = await cached_scrape_item(session, platform=platform, html=item_request.html)
-        log.debug(f"ItemModel {idx + 1} scraped successfully", platform=platform, item=item)
+        item = await cached_scrape_item(session, platform=platform, url=url, html=item_request.html)
+        log.debug(
+            f"ItemModel {idx + 1} scraped successfully", platform=platform, url=url, item=item
+        )
     except Exception as e:
         log.error(
             f"Failed to scrape item {idx + 1}",
             platform=platform,
+            url=url,
             error=str(e),
             exc_info=e,
         )
@@ -77,6 +81,7 @@ async def _analyze_single_item(
         log.debug(
             f"ItemModel {idx + 1} analyzed successfully",
             platform=platform,
+            url=url,
             title=item.title,
             matched_filters=matched_count,
             total_filters=len(filter_models),
@@ -86,6 +91,7 @@ async def _analyze_single_item(
         log.error(
             f"Failed to analyze item {idx + 1}",
             platform=platform,
+            url=url,
             title=item.title,
             error=str(e),
             exc_info=e,

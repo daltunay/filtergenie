@@ -1,11 +1,19 @@
 import os
-import pickle
-import typing as tp
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
-from sqlmodel import Field, Session, SQLModel, create_engine, select
+from sqlalchemy import (
+    JSON,
+    Column,
+    DateTime,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    create_engine,
+)
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 from backend.common.logging import log
 from backend.config import settings
@@ -14,41 +22,42 @@ DB_PATH = settings.cache.db_path
 DB_URL = f"sqlite:///{DB_PATH}"
 
 engine = create_engine(DB_URL, connect_args={"check_same_thread": False}, echo=False)
+SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)  # ty: ignore[no-matching-overload]
+Base = declarative_base()
 
 
-class DBEntry(SQLModel, table=True):
-    """SQLModel for cache entries."""
+class ScrapedItem(Base):
+    __tablename__ = "scraped_items"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    platform = Column(String, nullable=False)
+    url = Column(String, nullable=False)
+    html = Column(Text, nullable=False)
+    created = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    __table_args__ = (UniqueConstraint("platform", "url", name="_platform_url_uc"),)
 
-    key: str = Field(..., primary_key=True)
-    value_pickle: bytes = Field(...)
-    created: datetime = Field(default=datetime.now(timezone.utc))
-    function_name: str = Field(..., index=True)
+
+class AnalysisResult(Base):
+    __tablename__ = "analysis_results"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    platform = Column(String, nullable=False)
+    url = Column(String, nullable=False)
+    item = Column(JSON, nullable=False)
+    filters = Column(JSON, nullable=False)
+    created = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    __table_args__ = (UniqueConstraint("platform", "url", name="_platform_url_analysis_uc"),)
 
 
 def init_db() -> None:
-    """Initialize the database and create tables."""
     db_dir = os.path.dirname(DB_PATH)
     if db_dir:
         Path(db_dir).mkdir(parents=True, exist_ok=True)
-
-    SQLModel.metadata.create_all(engine)
+    Base.metadata.create_all(engine)
     log.info("Database initialized", db_path=DB_PATH)
-
-
-def get_session() -> tp.Generator[Session, None, None]:
-    """FastAPI dependency for database session."""
-    with Session(engine) as session:
-        try:
-            yield session
-        except Exception:
-            session.rollback()
-            raise
 
 
 @contextmanager
 def get_session_context():
-    """Context manager for database session (for non-FastAPI code)."""
-    session = Session(engine)
+    session = SessionLocal()
     try:
         yield session
     except Exception:
@@ -56,59 +65,3 @@ def get_session_context():
         raise
     finally:
         session.close()
-
-
-async def store_in_db(
-    cache_key: str, value: tp.Any, function_name: str, session: Session | None = None
-) -> bool:
-    """Store an item in the database cache."""
-    try:
-        value_pickle = pickle.dumps(value)
-        db_entry = DBEntry(
-            key=cache_key,
-            value_pickle=value_pickle,
-            function_name=function_name,
-        )
-        if session is None:
-            with get_session_context() as s:
-                s.add(db_entry)
-                s.commit()
-        else:
-            session.add(db_entry)
-            session.commit()
-        log.debug("Cache entry stored", function=function_name, cache_key=cache_key)
-        return True
-    except Exception as e:
-        log.error(
-            "Failed to store cache entry",
-            error=str(e),
-            function=function_name,
-            cache_key=cache_key,
-            exc_info=e,
-        )
-        return False
-
-
-async def get_from_db(cache_key: str, session: Session | None = None) -> tp.Any | None:
-    """Get an item from the database cache."""
-    try:
-
-        def fetch_entry(s: Session):
-            statement = select(DBEntry).where(DBEntry.key == cache_key)
-            return s.exec(statement).first()
-
-        if session is None:
-            with get_session_context() as s:
-                entry = fetch_entry(s)
-        else:
-            entry = fetch_entry(session)
-        if entry:
-            log.debug(
-                "Retrieved from cache",
-                function=entry.function_name,
-                cache_key=cache_key,
-            )
-        return pickle.loads(entry.value_pickle) if entry else None
-    except Exception as e:
-        log.error("Error retrieving from cache", error=str(e), cache_key=cache_key, exc_info=e)
-        return None
