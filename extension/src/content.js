@@ -1,18 +1,20 @@
 function getPlatform() {
-  const registry = window.platformRegistry;
+  const reg = window.platformRegistry;
   const url = window.location.href;
-  if (!registry || !registry._platforms?.length) return null;
+  if (!reg || !reg._platforms?.length) return null;
   const host = new URL(url).hostname;
-  for (const p of registry._platforms) {
-    try {
-      if (p._config.hostPattern.test(host) && p.isSupported(url)) return p;
-    } catch {}
-  }
-  return null;
+  return (
+    reg._platforms.find((p) => {
+      try {
+        return p._config.hostPattern.test(host) && p.isSupported(url);
+      } catch {
+        return false;
+      }
+    }) || null
+  );
 }
 
-async function fetchItemSources(platform) {
-  const items = Array.from(platform.getItemElements());
+async function fetchItemSources(platform, items) {
   return Promise.all(
     items.map(async (item) => ({
       platform: platform.name,
@@ -34,36 +36,32 @@ async function callApiAnalyze(items, filters, apiEndpoint, apiKey) {
 }
 
 function updateItemStatus(items, filtersData, minMatch) {
-  filtersData.forEach((filterResults, idx) => {
-    const item = items[idx];
-    let matchCount = 0;
-    let statusText = "";
-    for (const [desc, matched] of Object.entries(filterResults)) {
-      statusText += `${matched ? "✔️" : "❌"} ${desc} `;
-      if (matched) matchCount++;
-    }
+  items.forEach((item, idx) => {
+    const filterResults = filtersData[idx] || {};
+    const matchCount = Object.values(filterResults).filter(Boolean).length;
     let statusDiv = item.querySelector(".filtergenie-status");
     if (!statusDiv) {
       statusDiv = document.createElement("div");
       statusDiv.className = "filtergenie-status";
       item.appendChild(statusDiv);
     }
-    statusDiv.textContent = statusText.trim();
+    statusDiv.textContent = Object.entries(filterResults)
+      .map(([desc, matched]) => `${matched ? "✔️" : "❌"} ${desc}`)
+      .join(" ");
     item.style.display = matchCount >= minMatch ? "" : "none";
   });
 }
 
-async function analyzeItems(filters, minMatch, platform) {
+async function analyzeItems(filters, minMatch, platform, maxItems = 10) {
   if (!platform) return;
-  const items = Array.from(platform.getItemElements());
+  const items = Array.from(platform.getItemElements()).slice(0, maxItems);
   if (!items.length) return;
-  const itemSources = await fetchItemSources(platform);
+  const itemSources = await fetchItemSources(platform, items);
   const { apiEndpoint, apiKey } = await window.getApiSettings();
   let data;
   try {
     data = await callApiAnalyze(itemSources, filters, apiEndpoint, apiKey);
   } catch {
-    console.log("api err");
     return;
   }
   if (!data.filters) return;
@@ -73,22 +71,20 @@ async function analyzeItems(filters, minMatch, platform) {
 function updateItemVisibility(minMatch) {
   const platform = getPlatform();
   if (!platform) return;
-  document.querySelectorAll(platform._config?.itemSelector).forEach((item) => {
+  const maxItems =
+    parseInt(document.getElementById("max-items")?.value, 10) || 10;
+  const items = Array.from(platform.getItemElements()).slice(0, maxItems);
+  items.forEach((item) => {
     const statusDiv = item.querySelector(".filtergenie-status");
-    if (!statusDiv) return;
-    const matchCount = (statusDiv.textContent.match(/✔️/g) || []).length;
+    const matchCount = (statusDiv?.textContent.match(/✔️/g) || []).length;
     item.style.display = matchCount >= minMatch ? "" : "none";
   });
 }
 
-function handleMessage(msg) {
+chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type === "APPLY_FILTERS") {
     const platform = getPlatform();
-    analyzeItems(msg.activeFilters, msg.minMatch, platform);
+    analyzeItems(msg.activeFilters, msg.minMatch, platform, msg.maxItems ?? 10);
   }
-  if (msg.type === "UPDATE_MIN_MATCH") {
-    updateItemVisibility(msg.minMatch);
-  }
-}
-
-chrome.runtime.onMessage.addListener(handleMessage);
+  if (msg.type === "UPDATE_MIN_MATCH") updateItemVisibility(msg.minMatch);
+});

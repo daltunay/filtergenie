@@ -29,12 +29,13 @@ class Platform {
     return document.querySelectorAll(this._config.itemSelector);
   }
   getItemUrl(item) {
+    if (typeof this._config.getItemUrl === "function") {
+      return this._config.getItemUrl(item);
+    }
     const link = item.querySelector(this._config.itemLinkSelector);
     const href = link?.getAttribute("href");
     if (!href) return null;
-    return href.startsWith("http")
-      ? href
-      : `${this._config.baseUrl}${href.startsWith("/") ? href : `/${href}`}`;
+    return href;
   }
   async getItemHtml(item) {
     const url = this.getItemUrl(item);

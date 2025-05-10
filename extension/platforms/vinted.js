@@ -9,6 +9,13 @@ if (typeof window !== "undefined") {
       itemLinkSelector:
         'a.new-item-box__overlay[data-testid^="product-item-id-"][href^="https://www.vinted.fr/items/"]',
       baseUrl: "https://www.vinted.fr",
+      getItemUrl(item) {
+        const link = item.querySelector(
+          'a.new-item-box__overlay[data-testid^="product-item-id-"][href^="https://www.vinted.fr/items/"]',
+        );
+        const href = link?.getAttribute("href");
+        return href || null;
+      },
     };
     window.platformRegistry.registerPlatform(vintedConfig);
   }

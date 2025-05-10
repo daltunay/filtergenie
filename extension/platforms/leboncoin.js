@@ -8,6 +8,14 @@ if (typeof window !== "undefined") {
       itemSelector: 'article[data-test-id="ad"]',
       itemLinkSelector: 'a.absolute.inset-0[href^="/ad/"]',
       baseUrl: "https://www.leboncoin.fr",
+      getItemUrl(item) {
+        const link = item.querySelector('a.absolute.inset-0[href^="/ad/"]');
+        const href = link?.getAttribute("href");
+        if (!href) return null;
+        return href.startsWith("http")
+          ? href
+          : `${this.baseUrl}${href.startsWith("/") ? href : `/${href}`}`;
+      },
     };
     window.platformRegistry.registerPlatform(leboncoinConfig);
   }
