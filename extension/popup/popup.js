@@ -5,6 +5,10 @@ const addBtn = document.getElementById("add-filter");
 const applyBtn = document.getElementById("apply-filters");
 const minMatchInput = document.getElementById("min-match");
 const minMatchValue = document.getElementById("min-match-value");
+const apiEndpointInput = document.getElementById("api-endpoint");
+const apiKeyInput = document.getElementById("api-key");
+const saveSettingsBtn = document.getElementById("save-settings");
+const settingsSaved = document.getElementById("settings-saved");
 
 const FilterManager = {
   filters: [],
@@ -63,10 +67,7 @@ filterInput.addEventListener("keydown", (e) => {
 
 filtersForm.onsubmit = (e) => e.preventDefault();
 
-const getMinMatch = () => {
-  const v = parseInt(minMatchInput.value, 10);
-  return v > 0 ? v : 0;
-};
+const getMinMatch = () => Math.max(0, parseInt(minMatchInput.value, 10) || 0);
 
 const sendFiltersToContent = () => {
   chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
@@ -94,7 +95,7 @@ minMatchInput.oninput = () => {
   sendMinMatchToContent();
 };
 
-function showMessage(msg) {
+const showMessage = (msg) => {
   let msgDiv = document.getElementById("filtergenie-message");
   if (!msgDiv) {
     msgDiv = document.createElement("div");
@@ -104,14 +105,37 @@ function showMessage(msg) {
   msgDiv.textContent = msg;
   const form = document.getElementById("filters-form");
   if (form) form.style.display = "none";
-}
+};
 
-function setControlsEnabled(enabled) {
+const setControlsEnabled = (enabled) => {
   filterInput.disabled = !enabled;
   addBtn.disabled = !enabled;
   applyBtn.disabled = !enabled;
   minMatchInput.disabled = !enabled;
-}
+};
+
+const loadSettings = () => {
+  chrome.storage.local.get(
+    { apiEndpoint: "http://localhost:8000", apiKey: "" },
+    ({ apiEndpoint, apiKey }) => {
+      apiEndpointInput.value = apiEndpoint || "http://localhost:8000";
+      apiKeyInput.value = apiKey || "";
+    },
+  );
+};
+
+const saveSettings = () => {
+  const apiEndpoint = apiEndpointInput.value.trim() || "http://localhost:8000";
+  const apiKey = apiKeyInput.value.trim();
+  chrome.storage.local.set({ apiEndpoint, apiKey }, () => {
+    settingsSaved.hidden = false;
+    setTimeout(() => {
+      settingsSaved.hidden = true;
+    }, 1000);
+  });
+};
+
+saveSettingsBtn.onclick = saveSettings;
 
 document.addEventListener("DOMContentLoaded", () => {
   minMatchInput.value = 0;
@@ -137,4 +161,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     setControlsEnabled(true);
   });
+
+  loadSettings();
 });

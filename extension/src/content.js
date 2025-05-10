@@ -1,3 +1,12 @@
+function getApiSettings() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(
+      { apiEndpoint: "http://localhost:8000", apiKey: "" },
+      ({ apiEndpoint, apiKey }) => resolve({ apiEndpoint, apiKey }),
+    );
+  });
+}
+
 async function analyzeItems(filters, minMatch, platform) {
   const items = Array.from(platform.getItemElements());
   const itemSources = await Promise.all(
@@ -7,9 +16,14 @@ async function analyzeItems(filters, minMatch, platform) {
     })),
   );
 
-  const resp = await fetch("http://localhost:8000/items/analyze", {
+  const { apiEndpoint, apiKey } = await getApiSettings();
+
+  const headers = { "Content-Type": "application/json" };
+  if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
+
+  const resp = await fetch(`${apiEndpoint}/items/analyze`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify({ items: itemSources, filters }),
   });
   const data = await resp.json();
