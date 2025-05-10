@@ -4,7 +4,7 @@ default_install_hook_types:
 
 repos:
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.7.2
+    rev: 0.7.3
     hooks:
       - id: uv-sync
       - id: uv-lock
@@ -26,7 +26,7 @@ repos:
         args: [--disable=MD013, --disable=MD033]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.8
+    rev: v0.11.9
     hooks:
       - id: ruff
         args: [--extend-select=I, --fix]
@@ -41,3 +41,16 @@ repos:
         pass_filenames: false
         args: [--python=.venv/]
         additional_dependencies: [ty]
+
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v4.0.0-alpha.8
+    hooks:
+      - id: prettier
+        additional_dependencies: [prettier]
+
+  - repo: https://github.com/pre-commit/mirrors-eslint
+    rev: v9.26.0
+    hooks:
+      - id: eslint
+        args: [--fix]
+        additional_dependencies: [eslint]

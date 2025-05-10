@@ -6,12 +6,9 @@ if (typeof window !== "undefined") {
       searchPathPatterns: [/^\/recherche/, /^\/c\//],
       itemPathPattern: /\/ad\//,
       itemSelector: 'article[data-test-id="ad"]',
-      itemLinkSelector: 'a[href*="/ad/"]',
+      itemLinkSelector: 'a.absolute.inset-0[href^="/ad/"]',
       baseUrl: "https://www.leboncoin.fr",
     };
     window.platformRegistry.registerPlatform(leboncoinConfig);
-    console.log("lbc ok");
-  } else {
-    console.warn("no registry");
   }
 }
