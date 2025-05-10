@@ -1,6 +1,7 @@
 from sqlmodel import Session
 
-from backend.analyzer import Analyzer, FilterModel, ItemModel
+from backend.analyzer import Analyzer
+from backend.analyzer.models import FilterModel, ItemModel
 from backend.common.cache import cached
 from backend.scraper import scrape_item
 

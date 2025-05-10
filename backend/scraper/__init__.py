@@ -2,7 +2,7 @@
 
 import typing as tp
 
-from backend.analyzer import ItemModel
+from backend.analyzer.models import ItemModel
 from backend.common.logging import log
 
 from .platforms.ebay import EbayScraper

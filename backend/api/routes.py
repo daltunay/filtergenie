@@ -4,7 +4,8 @@ import traceback
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
 
-from backend.analyzer import Analyzer, FilterModel
+from backend.analyzer import Analyzer
+from backend.analyzer.models import FilterModel
 from backend.auth.middleware import verify_api_key
 from backend.common.cache import clear_cache
 from backend.common.logging import log
