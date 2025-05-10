@@ -1,13 +1,11 @@
 {
   "manifest_version": 3,
   "name": "FilterGenie",
-  "version": "1.0",
+  "version": "0.1.0",
   "description": "Filter search results using AI",
   "permissions": ["activeTab", "scripting", "storage", "webRequest"],
   "host_permissions": ["<all_urls>"],
-  "background": {
-    "service_worker": "src/background/background.js"
-  },
+  "background": {},
   "action": {
     "default_popup": "popup/popup.html",
     "default_icon": {
@@ -21,12 +19,11 @@
     {
       "matches": ["https://*.leboncoin.fr/*"],
       "js": [
-        "platforms/platform-interface.js",
         "platforms/leboncoin.js",
-        "src/content/content-core.js",
-        "src/content/content.js"
+        "src/platform-registry.js",
+        "src/content.js"
       ],
-      "css": ["src/content/styles.css"],
+      "css": [],
       "run_at": "document_idle"
     }
   ],

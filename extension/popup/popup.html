@@ -1,205 +1,23 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html>
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FilterGenie</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="popup.css" />
   </head>
   <body>
-    <header class="header">
-      <h1>Filter<span>Genie</span></h1>
-      <p class="header-tagline">AI powered filtering</p>
-    </header>
-
-    <main class="main">
-      <section id="site-status" class="status-section">
-        <div id="status-icon" class="status-icon" aria-hidden="true"></div>
-        <div class="status-text">
-          <h3>Current site: <span id="current-site">Checking...</span></h3>
-          <p id="site-message">Detecting compatible website...</p>
-        </div>
-      </section>
-
-      <section id="filter-panel" class="panel" style="display: none">
-        <div class="section-header">
-          <div class="section-header-content">
-            <h2 class="panel-title">Filters</h2>
-          </div>
-          <div
-            class="tooltip"
-            data-tip="Enter filters in natural language. AI will analyze item images, title, and description to determine if criteria are met."
-          ></div>
-        </div>
-
-        <div class="section-content">
-          <div class="filter-container">
-            <div id="filter-list" class="filter-list"></div>
-            <button id="add-filter-btn" class="btn btn-add">
-              <img src="../assets/images/plus.svg" alt="Add" class="btn-icon" />
-              Add Filter
-            </button>
-          </div>
-        </div>
-
-        <div class="section-header settings-section-header">
-          <div class="section-header-content">
-            <h2 class="panel-title">Settings</h2>
-          </div>
-        </div>
-
-        <div class="section-content">
-          <div class="settings-container">
-            <div class="setting">
-              <div class="setting-header">
-                <label for="max-items">Items to analyze</label>
-                <div
-                  class="tooltip"
-                  data-tip="Controls how many items will be analyzed. Higher values give more results but take longer."
-                ></div>
-              </div>
-              <div class="number-input">
-                <input type="number" id="max-items" />
-                <div class="number-buttons">
-                  <button id="increase-max">▲</button>
-                  <button id="decrease-max">▼</button>
-                </div>
-              </div>
-            </div>
-
-            <div class="setting">
-              <div class="setting-header">
-                <label for="filter-threshold">Filter match requirement</label>
-                <div
-                  class="tooltip"
-                  data-tip="Items that don't fit the requirement will be removed from the results."
-                ></div>
-              </div>
-              <div class="slider-container">
-                <input type="range" id="filter-threshold" />
-                <span id="threshold-value" class="value-display"
-                  >At least 1 criterion</span
-                >
-              </div>
-            </div>
-          </div>
-
-          <div class="actions">
-            <button id="apply-btn" class="btn btn-primary">
-              <img
-                src="../assets/images/check-circle.svg"
-                alt="Apply"
-                class="btn-icon"
-              />
-              Apply Filters
-            </button>
-            <button id="reset-btn" class="btn btn-secondary">
-              <img
-                src="../assets/images/reset.svg"
-                alt="Reset"
-                class="btn-icon"
-              />
-              Reset
-            </button>
-          </div>
-
-          <div id="results-counter" class="results-counter">
-            <div class="results-indicator">
-              <div class="status-dot"></div>
-              <span class="results-text">No filters applied yet</span>
-            </div>
-            <div class="results-details"></div>
-          </div>
-        </div>
-      </section>
-
-      <div class="advanced-container">
-        <button id="toggle-advanced" class="advanced-toggle">
-          <span>Advanced Settings</span>
-          <img
-            src="../assets/images/chevron.svg"
-            alt="Expand"
-            class="icon-chevron"
-          />
-        </button>
-
-        <div id="advanced-panel" class="advanced-content">
-          <div class="settings-group">
-            <h3 class="settings-group-title">API Configuration</h3>
-            <div class="settings-container">
-              <div class="setting">
-                <div class="setting-header">
-                  <div class="setting-label-with-icon">
-                    <label for="api-endpoint">API Endpoint</label>
-                  </div>
-                  <div
-                    class="tooltip"
-                    data-tip="The base URL of the backend API. Use localhost:8000 for local development or your deployed URL."
-                  ></div>
-                </div>
-                <input
-                  type="text"
-                  id="api-endpoint"
-                  placeholder="http://localhost:8000"
-                  class="text-input"
-                />
-              </div>
-
-              <div class="setting">
-                <div class="setting-header">
-                  <label for="api-key">API Key</label>
-                  <div
-                    class="tooltip"
-                    data-tip="API key for authentication (if required). Leave empty if your API endpoint doesn't require authentication."
-                  ></div>
-                </div>
-                <input
-                  type="password"
-                  id="api-key"
-                  placeholder="Optional"
-                  class="text-input"
-                />
-              </div>
-            </div>
-
-            <button id="save-api-settings" class="btn btn-primary">
-              Save Settings
-            </button>
-
-            <div id="api-settings-status" class="settings-status"></div>
-          </div>
-        </div>
-      </div>
-    </main>
-
-    <footer class="footer">
-      <div class="footer-author">
-        <span>Made by Daniel Altunay</span>
-      </div>
-      <div class="social-links">
-        <a
-          href="https://github.com/daltunay/filtergenie"
-          target="_blank"
-          class="social-link"
-        >
-          <img src="../assets/social/github.png" alt="GitHub" />
-        </a>
-        <a
-          href="https://www.linkedin.com/in/daltunay/"
-          target="_blank"
-          class="social-link"
-        >
-          <img src="../assets/social/linkedin.png" alt="LinkedIn" />
-        </a>
-      </div>
-    </footer>
-
-    <script src="popup.js"></script>
+    <form id="filters-form">
+      <input type="text" id="filter-input" placeholder="Enter filter" autocomplete="off">
+      <button type="button" id="add-filter">Add filter</button>
+      <ul id="filters-list"></ul>
+      <br>
+      <button type="button" id="apply-filters">Apply filters</button>
+      <br>
+      <label>
+        Min. matching filters:
+        <input type="number" id="min-match" min="0" value="0" style="width:40px;">
+      </label>
+    </form>
+    <script src="../platforms/leboncoin.js"></script>
+    <script src="../platforms/platform-interface.js"></script>
+    <script type="module" src="popup.js"></script>
   </body>
 </html>

@@ -1,0 +1,54 @@
+async function analyzeItems(filters, minMatch, platform) {
+  const items = Array.from(platform.getItemElements());
+  const itemSources = await Promise.all(
+    items.map(async (item) => ({
+      platform: platform.name,
+      html: await platform.getItemHtml(item),
+    })),
+  );
+
+  const resp = await fetch("http://localhost:8000/items/analyze", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ items: itemSources, filters }),
+  });
+  const data = await resp.json();
+
+  data.filters.forEach((filterResults, idx) => {
+    const item = items[idx];
+    let matchCount = 0;
+    let statusText = "";
+    for (const [desc, matched] of Object.entries(filterResults)) {
+      statusText += `${matched ? "✔️" : "❌"} ${desc} `;
+      if (matched) matchCount++;
+    }
+    let statusDiv = item.querySelector(".filtergenie-status");
+    if (!statusDiv) {
+      statusDiv = document.createElement("div");
+      statusDiv.className = "filtergenie-status";
+      item.appendChild(statusDiv);
+    }
+    statusDiv.textContent = statusText.trim();
+    item.style.display = matchCount >= minMatch ? "" : "none";
+  });
+}
+
+function updateItemVisibility(minMatch) {
+  const items = document.querySelectorAll('article[data-test-id="ad"]');
+  items.forEach((item) => {
+    const statusDiv = item.querySelector(".filtergenie-status");
+    if (!statusDiv) return;
+    const matchCount = (statusDiv.textContent.match(/✔️/g) || []).length;
+    item.style.display = matchCount >= minMatch ? "" : "none";
+  });
+}
+
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg.type === "APPLY_FILTERS") {
+    const platform = getCurrentPlatform(window.location.href);
+    analyzeItems(msg.activeFilters, msg.minMatch, platform);
+  }
+  if (msg.type === "UPDATE_MIN_MATCH") {
+    updateItemVisibility(msg.minMatch);
+  }
+});

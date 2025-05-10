@@ -1,28 +1,35 @@
-/**
- * FilterGenie - leboncoin Platform Implementation
- */
-
-class LeboncoinPlatform extends PlatformInterface {
-  name = "leboncoin";
-  searchPatterns = [/\/(recherche|c)(\/|$)/];
-
+const leboncoin = {
+  name: "leboncoin",
+  isSupported(url) {
+    return url.includes("leboncoin.fr");
+  },
   isItemPage(url) {
     return new URL(url).pathname.includes("/ad/");
-  }
-
-  getItemItems() {
+  },
+  getItemElements() {
     return document.querySelectorAll('article[data-test-id="ad"]');
-  }
-
-  extractUrl(link) {
+  },
+  getItemUrl(item) {
+    const link = item.querySelector('a[href*="/ad/"]');
+    if (!link) return null;
     const href = link.getAttribute("href");
+    if (!href) return null;
     if (href.startsWith("http")) return href;
     return `https://www.leboncoin.fr${href.startsWith("/") ? href : `/${href}`}`;
-  }
+  },
+  async getItemHtml(item) {
+    const url = this.getItemUrl(item);
+    if (!url) return "";
+    try {
+      const resp = await fetch(url, { credentials: "include" });
+      return await resp.text();
+    } catch {
+      return "";
+    }
+  },
+  getItemContainer(item) {
+    return item;
+  },
+};
 
-  findImageContainer(item) {
-    return item.querySelector("img")?.closest("div") || item;
-  }
-}
-
-registerPlatform("leboncoin.fr", LeboncoinPlatform);
+window.leboncoin = leboncoin;
