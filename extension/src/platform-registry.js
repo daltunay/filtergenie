@@ -2,21 +2,17 @@ const platforms = [
   typeof window !== "undefined" ? window.leboncoin : undefined,
 ].filter(Boolean);
 
-function getCurrentPlatform(url = window.location.href) {
-  for (const platform of platforms) {
-    if (platform && platform.isSupported(url)) return platform;
-  }
-  return null;
-}
+const getCurrentPlatform = (url = window.location.href) =>
+  platforms.find((p) => p && p.isSupported(url)) || null;
 
-function isCurrentPageSearchPage(url = window.location.href) {
+const isCurrentPageSearchPage = (url = window.location.href) => {
   const platform = getCurrentPlatform(url);
-  if (!platform) return false;
-  if (typeof platform.isSearchPage === "function") {
-    return platform.isSearchPage(url);
-  }
-  return false;
-}
+  return !!(
+    platform &&
+    typeof platform.isSearchPage === "function" &&
+    platform.isSearchPage(url)
+  );
+};
 
 if (typeof window !== "undefined") {
   window.getCurrentPlatform = getCurrentPlatform;

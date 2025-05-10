@@ -33,15 +33,14 @@ async function analyzeItems(filters, minMatch, platform) {
   });
 }
 
-function updateItemVisibility(minMatch) {
-  const items = document.querySelectorAll('article[data-test-id="ad"]');
-  items.forEach((item) => {
+const updateItemVisibility = (minMatch) => {
+  document.querySelectorAll('article[data-test-id="ad"]').forEach((item) => {
     const statusDiv = item.querySelector(".filtergenie-status");
     if (!statusDiv) return;
     const matchCount = (statusDiv.textContent.match(/✔️/g) || []).length;
     item.style.display = matchCount >= minMatch ? "" : "none";
   });
-}
+};
 
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type === "APPLY_FILTERS") {

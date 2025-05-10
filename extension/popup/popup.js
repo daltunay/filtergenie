@@ -14,7 +14,7 @@ const FilterManager = {
           `<li>${filter} <button data-idx="${idx}" class="remove-btn">✖</button></li>`,
       )
       .join("");
-    applyBtn.disabled = this.filters.length === 0;
+    applyBtn.disabled = !this.filters.length;
   },
   add(filter) {
     if (filter && !this.filters.includes(filter)) {
@@ -49,25 +49,26 @@ addBtn.onclick = () => {
 
 filtersForm.onsubmit = (e) => e.preventDefault();
 
+const getMinMatch = () => {
+  const v = parseInt(minMatchInput.value, 10);
+  return isNaN(v) || v < 0 ? 0 : v;
+};
+
 const sendFiltersToContent = () => {
-  let minMatch = parseInt(minMatchInput.value, 10);
-  if (isNaN(minMatch) || minMatch < 0) minMatch = 0;
   chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
     chrome.tabs.sendMessage(tab.id, {
       type: "APPLY_FILTERS",
       activeFilters: FilterManager.getAll(),
-      minMatch,
+      minMatch: getMinMatch(),
     });
   });
 };
 
 const sendMinMatchToContent = () => {
-  let minMatch = parseInt(minMatchInput.value, 10);
-  if (isNaN(minMatch) || minMatch < 0) minMatch = 0;
   chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
     chrome.tabs.sendMessage(tab.id, {
       type: "UPDATE_MIN_MATCH",
-      minMatch,
+      minMatch: getMinMatch(),
     });
   });
 };
@@ -83,6 +84,9 @@ function showMessage(msg) {
     document.body.insertBefore(msgDiv, document.body.firstChild);
   }
   msgDiv.textContent = msg;
+  // Hide the form when showing a message
+  const form = document.getElementById("filters-form");
+  if (form) form.style.display = "none";
 }
 
 function setControlsEnabled(enabled) {
