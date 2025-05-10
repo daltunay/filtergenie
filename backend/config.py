@@ -70,7 +70,7 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_ignore_empty=True,
-        env_nested_delimiter=".",
+        env_nested_delimiter="__",
         env_nested_max_split=2,
         env_file=".env",
         env_file_encoding="utf-8",

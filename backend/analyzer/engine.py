@@ -35,12 +35,12 @@ class Analyzer:
 
     def __init__(
         self,
-        uselocal: bool = False,
+        use_local: bool = False,
         local_config: LocalModelConfig | None = None,
         remote_config: RemoteModelConfig | None = None,
     ):
         """Initialize the analyzer with either a local VLM model or AsyncOpenAI."""
-        if uselocal:
+        if use_local:
             self.local_config = local_config or LocalModelConfig()
             log.info("Initializing local model", name=self.local_config.name)
             self.model = self._create_local_model()
@@ -76,7 +76,8 @@ class Analyzer:
         from outlines import generate
 
         generator = generate.json(self.model, schema)
-        return generator(prompt, [image.base64 for image in images])
+        pil_images = [image.pil for image in images]
+        return generator(prompt, pil_images)
 
     def _create_openai_model(self) -> "AsyncOpenAI":
         """Create an AsyncOpenAI model with async client."""

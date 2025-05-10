@@ -53,7 +53,7 @@ docker build -t filtergenie .
 docker run \
   -p 8000:8000 \
   -v $.data:/app/data \
-  -e MODEL.REMOTE_API_KEY=your_gemini_api_key \
+  -e MODEL__REMOTE__API_KEY=your_gemini_api_key \
   filtergenie
 ```
 
@@ -66,7 +66,7 @@ docker build --build-arg LOCAL=true -t filtergenie:local .
 docker run \
   -p 8000:8000 \
   -v $.data:/app/data \
-  -e MODEL.USE_LOCAL=true \
+  -e MODEL__USE_LOCAL=true \
   filtergenie:local
 ```
 
@@ -81,9 +81,9 @@ docker run \
 Set these environment variables as needed:
 
 - `API_KEY`: API authentication key (default: `None`, no auth)
-- `MODEL.USE_LOCAL`: Use local model (`true`/`false`, default: `false`)
-- `MODEL.REMOTE.API_KEY`: Remote model API key (required for remote usage)
-- `MODEL.REMOTE.NAME`: Remote model name (default: `gemini-2.0-flash-lite`)
-- `MODEL.LOCAL.NAME`: Local model name/path (default: `HuggingFaceTB/SmolVLM-Instruct`)
-- `MODEL.LOCAL.DTYPE`: Local model data type (default: `bfloat16`)
-- `MODEL.LOCAL.DEVICE`: Device for local inference (default: `auto`)
+- `MODEL__USE_LOCAL`: Use local model (`true`/`false`, default: `false`)
+- `MODEL__REMOTE__API_KEY`: Remote model API key (required for remote usage)
+- `MODEL__REMOTE__NAME`: Remote model name (default: `gemini-2.0-flash-lite`)
+- `MODEL__LOCAL__NAME`: Local model name/path (default: `HuggingFaceTB/SmolVLM-Instruct`)
+- `MODEL__LOCAL__DTYPE`: Local model data type (default: `bfloat16`)
+- `MODEL__LOCAL__DEVICE`: Device for local inference (default: `auto`)

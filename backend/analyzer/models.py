@@ -1,7 +1,8 @@
+from PIL.Image import Image
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 from backend.common.logging import log
-from backend.common.utils import sanitize_text, url_to_base64
+from backend.common.utils import pil_to_base64, sanitize_text, url_to_pil
 
 
 class ImageModel(BaseModel):
@@ -10,8 +11,12 @@ class ImageModel(BaseModel):
     url: str = Field(...)
 
     @property
+    def pil(self) -> Image:
+        return url_to_pil(self.url)
+
+    @property
     def base64(self) -> str:
-        return url_to_base64(self.url)
+        return pil_to_base64(self.pil)
 
 
 class ItemModel(BaseModel):

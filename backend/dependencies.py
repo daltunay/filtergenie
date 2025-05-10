@@ -8,7 +8,7 @@ from backend.common.db import SessionLocal
 from .config import settings
 
 _analyzer = Analyzer(
-    uselocal=settings.model.uselocal,
+    use_local=settings.model.use_local,
     local_config=settings.model.local,
     remote_config=settings.model.remote,
 )
