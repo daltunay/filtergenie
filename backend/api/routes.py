@@ -6,7 +6,7 @@ from sqlmodel import Session
 
 from backend.analyzer import Analyzer
 from backend.analyzer.models import FilterModel
-from backend.auth.middleware import verify_api_key
+from backend.auth import verify_api_key
 from backend.common.cache import clear_cache
 from backend.common.logging import log
 from backend.dependencies import get_analyzer, get_db_session
