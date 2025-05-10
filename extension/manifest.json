@@ -19,8 +19,9 @@
     {
       "matches": ["https://*.leboncoin.fr/*"],
       "js": [
-        "platforms/leboncoin.js",
         "src/platform-registry.js",
+        "platforms/leboncoin.js",
+        "src/api-settings.js",
         "src/content.js"
       ],
       "css": [],

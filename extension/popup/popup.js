@@ -1,153 +1,227 @@
-const filtersForm = document.getElementById("filters-form");
-const filterInput = document.getElementById("filter-input");
-const filtersList = document.getElementById("filters-list");
-const addBtn = document.getElementById("add-filter");
-const applyBtn = document.getElementById("apply-filters");
-const minMatchInput = document.getElementById("min-match");
-const minMatchValue = document.getElementById("min-match-value");
-const apiEndpointInput = document.getElementById("api-endpoint");
-const apiKeyInput = document.getElementById("api-key");
-const saveSettingsBtn = document.getElementById("save-settings");
-const settingsSaved = document.getElementById("settings-saved");
+// --- DOM references grouped ---
+const UI = {
+  filtersForm: document.getElementById("filters-form"),
+  filterInput: document.getElementById("filter-input"),
+  filtersList: document.getElementById("filters-list"),
+  addBtn: document.getElementById("add-filter"),
+  applyBtn: document.getElementById("apply-filters"),
+  resetBtn: document.getElementById("reset-filters"),
+  minMatchInput: document.getElementById("min-match"),
+  minMatchValue: document.getElementById("min-match-value"),
+  apiEndpointInput: document.getElementById("api-endpoint"),
+  apiKeyInput: document.getElementById("api-key"),
+  saveSettingsBtn: document.getElementById("save-settings"),
+  settingsSaved: document.getElementById("settings-saved"),
+  messageDiv: document.getElementById("filtergenie-message"),
+  apiHealthBtn: document.getElementById("api-health-btn"),
+  healthStatus: document.getElementById("health-status"),
+};
 
-const FilterManager = {
-  filters: [],
-  render() {
-    filtersList.innerHTML = this.filters
-      .map(
-        (filter, idx) =>
-          `<li>${filter} <button data-idx="${idx}" class="remove-btn">✖</button></li>`,
-      )
-      .join("");
-    applyBtn.disabled = !this.filters.length;
-    minMatchInput.max = this.filters.length;
-    if (parseInt(minMatchInput.value, 10) > this.filters.length) {
-      minMatchInput.value = this.filters.length;
-    }
-    minMatchValue.textContent = minMatchInput.value;
-    minMatchInput.disabled = !this.filters.length;
-  },
+// --- FilterManager class ---
+class FilterManager {
+  constructor(onChange) {
+    this.filters = [];
+    this.onChange = onChange;
+  }
   add(filter) {
     if (filter && !this.filters.includes(filter)) {
       this.filters.push(filter);
-      this.render();
+      this.onChange();
     }
-  },
+  }
   remove(idx) {
-    this.filters.splice(idx, 1);
-    this.render();
-  },
+    if (idx >= 0 && idx < this.filters.length) {
+      this.filters.splice(idx, 1);
+      this.onChange();
+    }
+  }
   reset() {
     this.filters = [];
-    this.render();
-  },
+    this.onChange();
+  }
   getAll() {
     return this.filters;
-  },
-};
-
-filtersList.onclick = (e) => {
-  if (e.target.classList.contains("remove-btn")) {
-    FilterManager.remove(Number(e.target.dataset.idx));
   }
-};
-
-addBtn.onclick = () => {
-  const value = filterInput.value.trim();
-  FilterManager.add(value);
-  filterInput.value = "";
-};
-
-filterInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    addBtn.click();
+  count() {
+    return this.filters.length;
   }
-});
+}
 
-filtersForm.onsubmit = (e) => e.preventDefault();
+// --- UI state helpers ---
+function updateButtonStates() {
+  const hasFilters = filterManager.count() > 0;
+  UI.applyBtn.disabled = !hasFilters;
+  UI.resetBtn.disabled = !hasFilters;
+  UI.minMatchInput.disabled = !hasFilters;
+  UI.addBtn.disabled = UI.filterInput.disabled;
+}
 
-const getMinMatch = () => Math.max(0, parseInt(minMatchInput.value, 10) || 0);
+function setControlsEnabled(enabled) {
+  UI.filterInput.disabled = !enabled;
+  UI.addBtn.disabled = !enabled;
+  updateButtonStates();
+}
 
-const sendFiltersToContent = () => {
-  chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
-    chrome.tabs.sendMessage(tab.id, {
-      type: "APPLY_FILTERS",
-      activeFilters: FilterManager.getAll(),
-      minMatch: getMinMatch(),
-    });
-  });
-};
-
-const sendMinMatchToContent = () => {
-  chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
-    chrome.tabs.sendMessage(tab.id, {
-      type: "UPDATE_MIN_MATCH",
-      minMatch: getMinMatch(),
-    });
-  });
-};
-
-applyBtn.onclick = sendFiltersToContent;
-
-minMatchInput.oninput = () => {
-  minMatchValue.textContent = minMatchInput.value;
-  sendMinMatchToContent();
-};
-
-const showMessage = (msg) => {
-  let msgDiv = document.getElementById("filtergenie-message");
+function showMessage(msg) {
+  let msgDiv = UI.messageDiv;
   if (!msgDiv) {
     msgDiv = document.createElement("div");
     msgDiv.id = "filtergenie-message";
     document.body.insertBefore(msgDiv, document.body.firstChild);
   }
   msgDiv.textContent = msg;
-  const form = document.getElementById("filters-form");
-  if (form) form.style.display = "none";
-};
+  if (UI.filtersForm) UI.filtersForm.style.display = "none";
+}
 
-const setControlsEnabled = (enabled) => {
-  filterInput.disabled = !enabled;
-  addBtn.disabled = !enabled;
-  applyBtn.disabled = !enabled;
-  minMatchInput.disabled = !enabled;
-};
-
-const loadSettings = () => {
-  chrome.storage.local.get(
-    { apiEndpoint: "http://localhost:8000", apiKey: "" },
-    ({ apiEndpoint, apiKey }) => {
-      apiEndpointInput.value = apiEndpoint || "http://localhost:8000";
-      apiKeyInput.value = apiKey || "";
-    },
-  );
-};
-
-const saveSettings = () => {
-  const apiEndpoint = apiEndpointInput.value.trim() || "http://localhost:8000";
-  const apiKey = apiKeyInput.value.trim();
-  chrome.storage.local.set({ apiEndpoint, apiKey }, () => {
-    settingsSaved.hidden = false;
-    setTimeout(() => {
-      settingsSaved.hidden = true;
-    }, 1000);
+// --- UI rendering ---
+function renderFilters() {
+  UI.filtersList.innerHTML = "";
+  filterManager.getAll().forEach((filter, idx) => {
+    const li = document.createElement("li");
+    li.textContent = filter + " ";
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "remove-btn";
+    btn.setAttribute("data-idx", idx);
+    btn.setAttribute("aria-label", "Remove filter");
+    btn.textContent = "✖";
+    li.appendChild(btn);
+    UI.filtersList.appendChild(li);
   });
-};
+  UI.minMatchInput.max = filterManager.count();
+  if (parseInt(UI.minMatchInput.value, 10) > filterManager.count()) {
+    UI.minMatchInput.value = filterManager.count();
+  }
+  UI.minMatchValue.textContent = UI.minMatchInput.value;
+  updateButtonStates();
+}
 
-saveSettingsBtn.onclick = saveSettings;
+// --- Chrome API helpers ---
+function getActiveTab(cb) {
+  chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => cb(tab));
+}
 
-document.addEventListener("DOMContentLoaded", () => {
-  minMatchInput.value = 0;
-  minMatchInput.max = 0;
-  minMatchInput.disabled = true;
-  minMatchValue.textContent = "0";
-  FilterManager.reset();
-  applyBtn.disabled = true;
+function sendMessageToContent(msg) {
+  getActiveTab((tab) => {
+    if (tab?.id) {
+      console.log("Sending message to tab", tab.id, msg);
+      chrome.tabs.sendMessage(tab.id, msg, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error("Error sending message to content script:", chrome.runtime.lastError.message);
+          if (chrome.runtime.lastError.message.includes("Receiving end does not exist")) {
+            showMessage("FilterGenie is only available on supported search pages. Please open a leboncoin search page and try again.");
+          }
+        } else {
+          console.log("Message sent, response:", response);
+        }
+      });
+    } else {
+      console.warn("No active tab found to send message");
+      showMessage("No active tab found. Please select a leboncoin search page.");
+    }
+  });
+}
 
-  chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+function loadSettings(cb) {
+  if (typeof window.getApiSettings === "function") {
+    window.getApiSettings().then(({ apiEndpoint, apiKey }) => cb({ apiEndpoint, apiKey }));
+  }
+}
+
+function saveSettings() {
+  const apiEndpoint = UI.apiEndpointInput.value.trim() || "http://localhost:8000";
+  const apiKey = UI.apiKeyInput.value.trim();
+  if (typeof window.saveApiSettings === "function") {
+    window.saveApiSettings(apiEndpoint, apiKey).then(() => {
+      UI.settingsSaved.hidden = false;
+      setTimeout(() => {
+        UI.settingsSaved.hidden = true;
+      }, 1000);
+    });
+  }
+}
+
+// --- Event handlers ---
+function onRemoveFilter(e) {
+  if (e.target.classList.contains("remove-btn")) {
+    filterManager.remove(Number(e.target.dataset.idx));
+  }
+}
+
+function onAddFilter() {
+  const value = UI.filterInput.value.trim();
+  if (value) {
+    filterManager.add(value);
+    UI.filterInput.value = "";
+  }
+}
+
+function onResetFilters() {
+  filterManager.reset();
+}
+
+function onFilterInputKeydown(e) {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    onAddFilter();
+  }
+}
+
+function onApplyFilters() {
+  const message = {
+    type: "APPLY_FILTERS",
+    activeFilters: filterManager.getAll(),
+    minMatch: getMinMatch(),
+  };
+  console.log("Apply filters clicked, sending message:", message);
+  sendMessageToContent(message);
+}
+
+function onMinMatchInput() {
+  UI.minMatchValue.textContent = UI.minMatchInput.value;
+  sendMessageToContent({
+    type: "UPDATE_MIN_MATCH",
+    minMatch: getMinMatch(),
+  });
+}
+
+function getMinMatch() {
+  return Math.max(0, parseInt(UI.minMatchInput.value, 10) || 0);
+}
+
+async function checkApiHealth() {
+  const endpoint = UI.apiEndpointInput.value.trim() || "http://localhost:8000";
+  const url = endpoint.replace(/\/+$/, "") + "/health";
+  UI.healthStatus.textContent = "Checking...";
+  try {
+    const resp = await fetch(url, { method: "GET" });
+    UI.healthStatus.textContent = resp.ok ? "✅ Healthy" : "❌ Unhealthy";
+  } catch {
+    UI.healthStatus.textContent = "❌ Error";
+  }
+}
+
+// --- Initialization ---
+const filterManager = new FilterManager(renderFilters);
+
+function initializeUI() {
+  UI.minMatchInput.value = 0;
+  UI.minMatchInput.max = 0;
+  UI.minMatchInput.disabled = true;
+  UI.minMatchValue.textContent = "0";
+  filterManager.reset();
+  updateButtonStates();
+}
+
+function checkPlatformAndEnableControls() {
+  getActiveTab((tab) => {
     const url = tab?.url || "";
     const registry = window.platformRegistry;
+    if (!registry) {
+      showMessage("Platform registry not found.");
+      setControlsEnabled(false);
+      return;
+    }
     const platform = registry.getCurrentPlatform(url);
     if (!platform) {
       showMessage("This website is not supported.");
@@ -161,6 +235,26 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     setControlsEnabled(true);
   });
+}
 
-  loadSettings();
-});
+function init() {
+  initializeUI();
+  checkPlatformAndEnableControls();
+  loadSettings(({ apiEndpoint, apiKey }) => {
+    UI.apiEndpointInput.value = apiEndpoint || "http://localhost:8000";
+    UI.apiKeyInput.value = apiKey || "";
+  });
+}
+
+// --- Attach event listeners ---
+UI.filtersList.onclick = onRemoveFilter;
+UI.addBtn.onclick = onAddFilter;
+UI.resetBtn.onclick = onResetFilters;
+UI.filterInput.addEventListener("keydown", onFilterInputKeydown);
+UI.filtersForm.onsubmit = (e) => e.preventDefault();
+UI.applyBtn.onclick = onApplyFilters;
+UI.minMatchInput.oninput = onMinMatchInput;
+UI.saveSettingsBtn.onclick = saveSettings;
+UI.apiHealthBtn.onclick = checkApiHealth;
+
+document.addEventListener("DOMContentLoaded", init);
