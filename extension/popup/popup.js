@@ -104,19 +104,14 @@ function getActiveTab(cb) {
 function sendMessageToContent(msg) {
   getActiveTab((tab) => {
     if (tab?.id) {
-      console.log("Sending message to tab", tab.id, msg);
       chrome.tabs.sendMessage(tab.id, msg, (response) => {
         if (chrome.runtime.lastError) {
-          console.error("Error sending message to content script:", chrome.runtime.lastError.message);
           if (chrome.runtime.lastError.message.includes("Receiving end does not exist")) {
             showMessage("FilterGenie is only available on supported search pages. Please open a leboncoin search page and try again.");
           }
-        } else {
-          console.log("Message sent, response:", response);
         }
       });
     } else {
-      console.warn("No active tab found to send message");
       showMessage("No active tab found. Please select a leboncoin search page.");
     }
   });
@@ -173,7 +168,6 @@ function onApplyFilters() {
     activeFilters: filterManager.getAll(),
     minMatch: getMinMatch(),
   };
-  console.log("Apply filters clicked, sending message:", message);
   sendMessageToContent(message);
 }
 

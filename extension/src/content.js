@@ -1,78 +1,39 @@
 function getPlatform() {
   const registry = window.platformRegistry;
   const url = window.location.href;
-  if (!registry) {
-    console.warn("window.platformRegistry is not defined");
-    return null;
-  }
-  if (!registry._platforms || !registry._platforms.length) {
-    console.warn("No platforms registered in registry at", url);
-    return null;
-  }
+  if (!registry || !registry._platforms?.length) return null;
   const host = new URL(url).hostname;
-  console.log("Registered platforms:", registry._platforms.map(p => p.name));
   for (const p of registry._platforms) {
     try {
-      console.log(`Checking platform "${p.name}"`);
-      console.log(`  hostPattern:`, p._config.hostPattern);
-      console.log(`  url:`, url);
-      console.log(`  host:`, host);
-      const hostMatch = p._config.hostPattern.test(host);
-      console.log(`  hostPattern.test(host):`, hostMatch);
-      if (!hostMatch) continue;
-      const supported = p.isSupported(url);
-      console.log(`  isSupported(${url}):`, supported);
-      if (supported) {
-        return p;
-      }
-    } catch (err) {
-      console.warn(`Error checking isSupported for platform "${p.name}":`, err);
-    }
+      if (p._config.hostPattern.test(host) && p.isSupported(url)) return p;
+    } catch {}
   }
-  console.warn("No matching platform for URL:", url, "host:", host);
   return null;
 }
 
-async function analyzeItems(filters, minMatch, platform) {
-  if (!platform) {
-    console.warn("No platform found for analyzeItems");
-    return;
-  }
+async function fetchItemSources(platform) {
   const items = Array.from(platform.getItemElements());
-  if (!items.length) {
-    console.warn("No items found for platform", platform.name);
-    return;
-  }
-  const itemSources = await Promise.all(
+  return Promise.all(
     items.map(async (item) => ({
       platform: platform.name,
       html: await platform.getItemHtml(item),
-    })),
+    }))
   );
+}
 
-  const { apiEndpoint, apiKey } = await window.getApiSettings();
+async function callApiAnalyze(items, filters, apiEndpoint, apiKey) {
   const headers = { "Content-Type": "application/json" };
   if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
+  const resp = await fetch(`${apiEndpoint}/items/analyze`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ items, filters }),
+  });
+  return resp.json();
+}
 
-  let resp, data;
-  try {
-    resp = await fetch(`${apiEndpoint}/items/analyze`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ items: itemSources, filters }),
-    });
-    data = await resp.json();
-  } catch (err) {
-    console.error("Error calling API:", err);
-    return;
-  }
-
-  if (!data.filters) {
-    console.warn("No filters in API response", data);
-    return;
-  }
-
-  data.filters.forEach((filterResults, idx) => {
+function updateItemStatus(items, filtersData, minMatch) {
+  filtersData.forEach((filterResults, idx) => {
     const item = items[idx];
     let matchCount = 0;
     let statusText = "";
@@ -91,12 +52,26 @@ async function analyzeItems(filters, minMatch, platform) {
   });
 }
 
-function updateItemVisibility(minMatch) {
-  const platform = getPlatform();
-  if (!platform) {
-    console.warn("No platform found for updateItemVisibility");
+async function analyzeItems(filters, minMatch, platform) {
+  if (!platform) return;
+  const items = Array.from(platform.getItemElements());
+  if (!items.length) return;
+  const itemSources = await fetchItemSources(platform);
+  const { apiEndpoint, apiKey } = await window.getApiSettings();
+  let data;
+  try {
+    data = await callApiAnalyze(itemSources, filters, apiEndpoint, apiKey);
+  } catch {
+    console.log("API error");
     return;
   }
+  if (!data.filters) return;
+  updateItemStatus(items, data.filters, minMatch);
+}
+
+function updateItemVisibility(minMatch) {
+  const platform = getPlatform();
+  if (!platform) return;
   document.querySelectorAll(platform._config?.itemSelector).forEach((item) => {
     const statusDiv = item.querySelector(".filtergenie-status");
     if (!statusDiv) return;
@@ -105,8 +80,7 @@ function updateItemVisibility(minMatch) {
   });
 }
 
-function handleMessage(msg, sender, sendResponse) {
-  console.log("FilterGenie content script received message:", msg);
+function handleMessage(msg) {
   if (msg.type === "APPLY_FILTERS") {
     const platform = getPlatform();
     analyzeItems(msg.activeFilters, msg.minMatch, platform);
