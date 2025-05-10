@@ -1,10 +1,26 @@
 const leboncoin = {
   name: "leboncoin",
   isSupported(url) {
-    return url.includes("leboncoin.fr");
+    try {
+      return new URL(url).hostname.endsWith("leboncoin.fr");
+    } catch {
+      return false;
+    }
+  },
+  isSearchPage(url) {
+    try {
+      const pathname = new URL(url).pathname;
+      return pathname.startsWith("/recherche") || pathname.startsWith("/c/");
+    } catch {
+      return false;
+    }
   },
   isItemPage(url) {
-    return new URL(url).pathname.includes("/ad/");
+    try {
+      return new URL(url).pathname.includes("/ad/");
+    } catch {
+      return false;
+    }
   },
   getItemElements() {
     return document.querySelectorAll('article[data-test-id="ad"]');
@@ -32,4 +48,6 @@ const leboncoin = {
   },
 };
 
-window.leboncoin = leboncoin;
+if (typeof window !== "undefined") {
+  window.leboncoin = leboncoin;
+}

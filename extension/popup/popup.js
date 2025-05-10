@@ -5,7 +5,49 @@ const addBtn = document.getElementById("add-filter");
 const applyBtn = document.getElementById("apply-filters");
 const minMatchInput = document.getElementById("min-match");
 
-let activeFilters = [];
+const FilterManager = {
+  filters: [],
+  render() {
+    filtersList.innerHTML = this.filters
+      .map(
+        (filter, idx) =>
+          `<li>${filter} <button data-idx="${idx}" class="remove-btn">✖</button></li>`,
+      )
+      .join("");
+    applyBtn.disabled = this.filters.length === 0;
+  },
+  add(filter) {
+    if (filter && !this.filters.includes(filter)) {
+      this.filters.push(filter);
+      this.render();
+    }
+  },
+  remove(idx) {
+    this.filters.splice(idx, 1);
+    this.render();
+  },
+  reset() {
+    this.filters = [];
+    this.render();
+  },
+  getAll() {
+    return this.filters;
+  },
+};
+
+filtersList.onclick = (e) => {
+  if (e.target.classList.contains("remove-btn")) {
+    FilterManager.remove(Number(e.target.dataset.idx));
+  }
+};
+
+addBtn.onclick = () => {
+  const value = filterInput.value.trim();
+  FilterManager.add(value);
+  filterInput.value = "";
+};
+
+filtersForm.onsubmit = (e) => e.preventDefault();
 
 const sendFiltersToContent = () => {
   let minMatch = parseInt(minMatchInput.value, 10);
@@ -13,7 +55,7 @@ const sendFiltersToContent = () => {
   chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
     chrome.tabs.sendMessage(tab.id, {
       type: "APPLY_FILTERS",
-      activeFilters,
+      activeFilters: FilterManager.getAll(),
       minMatch,
     });
   });
@@ -30,42 +72,43 @@ const sendMinMatchToContent = () => {
   });
 };
 
-const renderFilters = () => {
-  filtersList.innerHTML = activeFilters
-    .map(
-      (filter, idx) =>
-        `<li>${filter} <button data-idx="${idx}" class="remove-btn">✖</button></li>`,
-    )
-    .join("");
-  applyBtn.disabled = activeFilters.length === 0;
-};
-
-filtersList.onclick = (e) => {
-  if (e.target.classList.contains("remove-btn")) {
-    activeFilters.splice(Number(e.target.dataset.idx), 1);
-    renderFilters();
-  }
-};
-
-addBtn.onclick = () => {
-  const value = filterInput.value.trim();
-  if (value && !activeFilters.includes(value)) {
-    activeFilters.push(value);
-    filterInput.value = "";
-    renderFilters();
-  }
-};
-
-filtersForm.onsubmit = (e) => e.preventDefault();
-
 applyBtn.onclick = sendFiltersToContent;
+minMatchInput.oninput = sendMinMatchToContent;
 
-minMatchInput.oninput = () => {
-  sendMinMatchToContent();
-};
+function showMessage(msg) {
+  let msgDiv = document.getElementById("filtergenie-message");
+  if (!msgDiv) {
+    msgDiv = document.createElement("div");
+    msgDiv.id = "filtergenie-message";
+    document.body.insertBefore(msgDiv, document.body.firstChild);
+  }
+  msgDiv.textContent = msg;
+}
+
+function setControlsEnabled(enabled) {
+  filterInput.disabled = !enabled;
+  addBtn.disabled = !enabled;
+  applyBtn.disabled = !enabled;
+  minMatchInput.disabled = !enabled;
+}
 
 document.addEventListener("DOMContentLoaded", () => {
-  activeFilters = [];
-  renderFilters();
+  FilterManager.reset();
   applyBtn.disabled = true;
+
+  chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+    const url = tab?.url || "";
+    const platform = window.getCurrentPlatform(url);
+    if (!platform) {
+      showMessage("This website is not supported.");
+      setControlsEnabled(false);
+      return;
+    }
+    if (!window.isCurrentPageSearchPage(url)) {
+      showMessage("Filtering is only available on search pages.");
+      setControlsEnabled(false);
+      return;
+    }
+    setControlsEnabled(true);
+  });
 });

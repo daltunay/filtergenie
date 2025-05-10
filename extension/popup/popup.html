@@ -1,22 +1,35 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <head>
     <title>FilterGenie</title>
   </head>
   <body>
+    <div id="filtergenie-message"></div>
     <form id="filters-form">
-      <input type="text" id="filter-input" placeholder="Enter filter" autocomplete="off">
+      <input
+        type="text"
+        id="filter-input"
+        placeholder="Enter filter"
+        autocomplete="off"
+      />
       <button type="button" id="add-filter">Add filter</button>
       <ul id="filters-list"></ul>
-      <br>
+      <br />
       <button type="button" id="apply-filters">Apply filters</button>
-      <br>
+      <br />
       <label>
         Min. matching filters:
-        <input type="number" id="min-match" min="0" value="0" style="width:40px;">
+        <input
+          type="number"
+          id="min-match"
+          min="0"
+          value="0"
+          style="width: 40px"
+        />
       </label>
     </form>
     <script src="../platforms/leboncoin.js"></script>
+    <script src="../src/platform-registry.js"></script>
     <script src="../platforms/platform-interface.js"></script>
     <script type="module" src="popup.js"></script>
   </body>
