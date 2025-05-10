@@ -1,4 +1,3 @@
-// --- DOM references grouped ---
 const uiElements = {
   filtersForm: document.getElementById("filters-form"),
   filterInput: document.getElementById("filter-input"),
@@ -17,7 +16,6 @@ const uiElements = {
   healthStatus: document.getElementById("health-status"),
 };
 
-// --- FilterManager class ---
 class FilterManager {
   constructor(onChange) {
     this.filters = [];
@@ -47,7 +45,6 @@ class FilterManager {
   }
 }
 
-// --- UI state helpers ---
 function updateButtonStates() {
   const hasFilters = filterManager.count() > 0;
   uiElements.applyBtn.disabled = !hasFilters;
@@ -73,7 +70,6 @@ function showMessage(msg) {
   if (uiElements.filtersForm) uiElements.filtersForm.style.display = "none";
 }
 
-// --- UI rendering ---
 function renderFilters() {
   uiElements.filtersList.innerHTML = "";
   filterManager.getAll().forEach((filter, idx) => {
@@ -96,7 +92,6 @@ function renderFilters() {
   updateButtonStates();
 }
 
-// --- Chrome API helpers ---
 function getActiveTab(cb) {
   chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => cb(tab));
 }
@@ -130,8 +125,9 @@ function loadSettings(cb) {
 }
 
 function saveSettings() {
-  const apiEndpoint =
+  let apiEndpoint =
     uiElements.apiEndpointInput.value.trim() || "http://localhost:8000";
+  apiEndpoint = apiEndpoint.replace(/\/+$/, "");
   const apiKey = uiElements.apiKeyInput.value.trim();
   if (typeof window.saveApiSettings === "function") {
     window.saveApiSettings(apiEndpoint, apiKey).then(() => {
@@ -143,7 +139,6 @@ function saveSettings() {
   }
 }
 
-// --- Event handlers ---
 function onRemoveFilter(e) {
   if (e.target.classList.contains("remove-btn")) {
     filterManager.remove(Number(e.target.dataset.idx));
@@ -190,9 +185,10 @@ function getMinMatch() {
 }
 
 async function checkApiHealth() {
-  const endpoint =
+  let endpoint =
     uiElements.apiEndpointInput.value.trim() || "http://localhost:8000";
-  const url = endpoint.replace(/\/+$/, "") + "/health";
+  endpoint = endpoint.replace(/\/+$/, "");
+  const url = endpoint + "/health";
   uiElements.healthStatus.textContent = "Checking...";
   try {
     const resp = await fetch(url, { method: "GET" });
@@ -204,7 +200,6 @@ async function checkApiHealth() {
   }
 }
 
-// --- Initialization ---
 const filterManager = new FilterManager(renderFilters);
 
 function initializeUI() {
@@ -249,7 +244,6 @@ function init() {
   });
 }
 
-// --- Attach event listeners ---
 uiElements.filtersList.onclick = onRemoveFilter;
 uiElements.addBtn.onclick = onAddFilter;
 uiElements.resetBtn.onclick = onResetFilters;

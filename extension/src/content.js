@@ -24,6 +24,7 @@ async function fetchItemSources(platform) {
 async function callApiAnalyze(items, filters, apiEndpoint, apiKey) {
   const headers = { "Content-Type": "application/json" };
   if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
+  apiEndpoint = apiEndpoint.replace(/\/+$/, "");
   const resp = await fetch(`${apiEndpoint}/items/analyze`, {
     method: "POST",
     headers,
