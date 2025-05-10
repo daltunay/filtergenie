@@ -4,6 +4,7 @@ const filtersList = document.getElementById("filters-list");
 const addBtn = document.getElementById("add-filter");
 const applyBtn = document.getElementById("apply-filters");
 const minMatchInput = document.getElementById("min-match");
+const minMatchValue = document.getElementById("min-match-value");
 
 const FilterManager = {
   filters: [],
@@ -15,6 +16,12 @@ const FilterManager = {
       )
       .join("");
     applyBtn.disabled = !this.filters.length;
+    minMatchInput.max = this.filters.length;
+    if (parseInt(minMatchInput.value, 10) > this.filters.length) {
+      minMatchInput.value = this.filters.length;
+    }
+    minMatchValue.textContent = minMatchInput.value;
+    minMatchInput.disabled = !this.filters.length;
   },
   add(filter) {
     if (filter && !this.filters.includes(filter)) {
@@ -47,11 +54,18 @@ addBtn.onclick = () => {
   filterInput.value = "";
 };
 
+filterInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    addBtn.click();
+  }
+});
+
 filtersForm.onsubmit = (e) => e.preventDefault();
 
 const getMinMatch = () => {
   const v = parseInt(minMatchInput.value, 10);
-  return isNaN(v) || v < 0 ? 0 : v;
+  return v > 0 ? v : 0;
 };
 
 const sendFiltersToContent = () => {
@@ -74,7 +88,11 @@ const sendMinMatchToContent = () => {
 };
 
 applyBtn.onclick = sendFiltersToContent;
-minMatchInput.oninput = sendMinMatchToContent;
+
+minMatchInput.oninput = () => {
+  minMatchValue.textContent = minMatchInput.value;
+  sendMinMatchToContent();
+};
 
 function showMessage(msg) {
   let msgDiv = document.getElementById("filtergenie-message");
@@ -84,7 +102,6 @@ function showMessage(msg) {
     document.body.insertBefore(msgDiv, document.body.firstChild);
   }
   msgDiv.textContent = msg;
-  // Hide the form when showing a message
   const form = document.getElementById("filters-form");
   if (form) form.style.display = "none";
 }
@@ -97,18 +114,23 @@ function setControlsEnabled(enabled) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  minMatchInput.value = 0;
+  minMatchInput.max = 0;
+  minMatchInput.disabled = true;
+  minMatchValue.textContent = "0";
   FilterManager.reset();
   applyBtn.disabled = true;
 
   chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
     const url = tab?.url || "";
-    const platform = window.getCurrentPlatform(url);
+    const registry = window.platformRegistry;
+    const platform = registry.getCurrentPlatform(url);
     if (!platform) {
       showMessage("This website is not supported.");
       setControlsEnabled(false);
       return;
     }
-    if (!window.isCurrentPageSearchPage(url)) {
+    if (!registry.isCurrentPageSearchPage(url)) {
       showMessage("Filtering is only available on search pages.");
       setControlsEnabled(false);
       return;

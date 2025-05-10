@@ -34,17 +34,25 @@ async function analyzeItems(filters, minMatch, platform) {
 }
 
 const updateItemVisibility = (minMatch) => {
-  document.querySelectorAll('article[data-test-id="ad"]').forEach((item) => {
-    const statusDiv = item.querySelector(".filtergenie-status");
-    if (!statusDiv) return;
-    const matchCount = (statusDiv.textContent.match(/✔️/g) || []).length;
-    item.style.display = matchCount >= minMatch ? "" : "none";
-  });
+  const registry = window.platformRegistry;
+  const platform = registry.getCurrentPlatform(window.location.href);
+  if (!platform) return;
+  document
+    .querySelectorAll(
+      platform._config?.itemSelector || 'article[data-test-id="ad"]',
+    )
+    .forEach((item) => {
+      const statusDiv = item.querySelector(".filtergenie-status");
+      if (!statusDiv) return;
+      const matchCount = (statusDiv.textContent.match(/✔️/g) || []).length;
+      item.style.display = matchCount >= minMatch ? "" : "none";
+    });
 };
 
 chrome.runtime.onMessage.addListener((msg) => {
+  const registry = window.platformRegistry;
   if (msg.type === "APPLY_FILTERS") {
-    const platform = getCurrentPlatform(window.location.href);
+    const platform = registry.getCurrentPlatform(window.location.href);
     analyzeItems(msg.activeFilters, msg.minMatch, platform);
   }
   if (msg.type === "UPDATE_MIN_MATCH") {

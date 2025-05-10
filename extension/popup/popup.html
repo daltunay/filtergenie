@@ -20,17 +20,16 @@
       <label>
         Min. matching filters:
         <input
-          type="number"
+          type="range"
           id="min-match"
           min="0"
           value="0"
-          style="width: 40px"
         />
+        <span id="min-match-value">0</span>
       </label>
     </form>
-    <script src="../platforms/leboncoin.js"></script>
     <script src="../src/platform-registry.js"></script>
-    <script src="../platforms/platform-interface.js"></script>
+    <script src="../platforms/leboncoin.js"></script>
     <script type="module" src="popup.js"></script>
   </body>
 </html>
