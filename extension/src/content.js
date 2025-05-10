@@ -62,7 +62,7 @@ async function analyzeItems(filters, minMatch, platform) {
   try {
     data = await callApiAnalyze(itemSources, filters, apiEndpoint, apiKey);
   } catch {
-    console.log("API error");
+    console.log("api err");
     return;
   }
   if (!data.filters) return;

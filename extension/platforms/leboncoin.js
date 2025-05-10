@@ -10,8 +10,8 @@ if (typeof window !== "undefined") {
       baseUrl: "https://www.leboncoin.fr",
     };
     window.platformRegistry.registerPlatform(leboncoinConfig);
-    console.log("leboncoin registered");
+    console.log("lbc ok");
   } else {
-    console.warn("platformRegistry missing");
+    console.warn("no registry");
   }
 }
