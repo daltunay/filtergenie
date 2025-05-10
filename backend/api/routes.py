@@ -58,12 +58,7 @@ async def _analyze_single_item(
     log.debug(f"Processing item {idx + 1}", platform=platform)
     try:
         item = await cached_scrape_item(session, platform=platform, html=item_request.html)
-        log.debug(
-            f"ItemModel {idx + 1} scraped successfully",
-            platform=platform,
-            title=item.title,
-            images_count=len(item.images),
-        )
+        log.debug(f"ItemModel {idx + 1} scraped successfully", platform=platform, item=item)
     except Exception as e:
         log.error(
             f"Failed to scrape item {idx + 1}",

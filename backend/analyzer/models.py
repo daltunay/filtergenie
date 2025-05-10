@@ -8,7 +8,6 @@ class ImageModel(BaseModel):
 
     url: str = Field(...)
 
-    @computed_field
     @property
     def base64(self) -> str:
         return url_to_base64(self.url)
@@ -22,6 +21,17 @@ class ItemModel(BaseModel):
     platform: str = Field(...)
     title: str = Field(...)
     images: list[ImageModel] = Field(default_factory=list)
+
+    @classmethod
+    def from_source(cls, platform: str, html: str) -> "ItemModel":
+        from backend.scraper import PARSER_BY_PLATFORM
+
+        try:
+            parse_item = PARSER_BY_PLATFORM[platform]
+        except KeyError:
+            raise ValueError(f"No parser found for platform: {platform}")
+        data = parse_item(html)
+        return cls(platform=platform, **data)
 
 
 class FilterModel(BaseModel):

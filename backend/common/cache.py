@@ -47,7 +47,7 @@ def cached(func: t.FunctionType) -> t.FunctionType:
 
     @functools.wraps(func)
     async def wrapper(session: Session, *args, **kwargs) -> tp.Any:
-        key_str, key_hash = _create_key(func, (session, *args), kwargs)
+        _, key_hash = _create_key(func, (session, *args), kwargs)
         function_name = func.__name__
 
         db_value = await get_from_db(key_hash, session)
@@ -56,7 +56,6 @@ def cached(func: t.FunctionType) -> t.FunctionType:
                 "Cache hit",
                 function=function_name,
                 key_hash=key_hash,
-                # key_str=key_str,
             )
             return db_value
 
@@ -64,7 +63,6 @@ def cached(func: t.FunctionType) -> t.FunctionType:
             "Cache miss, executing function",
             function=function_name,
             key_hash=key_hash,
-            # key_str=key_str,
         )
         result = await func(session, *args, **kwargs)
 
@@ -74,7 +72,6 @@ def cached(func: t.FunctionType) -> t.FunctionType:
                 "Failed to cache result",
                 function=function_name,
                 key_hash=key_hash,
-                # key_str=key_str,
             )
         return result
 
