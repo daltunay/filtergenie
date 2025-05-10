@@ -50,13 +50,13 @@ class LocalModelConfig(BaseModel):
 class ModelConfig(BaseModel):
     """Unified model configuration settings."""
 
-    uselocal: bool = Field(default=False)
+    use_local: bool = Field(default=False)
     remote: RemoteModelConfig | None = Field(default=None)
     local: LocalModelConfig | None = Field(default=None)
 
     @model_validator(mode="after")
     def update_model_config(self) -> tp.Self:
-        if self.uselocal:
+        if self.use_local:
             if self.local is None:
                 self.local = LocalModelConfig()
         else:
@@ -65,18 +65,12 @@ class ModelConfig(BaseModel):
         return self
 
 
-class CacheConfig(BaseModel):
-    """Cache configuration settings."""
-
-    db_path: str = Field(default="data/cache.db")
-
-
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
     model_config = SettingsConfigDict(
         env_ignore_empty=True,
-        env_nested_delimiter="_",
+        env_nested_delimiter=".",
         env_nested_max_split=2,
         env_file=".env",
         env_file_encoding="utf-8",
@@ -84,7 +78,6 @@ class Settings(BaseSettings):
 
     api: ApiConfig = Field(default_factory=ApiConfig)
     model: ModelConfig = Field(default_factory=ModelConfig)
-    cache: CacheConfig = Field(default_factory=CacheConfig)
 
 
 settings = Settings()

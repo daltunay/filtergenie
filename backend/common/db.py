@@ -16,9 +16,8 @@ from sqlalchemy import (
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 from backend.common.logging import log
-from backend.config import settings
 
-DB_PATH = settings.cache.db_path
+DB_PATH = "data/cache.db"
 DB_URL = f"sqlite:///{DB_PATH}"
 
 engine = create_engine(DB_URL, connect_args={"check_same_thread": False}, echo=False)
