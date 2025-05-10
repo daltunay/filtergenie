@@ -1,5 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 
+from backend.common.logging import log
 from backend.common.utils import sanitize_text, url_to_base64
 
 
@@ -28,8 +29,14 @@ class ItemModel(BaseModel):
 
         try:
             parse_item = PARSER_BY_PLATFORM[platform]
-        except KeyError:
-            raise ValueError(f"No parser found for platform: {platform}")
+        except KeyError as e:
+            log.error(
+                "No parser found for platform",
+                platform=platform,
+                error=str(e),
+                exc_info=e,
+            )
+            raise ValueError(f"No parser found for platform: {platform}") from e
         data = parse_item(html)
         return cls(platform=platform, **data)
 

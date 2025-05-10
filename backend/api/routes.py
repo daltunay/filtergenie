@@ -1,4 +1,5 @@
 import asyncio
+import time
 import traceback
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -105,17 +106,22 @@ async def analyze_items(
         filters_count=len(request.filters),
     )
     try:
+        start_time = time.perf_counter()
         tasks = [
             _analyze_single_item(i, item, request.filters, analyzer, session)
             for i, item in enumerate(request.items)
         ]
         results = await asyncio.gather(*tasks)
+        duration = time.perf_counter() - start_time
+        avg_duration = duration / len(request.items) if request.items else 0.0
         analyzed_results = [r[1] for r in sorted(results, key=lambda x: x[0])]
 
         log.info(
             "Analysis completed successfully",
             items_count=len(request.items),
             filters_processed=len(request.filters) * len(request.items),
+            duration=f"{duration:.2f}s",
+            avg_per_item=f"{avg_duration:.2f}s",
         )
 
         return AnalysisResponse(
