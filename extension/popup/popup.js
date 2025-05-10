@@ -106,7 +106,11 @@ function sendMessageToContent(msg) {
     if (tab?.id) {
       chrome.tabs.sendMessage(tab.id, msg, () => {
         if (chrome.runtime.lastError) {
-          if (chrome.runtime.lastError.message.includes("Receiving end does not exist")) {
+          if (
+            chrome.runtime.lastError.message.includes(
+              "Receiving end does not exist",
+            )
+          ) {
             showMessage("Not available on this page.");
           }
         }
@@ -119,12 +123,15 @@ function sendMessageToContent(msg) {
 
 function loadSettings(cb) {
   if (typeof window.getApiSettings === "function") {
-    window.getApiSettings().then(({ apiEndpoint, apiKey }) => cb({ apiEndpoint, apiKey }));
+    window
+      .getApiSettings()
+      .then(({ apiEndpoint, apiKey }) => cb({ apiEndpoint, apiKey }));
   }
 }
 
 function saveSettings() {
-  const apiEndpoint = uiElements.apiEndpointInput.value.trim() || "http://localhost:8000";
+  const apiEndpoint =
+    uiElements.apiEndpointInput.value.trim() || "http://localhost:8000";
   const apiKey = uiElements.apiKeyInput.value.trim();
   if (typeof window.saveApiSettings === "function") {
     window.saveApiSettings(apiEndpoint, apiKey).then(() => {
@@ -183,12 +190,15 @@ function getMinMatch() {
 }
 
 async function checkApiHealth() {
-  const endpoint = uiElements.apiEndpointInput.value.trim() || "http://localhost:8000";
+  const endpoint =
+    uiElements.apiEndpointInput.value.trim() || "http://localhost:8000";
   const url = endpoint.replace(/\/+$/, "") + "/health";
   uiElements.healthStatus.textContent = "Checking...";
   try {
     const resp = await fetch(url, { method: "GET" });
-    uiElements.healthStatus.textContent = resp.ok ? "✅ Healthy" : "❌ Unhealthy";
+    uiElements.healthStatus.textContent = resp.ok
+      ? "✅ Healthy"
+      : "❌ Unhealthy";
   } catch {
     uiElements.healthStatus.textContent = "❌ Error";
   }

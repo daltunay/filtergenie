@@ -17,7 +17,7 @@ async function fetchItemSources(platform) {
     items.map(async (item) => ({
       platform: platform.name,
       html: await platform.getItemHtml(item),
-    }))
+    })),
   );
 }
 
