@@ -13,9 +13,13 @@
       <div id="filtergenie-message" role="alert"></div>
       <form id="filters-form" autocomplete="off">
         <fieldset>
-          <legend>Filters</legend>
+          <legend>Currently applied filters</legend>
+          <ul id="applied-filters-list"></ul>
+        </fieldset>
+        <fieldset>
+          <legend>Pending filters</legend>
           <div>
-            <label for="filter-input" style="display: block">
+            <label for="filter-input">
               Add filter:
               <input
                 type="text"
@@ -35,16 +39,16 @@
         <fieldset>
           <legend>Filter options</legend>
           <div>
+            <label for="max-items">
+              Max items:
+              <input type="number" id="max-items" min="1" />
+            </label>
+          </div>
+          <div>
             <label for="min-match">
               Min. matching filters:
               <input type="range" id="min-match" min="0" />
               <span id="min-match-value"></span>
-            </label>
-          </div>
-          <div>
-            <label for="max-items">
-              Max items:
-              <input type="number" id="max-items" min="1" />
             </label>
           </div>
         </fieldset>
@@ -90,8 +94,8 @@
         </details>
       </fieldset>
       <hr />
-      <div class="footer-row">
-        <span class="footer-author">Made by Daniel Altunay</span>
+      <div>
+        <span>Made by Daniel Altunay</span>
         <nav id="social-links">
           <a
             href="https://github.com/daltunay/filtergenie"
