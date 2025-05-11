@@ -150,6 +150,8 @@ docker run --rm \
 
 ## Configuration
 
+> **Tip:** You can also create a `.env` file in the project root to set these environment variables. The application will automatically load variables from `.env` if present.
+
 | Variable                  | Description                                      | Default / Example                                          |
 | ------------------------- | ------------------------------------------------ | ---------------------------------------------------------- |
 | `API_KEY`                 | API authentication key                           | `None` (no auth)                                           |
