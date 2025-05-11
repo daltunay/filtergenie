@@ -5,6 +5,12 @@ function getPlatform() {
   return reg.getCurrentPlatform(url);
 }
 
+function getApiEndpoint(apiMode) {
+  return apiMode === "remote"
+    ? window.DEFAULT_REMOTE_API_ENDPOINT
+    : window.DEFAULT_LOCAL_API_ENDPOINT;
+}
+
 async function fetchItemSources(platform, items) {
   return Promise.all(
     items.map(async (item) => ({
@@ -53,7 +59,7 @@ function updateItemStatus(items, filtersData, minMatch) {
       item.appendChild(statusDiv);
     }
     statusDiv.innerHTML = Object.entries(filterResults)
-      .map(([desc, matched]) => `${matched ? "✔️" : "❌"} ${desc}`)
+      .map(([desc, matched]) => `${matched ? "✅" : "❌"} ${desc}`)
       .join("<br>");
     item.style.display = matchCount >= minMatch ? "" : "none";
   });
@@ -71,19 +77,16 @@ async function analyzeItems(
   if (!items.length) return;
   const itemSources = await fetchItemSources(platform, items);
   const { apiMode, apiKey } = await window.getApiSettings();
-  let apiEndpoint =
-    apiMode === "remote"
-      ? window.DEFAULT_REMOTE_API_ENDPOINT
-      : window.DEFAULT_LOCAL_API_ENDPOINT;
+  let apiEndpoint = getApiEndpoint(apiMode);
   let data;
   try {
     data = await callApiAnalyze(itemSources, filters, apiEndpoint, apiKey);
   } catch {
-    if (sendResponse) sendResponse({ apiResponse: "API error" });
+    sendResponse?.({ apiResponse: "API error" });
     return;
   }
   if (!data.filters) {
-    if (sendResponse) sendResponse({ apiResponse: data });
+    sendResponse?.({ apiResponse: data });
     return;
   }
   updateItemStatus(items, data.filters, minMatch);
@@ -95,7 +98,7 @@ async function analyzeItems(
       timestamp: Date.now(),
     },
   });
-  if (sendResponse) sendResponse({ apiResponse: data });
+  sendResponse?.({ apiResponse: data });
 }
 
 function updateItemVisibility(minMatch, maxItems) {
@@ -104,17 +107,16 @@ function updateItemVisibility(minMatch, maxItems) {
   const items = Array.from(platform.getItemElements()).slice(0, maxItems);
   items.forEach((item) => {
     const statusDiv = item.querySelector(".filtergenie-status");
-    const matchCount = (statusDiv?.textContent.match(/✔️/g) || []).length;
+    const matchCount = (statusDiv?.textContent.match(/✅/g) || []).length;
     item.style.display = matchCount >= minMatch ? "" : "none";
   });
 }
 
 document.addEventListener("DOMContentLoaded", () => {
   chrome.storage.local.set({ popupAppliedFilters: [] });
-
   chrome.storage.local.get("filtergenieLastAnalyzed", (res) => {
     const last = res.filtergenieLastAnalyzed;
-    if (!last || !last.filtersData) return;
+    if (!last?.filtersData) return;
     const platform = getPlatform();
     if (!platform) return;
     const maxItems =

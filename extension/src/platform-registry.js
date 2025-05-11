@@ -1,3 +1,5 @@
+const STATUS_CLASS = "filtergenie-status";
+
 class Platform {
   constructor(config) {
     this.name = config.name;
@@ -12,8 +14,9 @@ class Platform {
   }
   isSearchPage(url) {
     try {
-      const pathname = new URL(url).pathname;
-      return this._config.searchPathPatterns.some((pat) => pat.test(pathname));
+      return this._config.searchPathPatterns.some((pat) =>
+        pat.test(new URL(url).pathname),
+      );
     } catch {
       return false;
     }
@@ -33,9 +36,7 @@ class Platform {
       return this._config.getItemUrl(item);
     }
     const link = item.querySelector(this._config.itemLinkSelector);
-    const href = link?.getAttribute("href");
-    if (!href) return null;
-    return href;
+    return link?.getAttribute("href") || null;
   }
   async getItemHtml(item) {
     const url = this.getItemUrl(item);
@@ -57,7 +58,7 @@ class PlatformRegistry {
     this._platforms = [];
   }
   registerPlatform(config) {
-    if (config && config.name) this._platforms.push(new Platform(config));
+    if (config?.name) this._platforms.push(new Platform(config));
   }
   getCurrentPlatform(url) {
     if (!url) return null;

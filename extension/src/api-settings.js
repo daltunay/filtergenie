@@ -1,5 +1,4 @@
 const DEFAULTS = window.DEFAULTS;
-
 const DEFAULT_REMOTE_API_ENDPOINT = "https://filtergenie-api.onrender.com";
 const DEFAULT_LOCAL_API_ENDPOINT = "http://localhost:8000";
 
