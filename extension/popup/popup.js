@@ -14,8 +14,6 @@ function getUI() {
     "api-mode-local",
     "api-key-row",
     "api-key",
-    "save-settings",
-    "settings-saved",
     "filtergenie-message",
     "api-health-btn",
     "health-status",
