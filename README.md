@@ -11,7 +11,7 @@ graph TD
         BrowserExt["Browser + Extension"]
         Website["E-commerce Website<br>(leboncoin, vinted, etc.)"]
         User -->|uses| BrowserExt
-        BrowserExt -->|interacts with| Website
+        BrowserExt <-->|interacts with| Website
     end
 
     subgraph "API Layer"
@@ -144,12 +144,17 @@ docker run --rm \
 
 ## Configuration
 
-Set these environment variables as needed:
+| Variable                  | Description                                      | Default / Example                                          |
+| ------------------------- | ------------------------------------------------ | ---------------------------------------------------------- |
+| `API_KEY`                 | API authentication key                           | `None` (no auth)                                           |
+| `MODEL__USE_LOCAL`        | Use local model (`true`/`false`)                 | `false`                                                    |
+| `MODEL__REMOTE__API_KEY`  | Remote model API key (required for remote usage) | (your remote model API key)                                |
+| `MODEL__REMOTE__BASE_URL` | Remote model API base URL                        | `https://generativelanguage.googleapis.com/v1beta/openai/` |
+| `MODEL__REMOTE__NAME`     | Remote model name                                | `gemini-2.0-flash-lite`                                    |
+| `MODEL__LOCAL__NAME`      | Local model name/path                            | `HuggingFaceTB/SmolVLM-Instruct`                           |
+| `MODEL__LOCAL__DTYPE`     | Local model data type                            | `bfloat16`                                                 |
+| `MODEL__LOCAL__DEVICE`    | Device for local inference                       | `auto`                                                     |
 
-- `API_KEY`: API authentication key (default: `None`, no auth)
-- `MODEL__USE_LOCAL`: Use local model (`true`/`false`, default: `false`)
-- `MODEL__REMOTE__API_KEY`: Remote model API key (required for remote usage)
-- `MODEL__REMOTE__NAME`: Remote model name (default: `gemini-2.0-flash-lite`)
-- `MODEL__LOCAL__NAME`: Local model name/path (default: `HuggingFaceTB/SmolVLM-Instruct`)
-- `MODEL__LOCAL__DTYPE`: Local model data type (default: `bfloat16`)
-- `MODEL__LOCAL__DEVICE`: Device for local inference (default: `auto`)
+> **Note:**
+> You can use any OpenAI-compatible API for the remote model by setting `MODEL__REMOTE__BASE_URL` and `MODEL__REMOTE__NAME` accordingly.
+> By default, the configuration uses Gemini via the Google API.
