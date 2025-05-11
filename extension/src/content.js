@@ -61,9 +61,9 @@ function updateItemStatus(items, filtersData, minMatch) {
       statusDiv.className = "filtergenie-status";
       item.appendChild(statusDiv);
     }
-    statusDiv.textContent = Object.entries(filterResults)
+    statusDiv.innerHTML = Object.entries(filterResults)
       .map(([desc, matched]) => `${matched ? "✔️" : "❌"} ${desc}`)
-      .join(" ");
+      .join("<br>");
     item.style.display = matchCount >= minMatch ? "" : "none";
   });
 }

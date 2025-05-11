@@ -18,6 +18,16 @@ const ui = {
   apiResponse: document.getElementById("api-response"),
 };
 
+function saveFiltersToStorage(filters) {
+  chrome.storage.local.set({ filterGenieFilters: filters });
+}
+
+function loadFiltersFromStorage(cb) {
+  chrome.storage.local.get({ filterGenieFilters: [] }, (result) => {
+    cb(result.filterGenieFilters || []);
+  });
+}
+
 class FilterManager {
   constructor(onChange) {
     this.filters = [];
@@ -26,15 +36,18 @@ class FilterManager {
   add(f) {
     if (f && !this.filters.includes(f)) {
       this.filters.push(f);
+      saveFiltersToStorage(this.filters);
       this.onChange();
     }
   }
   remove(idx) {
     this.filters.splice(idx, 1);
+    saveFiltersToStorage(this.filters);
     this.onChange();
   }
   reset() {
     this.filters = [];
+    saveFiltersToStorage(this.filters);
     this.onChange();
   }
   getAll() {
@@ -76,6 +89,25 @@ function setApiResponse(status, error) {
     ui.apiResponse.textContent = `API error (${status}): ${error}`;
   } else {
     ui.apiResponse.textContent = `API status: ${status}`;
+  }
+}
+
+let loadingInterval = null;
+function startLoadingAnimation() {
+  if (!ui.apiResponse) return;
+  const frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+  let i = 0;
+  ui.apiResponse.textContent = "Loading... " + frames[0];
+  loadingInterval = setInterval(() => {
+    ui.apiResponse.textContent = "Loading... " + frames[i % frames.length];
+    i++;
+  }, 100);
+}
+
+function stopLoadingAnimation() {
+  if (loadingInterval) {
+    clearInterval(loadingInterval);
+    loadingInterval = null;
   }
 }
 
@@ -127,7 +159,9 @@ function sendMessageToContent(msg) {
 
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type === "API_STATUS") {
+    stopLoadingAnimation();
     setApiResponse(msg.status, msg.error);
+    ui.applyBtn.disabled = filterManager.count() === 0;
   }
 });
 
@@ -172,13 +206,16 @@ ui.filterInput.addEventListener("keydown", (e) => {
   }
 });
 ui.filtersForm.onsubmit = (e) => e.preventDefault();
-ui.applyBtn.onclick = () =>
+ui.applyBtn.onclick = () => {
+  ui.applyBtn.disabled = true;
+  startLoadingAnimation();
   sendMessageToContent({
     type: "APPLY_FILTERS",
     activeFilters: filterManager.getAll(),
     minMatch: Math.max(0, +ui.minMatchInput.value || 0),
     maxItems: Math.max(1, +ui.maxItemsInput.value || 10),
   });
+};
 ui.minMatchInput.oninput = () => {
   ui.minMatchValue.textContent = ui.minMatchInput.value;
   sendMessageToContent({
@@ -227,6 +264,10 @@ function checkPlatformAndEnableControls() {
 
 function init() {
   initializeUI();
+  loadFiltersFromStorage((filters) => {
+    filterManager.filters = Array.isArray(filters) ? filters : [];
+    renderFilters();
+  });
   checkPlatformAndEnableControls();
   loadSettings(({ apiEndpoint, apiKey }) => {
     ui.apiEndpointInput.value = apiEndpoint || "http://localhost:8000";
