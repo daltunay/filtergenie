@@ -105,7 +105,7 @@ You can use the FilterGenie extension with **either**:
 3. Run the API server:
 
    ```bash
-    # For remote VLM
+   # For remote VLM
    MODEL_REMOTE_API_KEY=your_gemini_api_key fastapi dev backend/app.py
    ```
 
