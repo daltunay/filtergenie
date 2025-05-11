@@ -130,7 +130,7 @@ docker run --rm \
   filtergenie
 ```
 
-> **Note:** Mount the `data` folder (`-v $./data:/app/data`) to persist the SQLite database outside the container.
+> **Note:** Mount the `data` folder to persist the SQLite database outside the container.
 
 For local VLM:
 
