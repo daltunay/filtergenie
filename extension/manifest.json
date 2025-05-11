@@ -5,7 +5,9 @@
   "description": "Filter search results using AI",
   "permissions": ["activeTab", "scripting", "storage", "webRequest"],
   "host_permissions": ["<all_urls>"],
-  "background": {},
+  "background": {
+    "service_worker": "src/background.js"
+  },
   "action": {
     "default_popup": "popup/popup.html",
     "default_icon": {
