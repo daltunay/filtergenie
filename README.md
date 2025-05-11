@@ -1,5 +1,8 @@
 # FilterGenie 🧞‍♂️
 
+<p align="center">
+  <img src="extension/assets/icons/icon.png" alt="FilterGenie Logo" width="256" height="256">
+</p>
 FilterGenie is an AI-powered browser extension and API that filters e-commerce search results using natural language and vision-language models.
 
 ## Architecture
