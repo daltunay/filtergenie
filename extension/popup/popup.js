@@ -1,15 +1,120 @@
-// Minimalist FilterGenie popup logic
+const DEFAULTS = {
+  filters: [],
+  minMatch: 0,
+  maxItems: 10,
+  apiMode: "local",
+  apiKey: "",
+};
 
 const FILTERS_KEY = "popupFilters";
 const FILTER_OPTIONS_KEY = "popupFilterOptions";
 
+const listeners = [];
+
 const state = {
-  filters: [],
-  minMatch: 0,
-  maxItems: 10,
-  apiMode: "remote",
-  apiKey: "",
+  filters: [...DEFAULTS.filters],
+  minMatch: DEFAULTS.minMatch,
+  maxItems: DEFAULTS.maxItems,
+  apiMode: DEFAULTS.apiMode,
+  apiKey: DEFAULTS.apiKey,
+  subscribe(fn) {
+    listeners.push(fn);
+  },
+  notify() {
+    listeners.forEach((fn) => fn());
+  },
+  setFilters(filters) {
+    this.filters = filters;
+    this.minMatch = clampMinMatch(this.minMatch, this.filters.length);
+    saveState();
+    this.notify();
+  },
+  addFilter(filter) {
+    if (!this.filters.includes(filter)) {
+      this.filters.push(filter);
+      saveState();
+      this.notify();
+    }
+  },
+  removeFilter(index) {
+    this.filters.splice(index, 1);
+    this.minMatch = clampMinMatch(this.minMatch, this.filters.length);
+    saveState();
+    this.notify();
+  },
+  resetFilters() {
+    this.filters = [];
+    this.minMatch = 0;
+    saveState();
+    this.notify();
+  },
+  setMinMatch(val) {
+    this.minMatch = clampMinMatch(val, this.filters.length);
+    saveState();
+    this.notify();
+  },
+  setMaxItems(val) {
+    this.maxItems = Math.max(1, val);
+    saveState();
+    this.notify();
+  },
+  setApiMode(mode) {
+    this.apiMode = mode;
+    saveState();
+    this.notify();
+  },
+  setApiKey(key) {
+    this.apiKey = key;
+    saveState();
+    this.notify();
+  },
 };
+
+function clampMinMatch(minMatch, count) {
+  return Math.max(0, Math.min(minMatch, count));
+}
+
+function saveState() {
+  chrome.storage.local.set({
+    [FILTERS_KEY]: state.filters,
+    [FILTER_OPTIONS_KEY]: {
+      minMatch: state.minMatch,
+      maxItems: state.maxItems,
+    },
+  });
+  window.saveApiSettings?.(state.apiMode, state.apiKey);
+}
+
+function loadState(cb) {
+  chrome.storage.local.get(
+    {
+      [FILTERS_KEY]: [...DEFAULTS.filters],
+      [FILTER_OPTIONS_KEY]: {
+        minMatch: DEFAULTS.minMatch,
+        maxItems: DEFAULTS.maxItems,
+      },
+    },
+    (res) => {
+      state.filters = res[FILTERS_KEY];
+      state.minMatch = res[FILTER_OPTIONS_KEY].minMatch;
+      state.maxItems = res[FILTER_OPTIONS_KEY].maxItems;
+      const finish = () => {
+        state.minMatch = clampMinMatch(state.minMatch, state.filters.length);
+        state.notify();
+        cb && cb();
+      };
+      if (window.getApiSettings) {
+        window.getApiSettings().then(({ apiMode, apiKey }) => {
+          state.apiMode = apiMode;
+          state.apiKey = apiKey;
+          finish();
+        });
+      } else {
+        finish();
+      }
+    },
+  );
+}
 
 const ui = {};
 [
@@ -35,59 +140,7 @@ const ui = {};
     document.getElementById(id);
 });
 
-function saveState() {
-  chrome.storage.local.set({
-    [FILTERS_KEY]: state.filters,
-    [FILTER_OPTIONS_KEY]: {
-      minMatch: state.minMatch,
-      maxItems: state.maxItems,
-    },
-  });
-  if (typeof window.saveApiSettings === "function")
-    window.saveApiSettings(state.apiMode, state.apiKey);
-}
-
-function loadState(cb) {
-  // Show loading animation/message
-  if (ui.filtergenieMessage) {
-    ui.filtergenieMessage.textContent = "Loading...";
-    ui.filtergenieMessage.style.display = "";
-  }
-  chrome.storage.local.get(
-    {
-      [FILTERS_KEY]: [],
-      [FILTER_OPTIONS_KEY]: { minMatch: 0, maxItems: 10 },
-    },
-    (res) => {
-      state.filters = res[FILTERS_KEY];
-      state.minMatch = res[FILTER_OPTIONS_KEY].minMatch;
-      state.maxItems = res[FILTER_OPTIONS_KEY].maxItems;
-      if (typeof window.getApiSettings === "function") {
-        window.getApiSettings().then(({ apiMode, apiKey }) => {
-          state.apiMode = apiMode;
-          state.apiKey = apiKey;
-          state.minMatch = clampMinMatch(state.minMatch, state.filters.length);
-          if (ui.filtergenieMessage)
-            ui.filtergenieMessage.style.display = "none";
-          cb();
-        });
-      } else {
-        state.minMatch = clampMinMatch(state.minMatch, state.filters.length);
-        if (ui.filtergenieMessage) ui.filtergenieMessage.style.display = "none";
-        cb();
-      }
-    },
-  );
-}
-
-// Helper to clamp minMatch to valid range
-function clampMinMatch(minMatch, filterCount) {
-  // min is always 0, max is filterCount
-  return Math.max(0, Math.min(minMatch, filterCount));
-}
-
-function render() {
-  // Filters list
+function renderUI(state) {
   ui.filtersList.innerHTML = "";
   state.filters.forEach((f, i) => {
     const li = document.createElement("li");
@@ -95,153 +148,138 @@ function render() {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.textContent = "✖";
-    btn.onclick = () => {
-      state.filters.splice(i, 1);
-      // Clamp minMatch after removing a filter
-      state.minMatch = clampMinMatch(state.minMatch, state.filters.length);
-      saveState();
-      render();
-    };
+    btn.onclick = () => state.removeFilter(i);
     li.appendChild(btn);
     ui.filtersList.appendChild(li);
   });
-  // Min match slider logic
-  ui.minMatch.min = 0;
-  ui.minMatch.max = state.filters.length;
-  ui.minMatch.value = clampMinMatch(state.minMatch, state.filters.length);
-  ui.minMatch.disabled = !state.filters.length;
+
+  Object.assign(ui.minMatch, {
+    min: 0,
+    max: Math.max(0, state.filters.length),
+    value: clampMinMatch(state.minMatch, state.filters.length),
+    disabled: !state.filters.length,
+  });
   ui.minMatchValue.textContent = ui.minMatch.value;
-  // Max items
   ui.maxItems.value = state.maxItems;
-  // Controls
+
   const hasFilters = state.filters.length > 0;
   ui.applyFilters.disabled = !hasFilters;
   ui.resetFilters.disabled = !hasFilters;
   ui.addFilter.disabled = !ui.filterInput.value.trim();
-  ui.filterInput.disabled = false;
-  // API settings
+
   if (ui.apiModeRemote && ui.apiModeLocal) {
     ui.apiModeRemote.checked = state.apiMode === "remote";
     ui.apiModeLocal.checked = state.apiMode === "local";
     ui.apiKeyRow.style.display = state.apiMode === "remote" ? "" : "none";
   }
-  if (ui.apiKey) ui.apiKey.value = state.apiKey || "";
+  ui.apiKey && (ui.apiKey.value = state.apiKey || "");
+}
+
+function setInitialUIValues() {
+  if (ui.minMatch) {
+    ui.minMatch.value = DEFAULTS.minMatch;
+    ui.minMatch.min = 0;
+    ui.minMatch.max = 0;
+  }
+  if (ui.minMatchValue) ui.minMatchValue.textContent = DEFAULTS.minMatch;
+  if (ui.maxItems) ui.maxItems.value = DEFAULTS.maxItems;
+  if (ui.apiModeRemote)
+    ui.apiModeRemote.checked = DEFAULTS.apiMode === "remote";
+  if (ui.apiModeLocal) ui.apiModeLocal.checked = DEFAULTS.apiMode === "local";
+  if (ui.apiKey) ui.apiKey.value = DEFAULTS.apiKey;
+}
+
+function bindUIEvents(sendToContent) {
+  ui.addFilter.onclick = () => {
+    const v = ui.filterInput.value.trim();
+    if (v) state.addFilter(v);
+    ui.filterInput.value = "";
+  };
+
+  ui.filterInput.oninput = () => {
+    ui.addFilter.disabled = !ui.filterInput.value.trim();
+  };
+
+  ui.filterInput.onkeydown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      ui.addFilter.onclick();
+    }
+  };
+
+  ui.resetFilters.onclick = () => state.resetFilters();
+
+  ui.minMatch.oninput = () => {
+    state.setMinMatch(+ui.minMatch.value);
+    ui.minMatchValue.textContent = ui.minMatch.value;
+    sendToContent({ type: "UPDATE_MIN_MATCH", minMatch: state.minMatch });
+  };
+
+  ui.maxItems.oninput = () => state.setMaxItems(+ui.maxItems.value);
+
+  ui.applyFilters.onclick = () => {
+    ui.applyFilters.disabled = true;
+    sendToContent({
+      type: "APPLY_FILTERS",
+      activeFilters: state.filters,
+      minMatch: state.minMatch,
+      maxItems: state.maxItems,
+    });
+  };
+
+  if (ui.apiModeRemote && ui.apiModeLocal) {
+    [ui.apiModeRemote, ui.apiModeLocal].forEach((el) => {
+      el.onchange = () => {
+        state.setApiMode(ui.apiModeRemote.checked ? "remote" : "local");
+      };
+    });
+  }
+
+  ui.apiKey &&
+    (ui.apiKey.oninput = () => state.setApiKey(ui.apiKey.value.trim()));
+
+  ui.apiHealthBtn.onclick = async () => {
+    const endpoint =
+      state.apiMode === "remote"
+        ? window.DEFAULT_REMOTE_API_ENDPOINT
+        : window.DEFAULT_LOCAL_API_ENDPOINT;
+    ui.healthStatus.textContent = "Checking...";
+    try {
+      const resp = await fetch(endpoint.replace(/\/+$/, "") + "/health");
+      ui.healthStatus.textContent = resp.ok ? "✅ Healthy" : "❌ Unhealthy";
+    } catch {
+      ui.healthStatus.textContent = "❌ Unavailable";
+    }
+  };
+
+  chrome.storage.onChanged.addListener((changes) => {
+    if (changes.popupFilters || changes.popupFilterOptions) {
+      window.loadStateAndRender();
+    }
+  });
+}
+
+function render() {
+  renderUI(state);
+}
+
+function setupEvents(sendToContent) {
+  setInitialUIValues();
+  bindUIEvents(sendToContent);
+  state.subscribe(() => renderUI(state));
 }
 
 function sendToContent(msg) {
   chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
-    if (tab?.id) chrome.tabs.sendMessage(tab.id, msg);
+    tab?.id && chrome.tabs.sendMessage(tab.id, msg);
   });
 }
 
-function main() {
-  document.addEventListener("DOMContentLoaded", () => {
-    loadState(() => {
-      // After loading state, update UI fields to reflect restored values
-      render();
-      // Ensure UI fields are synced with state
-      if (ui.apiModeRemote && ui.apiModeLocal) {
-        ui.apiModeRemote.checked = state.apiMode === "remote";
-        ui.apiModeLocal.checked = state.apiMode === "local";
-        ui.apiKeyRow.style.display = state.apiMode === "remote" ? "" : "none";
-      }
-      if (ui.apiKey) ui.apiKey.value = state.apiKey || "";
-      if (ui.maxItems) ui.maxItems.value = state.maxItems;
-      if (ui.minMatch) {
-        ui.minMatch.min = 0;
-        ui.minMatch.max = state.filters.length;
-        ui.minMatch.value = clampMinMatch(state.minMatch, state.filters.length);
-      }
-    });
+window.loadStateAndRender = () => loadState();
 
-    ui.addFilter.onclick = () => {
-      const v = ui.filterInput.value.trim();
-      if (v && !state.filters.includes(v)) {
-        state.filters.push(v);
-        // When adding a filter, if minMatch was 0, set to 1
-        if (state.filters.length === 1) state.minMatch = 1;
-        saveState();
-        ui.filterInput.value = "";
-        render();
-      }
-    };
-
-    ui.filterInput.oninput = () => {
-      ui.addFilter.disabled = !ui.filterInput.value.trim();
-    };
-
-    ui.filterInput.onkeydown = (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        ui.addFilter.onclick();
-      }
-    };
-
-    ui.resetFilters.onclick = () => {
-      state.filters = [];
-      state.minMatch = 0;
-      saveState();
-      render();
-    };
-
-    ui.minMatch.oninput = () => {
-      // Clamp to valid range
-      state.minMatch = clampMinMatch(+ui.minMatch.value, state.filters.length);
-      saveState();
-      ui.minMatchValue.textContent = ui.minMatch.value;
-      sendToContent({ type: "UPDATE_MIN_MATCH", minMatch: state.minMatch });
-    };
-
-    ui.maxItems.oninput = () => {
-      state.maxItems = Math.max(1, +ui.maxItems.value);
-      saveState();
-    };
-
-    ui.applyFilters.onclick = () => {
-      ui.applyFilters.disabled = true;
-      sendToContent({
-        type: "APPLY_FILTERS",
-        activeFilters: state.filters,
-        minMatch: state.minMatch,
-        maxItems: state.maxItems,
-      });
-    };
-
-    if (ui.apiModeRemote && ui.apiModeLocal) {
-      ui.apiModeRemote.onchange = ui.apiModeLocal.onchange = () => {
-        state.apiMode = ui.apiModeRemote.checked ? "remote" : "local";
-        render();
-        saveState();
-      };
-    }
-    if (ui.apiKey) {
-      ui.apiKey.oninput = () => {
-        state.apiKey = ui.apiKey.value.trim();
-        saveState();
-      };
-    }
-
-    ui.apiHealthBtn.onclick = async () => {
-      const endpoint =
-        state.apiMode === "remote"
-          ? window.DEFAULT_REMOTE_API_ENDPOINT
-          : window.DEFAULT_LOCAL_API_ENDPOINT;
-      ui.healthStatus.textContent = "Checking...";
-      try {
-        const resp = await fetch(endpoint.replace(/\/+$/, "") + "/health");
-        ui.healthStatus.textContent = resp.ok ? "✅ Healthy" : "❌ Unhealthy";
-      } catch {
-        ui.healthStatus.textContent = "❌ Unavailable";
-      }
-    };
-
-    chrome.storage.onChanged.addListener((changes) => {
-      if (changes[FILTERS_KEY] || changes[FILTER_OPTIONS_KEY]) {
-        loadState(render);
-      }
-    });
+document.addEventListener("DOMContentLoaded", () => {
+  loadState(() => {
+    render();
+    setupEvents(sendToContent);
   });
-}
-
-main();
-// ...no more code...
+});

@@ -1,5 +1,3 @@
-// FilterGenie platform registry
-
 class Platform {
   constructor(config) {
     this.name = config.name;

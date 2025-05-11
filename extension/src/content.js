@@ -1,5 +1,3 @@
-// FilterGenie content script
-
 function getPlatform() {
   const reg = window.platformRegistry;
   const url = window.location.href;

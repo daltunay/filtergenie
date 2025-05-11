@@ -37,14 +37,14 @@
           <div>
             <label for="min-match">
               Min. matching filters:
-              <input type="range" id="min-match" min="0" value="0" />
-              <span id="min-match-value">0</span>
+              <input type="range" id="min-match" min="0" />
+              <span id="min-match-value"></span>
             </label>
           </div>
           <div>
             <label for="max-items">
               Max items:
-              <input type="number" id="max-items" min="1" value="10" />
+              <input type="number" id="max-items" min="1" />
             </label>
           </div>
         </fieldset>
@@ -64,7 +64,6 @@
                 name="api-mode"
                 id="api-mode-local"
                 value="local"
-                checked
               />
               Local
             </label>
@@ -125,6 +124,6 @@
     <script src="../src/api-settings.js"></script>
     <script src="../platforms/leboncoin.js"></script>
     <script src="../platforms/vinted.js"></script>
-    <script type="module" src="popup.js"></script>
+    <script src="popup.js"></script>
   </body>
 </html>
