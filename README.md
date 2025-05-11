@@ -7,11 +7,15 @@ FilterGenie is an AI-powered browser extension and API that filters e-commerce s
 ```mermaid
 graph TD
     subgraph Client
-        User["User<br>(Browser + Extension)"]
+        User["User<br>enters filters"]
+        BrowserExt["Browser + Extension"]
+        Website["E-commerce Website<br>(leboncoin, vinted, etc.)"]
+        User -->|uses| BrowserExt
+        BrowserExt -->|interacts with| Website
     end
 
-    subgraph API Layer
-        API["API Service<br>(FastAPI, deployed)"]
+    subgraph "API Layer"
+        API["API Service<br>(FastAPI)"]
     end
 
     subgraph Backend
@@ -19,7 +23,7 @@ graph TD
         Analyzer["Analyzer"]
         VLM["Vision Language Model<br>(Remote or Local)"]
 
-        Analyzer <-->|"process/"analysis| VLM
+        Analyzer <-->|"process/analysis"| VLM
         Scraper -->|"structured data"| Analyzer
     end
 
@@ -27,7 +31,7 @@ graph TD
         DB["Database<br>(SQLite)"]
     end
 
-    User <-->|"request/results"| API
+    BrowserExt -->|"requests"| API
     API -->|"request scraping"| Scraper
     API -->|"request analysis"| Analyzer
     Analyzer <-->|"check/update cache"| DB
