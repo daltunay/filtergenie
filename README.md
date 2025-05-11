@@ -1,7 +1,7 @@
 # FilterGenie 🧞‍♂️
 
 <p align="center">
-  <img src="extension/assets/icons/icon.png" alt="FilterGenie Logo" width="256" height="256">
+  <img src="extension/assets/logo.png" alt="FilterGenie Logo" width="256" height="256">
 </p>
 FilterGenie is an AI-powered browser extension and API that filters e-commerce search results using natural language and vision-language models.
 
@@ -71,10 +71,9 @@ You can use the FilterGenie extension with **either**:
 2. In your browser, open the extensions page (e.g. `chrome://extensions` for Chrome)
 3. Enable "Developer mode" (top right corner toggle)
 4. Click "Load unpacked" and select the `extension` folder
-5. **Open the extension settings and set the API endpoint:**
+5. **Choose your API mode (Local or Remote) and enter your API key if needed.**
    - For local API: `http://localhost:8000`
    - For hosted API: `https://filtergenie-api.onrender.com`
-6. **Set your API key in the extension settings.**
    - If you need an API key for the hosted API, please ask me directly.
 
 ### Local API

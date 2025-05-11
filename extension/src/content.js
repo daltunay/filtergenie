@@ -1,17 +1,10 @@
+// FilterGenie content script
+
 function getPlatform() {
   const reg = window.platformRegistry;
   const url = window.location.href;
   if (!reg || !reg._platforms?.length) return null;
-  const host = new URL(url).hostname;
-  return (
-    reg._platforms.find((p) => {
-      try {
-        return p._config.hostPattern.test(host) && p.isSupported(url);
-      } catch {
-        return false;
-      }
-    }) || null
-  );
+  return reg.getCurrentPlatform(url);
 }
 
 async function fetchItemSources(platform, items) {
@@ -72,14 +65,18 @@ async function analyzeItems(
   filters,
   minMatch,
   platform,
-  maxItems = 10,
+  maxItems,
   sendResponse,
 ) {
   if (!platform) return;
   const items = Array.from(platform.getItemElements()).slice(0, maxItems);
   if (!items.length) return;
   const itemSources = await fetchItemSources(platform, items);
-  const { apiEndpoint, apiKey } = await window.getApiSettings();
+  const { apiMode, apiKey } = await window.getApiSettings();
+  let apiEndpoint =
+    apiMode === "remote"
+      ? window.DEFAULT_REMOTE_API_ENDPOINT
+      : window.DEFAULT_LOCAL_API_ENDPOINT;
   let data;
   try {
     data = await callApiAnalyze(itemSources, filters, apiEndpoint, apiKey);
@@ -98,8 +95,8 @@ async function analyzeItems(
 function updateItemVisibility(minMatch) {
   const platform = getPlatform();
   if (!platform) return;
-  const maxItems =
-    parseInt(document.getElementById("max-items")?.value, 10) || 10;
+  const maxItemsInput = document.getElementById("max-items");
+  const maxItems = parseInt(maxItemsInput?.value, 10) || 10;
   const items = Array.from(platform.getItemElements()).slice(0, maxItems);
   items.forEach((item) => {
     const statusDiv = item.querySelector(".filtergenie-status");
@@ -115,10 +112,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       msg.activeFilters,
       msg.minMatch,
       platform,
-      msg.maxItems ?? 10,
+      msg.maxItems,
       sendResponse,
     );
-    // Indicate async response
     return true;
   }
   if (msg.type === "UPDATE_MIN_MATCH") updateItemVisibility(msg.minMatch);

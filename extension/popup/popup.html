@@ -10,80 +10,94 @@
       <h1>FilterGenie</h1>
     </header>
     <main>
-      <div id="filtergenie-message" role="alert" aria-live="polite"></div>
+      <div id="filtergenie-message" role="alert"></div>
       <form id="filters-form" autocomplete="off">
         <fieldset>
           <legend>Filters</legend>
           <div>
-            <input
-              type="text"
-              id="filter-input"
-              placeholder="Enter filter"
-              autocomplete="off"
-              aria-label="Filter"
-            />
-            <button type="button" id="add-filter">Add filter</button>
-          </div>
-          <ul id="filters-list" aria-label="Current filters"></ul>
-          <button type="button" id="apply-filters">Apply filters</button>
-          <button type="button" id="reset-filters">Reset filters</button>
-        </fieldset>
-        <fieldset>
-          <legend>Filter options</legend>
-          <label for="min-match">
-            Min. matching filters:
-            <br />
-            <input type="range" id="min-match" min="0" value="0" />
-            <span id="min-match-value">0</span>
-          </label>
-          <br />
-          <label for="max-items">
-            Max items:
-            <input type="number" id="max-items" min="1" value="10" />
-          </label>
-        </fieldset>
-      </form>
-      <section id="api-response-section">
-        <pre id="api-response" aria-live="polite"></pre>
-      </section>
-      <hr />
-      <details id="settings-expander">
-        <summary>Settings</summary>
-        <fieldset>
-          <legend class="visually-hidden"></legend>
-          <div>
-            <label for="api-endpoint">
-              API endpoint:
+            <label for="filter-input" style="display: block">
+              Add filter:
               <input
                 type="text"
-                id="api-endpoint"
-                value="http://localhost:8000"
+                id="filter-input"
+                placeholder="Enter filter"
                 autocomplete="off"
               />
             </label>
+            <button type="button" id="add-filter">Add filter</button>
+          </div>
+          <ul id="filters-list"></ul>
+          <div>
+            <button type="button" id="apply-filters">Apply filters</button>
+            <button type="button" id="reset-filters">Reset filters</button>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Filter options</legend>
+          <div>
+            <label for="min-match">
+              Min. matching filters:
+              <input type="range" id="min-match" min="0" value="0" />
+              <span id="min-match-value">0</span>
+            </label>
           </div>
           <div>
+            <label for="max-items">
+              Max items:
+              <input type="number" id="max-items" min="1" value="10" />
+            </label>
+          </div>
+        </fieldset>
+      </form>
+      <fieldset>
+        <legend>API</legend>
+        <section id="api-response-section">
+          <pre id="api-response"></pre>
+        </section>
+        <details id="settings-expander">
+          <summary>Settings</summary>
+          <legend class="visually-hidden"></legend>
+          <div>
+            <label>
+              <input
+                type="radio"
+                name="api-mode"
+                id="api-mode-local"
+                value="local"
+                checked
+              />
+              Local
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="api-mode"
+                id="api-mode-remote"
+                value="remote"
+              />
+              Remote
+            </label>
+          </div>
+          <div id="api-key-row">
             <label for="api-key">
               API key:
               <input type="text" id="api-key" autocomplete="off" />
             </label>
           </div>
-          <button type="button" id="save-settings">Save</button>
-          <span id="settings-saved" hidden>Saved!</span>
-          <br />
-          <button type="button" id="api-health-btn">Check API health</button>
-          <span id="health-status"></span>
-        </fieldset>
-      </details>
+          <div>
+            <button type="button" id="api-health-btn">Check API health</button>
+            <span id="health-status"></span>
+          </div>
+        </details>
+      </fieldset>
       <hr />
       <div class="footer-row">
         <span class="footer-author">Made by Daniel Altunay</span>
-        <nav id="social-links" aria-label="Social links">
+        <nav id="social-links">
           <a
             href="https://github.com/daltunay/filtergenie"
             target="_blank"
             rel="noopener"
-            aria-label="GitHub"
           >
             <img
               src="../assets/social/github.png"
@@ -96,7 +110,6 @@
             href="https://www.linkedin.com/in/daltunay/"
             target="_blank"
             rel="noopener"
-            aria-label="LinkedIn"
           >
             <img
               src="../assets/social/linkedin.png"

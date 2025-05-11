@@ -1,3 +1,5 @@
+// FilterGenie platform registry
+
 class Platform {
   constructor(config) {
     this.name = config.name;
@@ -59,12 +61,16 @@ class PlatformRegistry {
   registerPlatform(config) {
     if (config && config.name) this._platforms.push(new Platform(config));
   }
-  getCurrentPlatform(url = window.location.href) {
+  getCurrentPlatform(url) {
+    if (!url) return null;
     return this._platforms.find((p) => p.isSupported(url)) || null;
   }
-  isCurrentPageSearchPage(url = window.location.href) {
+  isCurrentPageSearchPage(url) {
     const platform = this.getCurrentPlatform(url);
     return !!(platform && platform.isSearchPage(url));
+  }
+  getAllPlatforms() {
+    return this._platforms;
   }
 }
 
