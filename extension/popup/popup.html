@@ -13,14 +13,9 @@
       <div id="filtergenie-message" role="alert"></div>
       <form id="filters-form" autocomplete="off">
         <fieldset>
-          <legend>Currently applied filters</legend>
-          <ul id="applied-filters-list"></ul>
-        </fieldset>
-        <fieldset>
-          <legend>Pending filters</legend>
+          <legend>Filters</legend>
           <div>
             <label for="filter-input">
-              Add filter:
               <input
                 type="text"
                 id="filter-input"
@@ -28,7 +23,7 @@
                 autocomplete="off"
               />
             </label>
-            <button type="button" id="add-filter">Add filter</button>
+            <button type="button" id="add-filter">Add</button>
           </div>
           <ul id="filters-list"></ul>
           <div>
@@ -40,7 +35,7 @@
           <legend>Filter options</legend>
           <div>
             <label for="max-items">
-              Max items:
+              Max. items:
               <input type="number" id="max-items" min="1" />
             </label>
           </div>
@@ -88,8 +83,16 @@
             </label>
           </div>
           <div>
-            <button type="button" id="api-health-btn">Check API health</button>
+            <button type="button" id="api-health-btn">Check health</button>
             <span id="health-status"></span>
+          </div>
+          <div id="api-auth-row" style="display: none">
+            <button type="button" id="api-auth-btn">Check auth.</button>
+            <span id="auth-status"></span>
+          </div>
+          <div id="api-clear-cache-row" style="display: none">
+            <button type="button" id="api-clear-cache-btn">Clear cache</button>
+            <span id="clear-cache-status"></span>
           </div>
         </details>
       </fieldset>
@@ -124,6 +127,7 @@
         </nav>
       </div>
     </main>
+    <script src="../src/defaults.js"></script>
     <script src="../src/platform-registry.js"></script>
     <script src="../src/api-settings.js"></script>
     <script src="../platforms/leboncoin.js"></script>

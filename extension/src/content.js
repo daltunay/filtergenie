@@ -87,14 +87,20 @@ async function analyzeItems(
     return;
   }
   updateItemStatus(items, data.filters, minMatch);
+  chrome.storage.local.set({
+    filtergenieLastAnalyzed: {
+      filtersData: data.filters,
+      minMatch,
+      maxItems,
+      timestamp: Date.now(),
+    },
+  });
   if (sendResponse) sendResponse({ apiResponse: data });
 }
 
-function updateItemVisibility(minMatch) {
+function updateItemVisibility(minMatch, maxItems) {
   const platform = getPlatform();
   if (!platform) return;
-  const maxItemsInput = document.getElementById("max-items");
-  const maxItems = parseInt(maxItemsInput?.value, 10) || 10;
   const items = Array.from(platform.getItemElements()).slice(0, maxItems);
   items.forEach((item) => {
     const statusDiv = item.querySelector(".filtergenie-status");
@@ -103,6 +109,24 @@ function updateItemVisibility(minMatch) {
   });
 }
 
+document.addEventListener("DOMContentLoaded", () => {
+  chrome.storage.local.set({ popupAppliedFilters: [] });
+
+  chrome.storage.local.get("filtergenieLastAnalyzed", (res) => {
+    const last = res.filtergenieLastAnalyzed;
+    if (!last || !last.filtersData) return;
+    const platform = getPlatform();
+    if (!platform) return;
+    const maxItems =
+      typeof last.maxItems === "number"
+        ? last.maxItems
+        : window.DEFAULTS.maxItems;
+    const items = Array.from(platform.getItemElements()).slice(0, maxItems);
+    if (!items.length) return;
+    updateItemStatus(items, last.filtersData, last.minMatch);
+  });
+});
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "APPLY_FILTERS") {
     const platform = getPlatform();
@@ -110,10 +134,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       msg.activeFilters,
       msg.minMatch,
       platform,
-      msg.maxItems,
+      msg.maxItems || window.DEFAULTS.maxItems,
       sendResponse,
     );
     return true;
   }
-  if (msg.type === "UPDATE_MIN_MATCH") updateItemVisibility(msg.minMatch);
+  if (msg.type === "UPDATE_MIN_MATCH") {
+    updateItemVisibility(
+      msg.minMatch,
+      typeof msg.maxItems === "number"
+        ? msg.maxItems
+        : window.DEFAULTS.maxItems,
+    );
+  }
 });

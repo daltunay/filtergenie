@@ -31,6 +31,12 @@ async def health_check():
     return {"status": "ok"}
 
 
+@authenticated_router.get("/auth/check")
+async def check_api_auth():
+    """Check API authentication validity."""
+    return {"status": "ok", "message": "API key is valid."}
+
+
 @authenticated_router.post("/cache/clear")
 async def clear_cache_endpoint(session: Session = Depends(get_db_session)):
     """Clear cache entries."""

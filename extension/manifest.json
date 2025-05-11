@@ -19,6 +19,7 @@
     {
       "matches": ["https://*.leboncoin.fr/*", "https://*.vinted.fr/*"],
       "js": [
+        "src/defaults.js",
         "src/platform-registry.js",
         "platforms/leboncoin.js",
         "platforms/vinted.js",
