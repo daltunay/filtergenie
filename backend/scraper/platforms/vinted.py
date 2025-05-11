@@ -18,8 +18,8 @@ class VintedScraper(BaseScraper):
     @classmethod
     def extract_description(cls, soup: BeautifulSoup) -> dict[str, str]:
         desc_container = soup.find("div", attrs={"itemprop": "description"})
-        desc_text = (
-            desc_container.find("span", class_="web_ui__Text__text") if desc_container else None
-        )
+        if not desc_container:
+            return {"description": ""}
+        desc_text = desc_container.find("span", class_="web_ui__Text__text")
         description = desc_text.text.strip() if desc_text else ""
         return {"description": description}

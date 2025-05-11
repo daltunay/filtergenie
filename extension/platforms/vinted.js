@@ -15,7 +15,6 @@ if (typeof window !== "undefined") {
           'a.new-item-box__overlay[data-testid$="--overlay-link"][href^="https://www.vinted.fr/items/"]',
         );
         const href = link?.getAttribute("href");
-        if (!href) return null;
         return href.startsWith("http")
           ? href
           : `${this.baseUrl}${href.startsWith("/") ? href : `/${href}`}`;

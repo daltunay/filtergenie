@@ -5,6 +5,7 @@ import typing as tp
 from backend.analyzer.models import ItemModel
 from backend.common.logging import log
 
+from .platforms.amazon import AmazonScraper
 from .platforms.ebay import EbayScraper
 from .platforms.leboncoin import LeboncoinScraper
 from .platforms.vinted import VintedScraper
@@ -13,6 +14,7 @@ PARSER_BY_PLATFORM: dict[str, tp.Callable] = {
     "vinted": VintedScraper.parse_item,
     "leboncoin": LeboncoinScraper.parse_item,
     "ebay": EbayScraper.parse_item,
+    "amazon": AmazonScraper.parse_item,
 }
 
 

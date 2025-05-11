@@ -11,7 +11,6 @@ if (typeof window !== "undefined") {
       getItemUrl(item) {
         const link = item.querySelector('a.absolute.inset-0[href^="/ad/"]');
         const href = link?.getAttribute("href");
-        if (!href) return null;
         return href.startsWith("http")
           ? href
           : `${this.baseUrl}${href.startsWith("/") ? href : `/${href}`}`;

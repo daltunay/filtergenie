@@ -17,12 +17,17 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://*.leboncoin.fr/*", "https://*.vinted.fr/*"],
+      "matches": [
+        "https://*.leboncoin.fr/*",
+        "https://*.vinted.fr/*",
+        "https://*.amazon.fr/*"
+      ],
       "js": [
         "src/defaults.js",
         "src/platform-registry.js",
         "platforms/leboncoin.js",
         "platforms/vinted.js",
+        "platforms/amazon.js",
         "src/api-settings.js",
         "src/content.js"
       ],

@@ -36,6 +36,8 @@ class LeboncoinScraper(BaseScraper):
     @classmethod
     def extract_description(cls, soup: BeautifulSoup) -> dict[str, str]:
         desc_container = soup.find("div", attrs={"data-qa-id": "adview_description_container"})
-        desc_elem = desc_container.find("p") if desc_container else None
+        if not desc_container:
+            return {"description": ""}
+        desc_elem = desc_container.find("p")
         description = desc_elem.text.strip() if desc_elem else ""
         return {"description": description}
