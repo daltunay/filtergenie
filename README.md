@@ -150,7 +150,7 @@ docker run --rm \
 
 ## Configuration
 
-> **Tip:** You can also create a `.env` file in the project root to set these environment variables. The application will automatically load variables from `.env` if present.
+**Tip:** You can also create a `.env` file in the project root to set these environment variables. The application will automatically load variables from `.env` if present.
 
 | Variable                  | Description                                      | Default / Example                                          |
 | ------------------------- | ------------------------------------------------ | ---------------------------------------------------------- |
@@ -163,6 +163,4 @@ docker run --rm \
 | `MODEL__LOCAL__DTYPE`     | Local model data type                            | `bfloat16`                                                 |
 | `MODEL__LOCAL__DEVICE`    | Device for local inference                       | `auto`                                                     |
 
-> **Note:**
-> You can use any OpenAI-compatible API for the remote model by setting `MODEL__REMOTE__BASE_URL` and `MODEL__REMOTE__NAME` accordingly.
-> By default, the configuration uses Gemini via the Google API.
+> **Note:** You can use any OpenAI-compatible API for the remote model by setting `MODEL__REMOTE__BASE_URL` and `MODEL__REMOTE__NAME` accordingly. By default, the configuration uses Gemini via the Google API.
