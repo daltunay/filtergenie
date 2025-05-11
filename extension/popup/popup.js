@@ -1,5 +1,3 @@
-// FilterGenie popup UI logic
-
 function getUI() {
   const ids = [
     "filters-form",
@@ -101,7 +99,7 @@ function updateControlStates(ui, filterManager) {
   ui.applyFilters.disabled = !enabled || !hasFilters;
   ui.resetFilters.disabled = !enabled || !hasFilters;
   ui.minMatch.disabled = !enabled || !hasFilters;
-  ui.addFilter.disabled = !enabled || ui.filterInput.disabled;
+  ui.addFilter.disabled = !enabled || !ui.filterInput.value.trim();
   ui.filterInput.disabled = !enabled;
 }
 
@@ -259,6 +257,9 @@ function bindEvents(ui, filterManager) {
     }
   };
   ui.resetFilters.onclick = () => filterManager.reset();
+  ui.filterInput.addEventListener("input", () => {
+    updateControlStates(ui, filterManager);
+  });
   ui.filterInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
