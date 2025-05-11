@@ -1,353 +1,247 @@
-function getUI() {
-  const ids = [
-    "filters-form",
-    "filter-input",
-    "filters-list",
-    "add-filter",
-    "apply-filters",
-    "reset-filters",
-    "min-match",
-    "min-match-value",
-    "api-mode-remote",
-    "api-mode-local",
-    "api-key-row",
-    "api-key",
-    "filtergenie-message",
-    "api-health-btn",
-    "health-status",
-    "max-items",
-    "api-response",
-  ];
-  const ui = {};
-  ids.forEach((id) => {
-    const key = id.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
-    ui[key] = document.getElementById(id);
-  });
-  return ui;
-}
+// Minimalist FilterGenie popup logic
+
+const FILTERS_KEY = "popupFilters";
+const FILTER_OPTIONS_KEY = "popupFilterOptions";
 
 const state = {
-  controlsEnabled: false,
   filters: [],
+  minMatch: 0,
+  maxItems: 10,
+  apiMode: "remote",
+  apiKey: "",
 };
 
-class FilterManager {
-  constructor(onChange) {
-    this.onChange = onChange;
-    this.load();
-  }
-  add(filter) {
-    if (filter && !state.filters.includes(filter)) {
-      state.filters.push(filter);
-      this.save();
-      this.onChange();
-    }
-  }
-  remove(idx) {
-    state.filters.splice(idx, 1);
-    this.save();
-    this.onChange();
-  }
-  reset() {
-    state.filters = [];
-    this.save();
-    this.onChange();
-  }
-  getAll() {
-    return state.filters;
-  }
-  count() {
-    return state.filters.length;
-  }
-  save() {
-    chrome.storage.local.set({ filterGenieFilters: state.filters });
-  }
-  load() {
-    chrome.storage.local.get({ filterGenieFilters: [] }, (result) => {
-      state.filters = Array.isArray(result.filterGenieFilters)
-        ? result.filterGenieFilters
-        : [];
-      this.onChange();
-    });
-  }
+const ui = {};
+[
+  "filters-form",
+  "filter-input",
+  "filters-list",
+  "add-filter",
+  "apply-filters",
+  "reset-filters",
+  "min-match",
+  "min-match-value",
+  "max-items",
+  "api-mode-remote",
+  "api-mode-local",
+  "api-key-row",
+  "api-key",
+  "filtergenie-message",
+  "api-health-btn",
+  "health-status",
+  "api-response",
+].forEach((id) => {
+  ui[id.replace(/-([a-z])/g, (g) => g[1].toUpperCase())] =
+    document.getElementById(id);
+});
+
+function saveState() {
+  chrome.storage.local.set({
+    [FILTERS_KEY]: state.filters,
+    [FILTER_OPTIONS_KEY]: {
+      minMatch: state.minMatch,
+      maxItems: state.maxItems,
+    },
+  });
+  if (typeof window.saveApiSettings === "function")
+    window.saveApiSettings(state.apiMode, state.apiKey);
 }
 
-function renderFilters(ui, filterManager) {
+function loadState(cb) {
+  // Show loading animation/message
+  if (ui.filtergenieMessage) {
+    ui.filtergenieMessage.textContent = "Loading...";
+    ui.filtergenieMessage.style.display = "";
+  }
+  chrome.storage.local.get(
+    {
+      [FILTERS_KEY]: [],
+      [FILTER_OPTIONS_KEY]: { minMatch: 0, maxItems: 10 },
+    },
+    (res) => {
+      state.filters = res[FILTERS_KEY];
+      state.minMatch = res[FILTER_OPTIONS_KEY].minMatch;
+      state.maxItems = res[FILTER_OPTIONS_KEY].maxItems;
+      if (typeof window.getApiSettings === "function") {
+        window.getApiSettings().then(({ apiMode, apiKey }) => {
+          state.apiMode = apiMode;
+          state.apiKey = apiKey;
+          state.minMatch = clampMinMatch(state.minMatch, state.filters.length);
+          if (ui.filtergenieMessage)
+            ui.filtergenieMessage.style.display = "none";
+          cb();
+        });
+      } else {
+        state.minMatch = clampMinMatch(state.minMatch, state.filters.length);
+        if (ui.filtergenieMessage) ui.filtergenieMessage.style.display = "none";
+        cb();
+      }
+    },
+  );
+}
+
+// Helper to clamp minMatch to valid range
+function clampMinMatch(minMatch, filterCount) {
+  // min is always 0, max is filterCount
+  return Math.max(0, Math.min(minMatch, filterCount));
+}
+
+function render() {
+  // Filters list
   ui.filtersList.innerHTML = "";
-  filterManager.getAll().forEach((filter, idx) => {
+  state.filters.forEach((f, i) => {
     const li = document.createElement("li");
-    li.textContent = filter + " ";
+    li.textContent = f;
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "remove-btn";
-    btn.dataset.idx = idx;
-    btn.ariaLabel = "Remove filter";
     btn.textContent = "✖";
+    btn.onclick = () => {
+      state.filters.splice(i, 1);
+      // Clamp minMatch after removing a filter
+      state.minMatch = clampMinMatch(state.minMatch, state.filters.length);
+      saveState();
+      render();
+    };
     li.appendChild(btn);
     ui.filtersList.appendChild(li);
   });
-  ui.minMatch.max = filterManager.count();
-  if (+ui.minMatch.value > filterManager.count())
-    ui.minMatch.value = filterManager.count();
+  // Min match slider logic
+  ui.minMatch.min = 0;
+  ui.minMatch.max = state.filters.length;
+  ui.minMatch.value = clampMinMatch(state.minMatch, state.filters.length);
+  ui.minMatch.disabled = !state.filters.length;
   ui.minMatchValue.textContent = ui.minMatch.value;
-  updateControlStates(ui, filterManager);
-}
-
-function updateControlStates(ui, filterManager) {
-  const hasFilters = filterManager.count() > 0;
-  const enabled = state.controlsEnabled;
-  ui.applyFilters.disabled = !enabled || !hasFilters;
-  ui.resetFilters.disabled = !enabled || !hasFilters;
-  ui.minMatch.disabled = !enabled || !hasFilters;
-  ui.addFilter.disabled = !enabled || !ui.filterInput.value.trim();
-  ui.filterInput.disabled = !enabled;
-}
-
-function showMessage(ui, msg) {
-  ui.filtergenieMessage.textContent = msg;
-}
-
-function clearMessage(ui) {
-  ui.filtergenieMessage.textContent = "";
-  if (ui.filtersForm) ui.filtersForm.style.display = "";
-}
-
-function setApiResponse(ui, status, error) {
-  if (!ui.apiResponse) return;
-  if (status === undefined || status === null) {
-    ui.apiResponse.textContent = "";
-    return;
-  }
-  if (error && status !== 200) {
-    ui.apiResponse.textContent = `API error (${status}): ${error}`;
-  } else {
-    ui.apiResponse.textContent = `API status: ${status}`;
-  }
-}
-
-let loadingInterval = null;
-
-function startLoadingAnimation(ui) {
-  if (!ui.apiResponse) return;
-  const frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-  let i = 0;
-  ui.apiResponse.textContent = "Loading... " + frames[0];
-  loadingInterval = setInterval(() => {
-    ui.apiResponse.textContent = "Loading... " + frames[i % frames.length];
-    i++;
-  }, 100);
-}
-
-function stopLoadingAnimation() {
-  if (loadingInterval) {
-    clearInterval(loadingInterval);
-    loadingInterval = null;
-  }
-}
-
-function loadSettings(cb) {
-  if (typeof window.getApiSettings === "function")
-    window
-      .getApiSettings()
-      .then(({ apiMode, apiKey }) => cb({ apiMode, apiKey }));
-}
-
-function saveSettings(ui) {
-  const apiMode = ui.apiModeRemote.checked ? "remote" : "local";
-  const apiKey = apiMode === "remote" ? ui.apiKey.value.trim() : "";
-  if (typeof window.saveApiSettings === "function")
-    window.saveApiSettings(apiMode, apiKey);
-}
-
-function updateApiKeyVisibility(ui) {
-  const isRemote = ui.apiModeRemote.checked;
-  if (ui.apiKeyRow) ui.apiKeyRow.style.display = isRemote ? "" : "none";
-}
-
-function getActiveTab(cb) {
-  chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => cb(tab));
-}
-
-function sendMessageToContent(msg, ui) {
-  getActiveTab((tab) => {
-    if (tab?.id) {
-      chrome.tabs.sendMessage(tab.id, msg, (response) => {
-        if (
-          chrome.runtime.lastError?.message?.includes(
-            "Receiving end does not exist",
-          )
-        ) {
-          showMessage(ui, "Not available on this page.");
-          setApiResponse(ui);
-        }
-      });
-    } else {
-      showMessage(ui, "No active tab.");
-      setApiResponse(ui);
-    }
-  });
-}
-
-function setupRuntimeListener(ui, filterManager) {
-  chrome.runtime.onMessage.addListener((msg) => {
-    if (msg.type === "API_STATUS") {
-      stopLoadingAnimation();
-      setApiResponse(ui, msg.status, msg.error);
-      updateControlStates(ui, filterManager);
-    }
-  });
-}
-
-function setControlsEnabled(enabled, ui, filterManager) {
-  state.controlsEnabled = enabled;
-  updateControlStates(ui, filterManager);
-}
-
-function initializeUI(ui, filterManager) {
-  ui.minMatch.value = 0;
-  ui.minMatch.max = 0;
-  ui.minMatch.disabled = true;
-  ui.minMatchValue.textContent = "0";
-  state.filters = [];
-  renderFilters(ui, filterManager);
-  setControlsEnabled(false, ui, filterManager);
-  setApiResponse(ui);
-  clearMessage(ui);
-}
-
-function checkPlatformAndEnableControls(ui, filterManager) {
-  getActiveTab((tab) => {
-    const url = tab?.url || "";
-    const reg = window.platformRegistry;
-    if (!reg) {
-      showMessage(ui, "No registry.");
-      setControlsEnabled(false, ui, filterManager);
-      if (ui.filtersForm) ui.filtersForm.style.display = "none";
-      return;
-    }
-    const platform = reg.getCurrentPlatform(url);
-    if (!platform) {
-      showMessage(ui, "Not supported.");
-      setControlsEnabled(false, ui, filterManager);
-      if (ui.filtersForm) ui.filtersForm.style.display = "none";
-      return;
-    }
-    if (!reg.isCurrentPageSearchPage(url)) {
-      showMessage(ui, "Only on search pages.");
-      setControlsEnabled(false, ui, filterManager);
-      if (ui.filtersForm) ui.filtersForm.style.display = "none";
-      return;
-    }
-    clearMessage(ui);
-    setControlsEnabled(true, ui, filterManager);
-    if (ui.filtersForm) ui.filtersForm.style.display = "";
-  });
-}
-
-function bindEvents(ui, filterManager) {
-  ui.filtersList.onclick = (e) => {
-    if (e.target.classList.contains("remove-btn"))
-      filterManager.remove(+e.target.dataset.idx);
-  };
-  ui.addFilter.onclick = () => {
-    const v = ui.filterInput.value.trim();
-    if (v) {
-      filterManager.add(v);
-      ui.filterInput.value = "";
-    }
-  };
-  ui.resetFilters.onclick = () => filterManager.reset();
-  ui.filterInput.addEventListener("input", () => {
-    updateControlStates(ui, filterManager);
-  });
-  ui.filterInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      ui.addFilter.onclick();
-    }
-  });
-  ui.filtersForm.onsubmit = (e) => e.preventDefault();
-  ui.applyFilters.onclick = () => {
-    ui.applyFilters.disabled = true;
-    startLoadingAnimation(ui);
-    sendMessageToContent(
-      {
-        type: "APPLY_FILTERS",
-        activeFilters: filterManager.getAll(),
-        minMatch: Math.max(0, +ui.minMatch.value || 0),
-        maxItems: Math.max(1, +ui.maxItems.value),
-      },
-      ui,
-    );
-  };
-  ui.minMatch.oninput = () => {
-    ui.minMatchValue.textContent = ui.minMatch.value;
-    sendMessageToContent(
-      {
-        type: "UPDATE_MIN_MATCH",
-        minMatch: Math.max(0, +ui.minMatch.value || 0),
-      },
-      ui,
-    );
-  };
+  // Max items
+  ui.maxItems.value = state.maxItems;
+  // Controls
+  const hasFilters = state.filters.length > 0;
+  ui.applyFilters.disabled = !hasFilters;
+  ui.resetFilters.disabled = !hasFilters;
+  ui.addFilter.disabled = !ui.filterInput.value.trim();
+  ui.filterInput.disabled = false;
+  // API settings
   if (ui.apiModeRemote && ui.apiModeLocal) {
-    ui.apiModeRemote.onchange = () => {
-      updateApiKeyVisibility(ui);
-      saveSettings(ui);
-    };
-    ui.apiModeLocal.onchange = () => {
-      updateApiKeyVisibility(ui);
-      saveSettings(ui);
-    };
+    ui.apiModeRemote.checked = state.apiMode === "remote";
+    ui.apiModeLocal.checked = state.apiMode === "local";
+    ui.apiKeyRow.style.display = state.apiMode === "remote" ? "" : "none";
   }
-  if (ui.apiKey) {
-    ui.apiKey.addEventListener("input", () => {
-      saveSettings(ui);
-    });
-  }
-  ui.apiHealthBtn.onclick = async () => {
-    const apiMode = ui.apiModeRemote.checked ? "remote" : "local";
-    let endpoint =
-      apiMode === "remote"
-        ? window.DEFAULT_REMOTE_API_ENDPOINT
-        : window.DEFAULT_LOCAL_API_ENDPOINT;
-    endpoint = endpoint.replace(/\/+$/, "");
-    ui.healthStatus.textContent = "Checking...";
-    try {
-      const resp = await fetch(endpoint + "/health");
-      ui.healthStatus.textContent = resp.ok ? "✅ Healthy" : "❌ Unhealthy";
-    } catch {
-      ui.healthStatus.textContent = "❌ Unavailable";
-    }
-  };
+  if (ui.apiKey) ui.apiKey.value = state.apiKey || "";
+}
+
+function sendToContent(msg) {
+  chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+    if (tab?.id) chrome.tabs.sendMessage(tab.id, msg);
+  });
 }
 
 function main() {
   document.addEventListener("DOMContentLoaded", () => {
-    const ui = getUI();
-    Object.entries(ui).forEach(([key, el]) => {
-      if (!el) console.warn(`UI element missing: ${key}`);
-    });
-    const filterManager = new FilterManager(() =>
-      renderFilters(ui, filterManager),
-    );
-    initializeUI(ui, filterManager);
-    bindEvents(ui, filterManager);
-    filterManager.load();
-    checkPlatformAndEnableControls(ui, filterManager);
-    loadSettings(({ apiMode, apiKey }) => {
+    loadState(() => {
+      // After loading state, update UI fields to reflect restored values
+      render();
+      // Ensure UI fields are synced with state
       if (ui.apiModeRemote && ui.apiModeLocal) {
-        if (apiMode === "remote") {
-          ui.apiModeRemote.checked = true;
-        } else {
-          ui.apiModeLocal.checked = true;
-        }
-        updateApiKeyVisibility(ui);
+        ui.apiModeRemote.checked = state.apiMode === "remote";
+        ui.apiModeLocal.checked = state.apiMode === "local";
+        ui.apiKeyRow.style.display = state.apiMode === "remote" ? "" : "none";
       }
-      ui.apiKey.value = apiKey || "";
+      if (ui.apiKey) ui.apiKey.value = state.apiKey || "";
+      if (ui.maxItems) ui.maxItems.value = state.maxItems;
+      if (ui.minMatch) {
+        ui.minMatch.min = 0;
+        ui.minMatch.max = state.filters.length;
+        ui.minMatch.value = clampMinMatch(state.minMatch, state.filters.length);
+      }
     });
-    setupRuntimeListener(ui, filterManager);
+
+    ui.addFilter.onclick = () => {
+      const v = ui.filterInput.value.trim();
+      if (v && !state.filters.includes(v)) {
+        state.filters.push(v);
+        // When adding a filter, if minMatch was 0, set to 1
+        if (state.filters.length === 1) state.minMatch = 1;
+        saveState();
+        ui.filterInput.value = "";
+        render();
+      }
+    };
+
+    ui.filterInput.oninput = () => {
+      ui.addFilter.disabled = !ui.filterInput.value.trim();
+    };
+
+    ui.filterInput.onkeydown = (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        ui.addFilter.onclick();
+      }
+    };
+
+    ui.resetFilters.onclick = () => {
+      state.filters = [];
+      state.minMatch = 0;
+      saveState();
+      render();
+    };
+
+    ui.minMatch.oninput = () => {
+      // Clamp to valid range
+      state.minMatch = clampMinMatch(+ui.minMatch.value, state.filters.length);
+      saveState();
+      ui.minMatchValue.textContent = ui.minMatch.value;
+      sendToContent({ type: "UPDATE_MIN_MATCH", minMatch: state.minMatch });
+    };
+
+    ui.maxItems.oninput = () => {
+      state.maxItems = Math.max(1, +ui.maxItems.value);
+      saveState();
+    };
+
+    ui.applyFilters.onclick = () => {
+      ui.applyFilters.disabled = true;
+      sendToContent({
+        type: "APPLY_FILTERS",
+        activeFilters: state.filters,
+        minMatch: state.minMatch,
+        maxItems: state.maxItems,
+      });
+    };
+
+    if (ui.apiModeRemote && ui.apiModeLocal) {
+      ui.apiModeRemote.onchange = ui.apiModeLocal.onchange = () => {
+        state.apiMode = ui.apiModeRemote.checked ? "remote" : "local";
+        render();
+        saveState();
+      };
+    }
+    if (ui.apiKey) {
+      ui.apiKey.oninput = () => {
+        state.apiKey = ui.apiKey.value.trim();
+        saveState();
+      };
+    }
+
+    ui.apiHealthBtn.onclick = async () => {
+      const endpoint =
+        state.apiMode === "remote"
+          ? window.DEFAULT_REMOTE_API_ENDPOINT
+          : window.DEFAULT_LOCAL_API_ENDPOINT;
+      ui.healthStatus.textContent = "Checking...";
+      try {
+        const resp = await fetch(endpoint.replace(/\/+$/, "") + "/health");
+        ui.healthStatus.textContent = resp.ok ? "✅ Healthy" : "❌ Unhealthy";
+      } catch {
+        ui.healthStatus.textContent = "❌ Unavailable";
+      }
+    };
+
+    chrome.storage.onChanged.addListener((changes) => {
+      if (changes[FILTERS_KEY] || changes[FILTER_OPTIONS_KEY]) {
+        loadState(render);
+      }
+    });
   });
 }
 
 main();
+// ...no more code...
