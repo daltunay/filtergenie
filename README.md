@@ -5,7 +5,15 @@
 </p>
 FilterGenie is an AI-powered browser extension and API that filters e-commerce search results using natural language and vision-language models.
 
-## Architecture
+## Features
+
+- Filter listings with natural language (e.g., "no scratches", "original packaging")
+- Analyzes item images and descriptions
+- Works with multiple e-commerce sites
+- Use as browser extension or API (cloud/local)
+
+<details>
+<summary>Architecture</summary>
 
 ```mermaid
 graph TD
@@ -41,12 +49,7 @@ graph TD
     Scraper <-->|"check/update cache"| DB
 ```
 
-## Features
-
-- Filter listings with natural language (e.g., "no scratches", "original packaging")
-- Analyzes item images and descriptions
-- Works with multiple e-commerce sites
-- Use as browser extension or API (cloud/local)
+</details>
 
 ## Quick Start
 
@@ -74,7 +77,7 @@ You can use the FilterGenie extension with **either**:
 6. **Set your API key in the extension settings.**
    - If you need an API key for the hosted API, please ask me directly.
 
-### API
+### Local API
 
 #### Prerequisites
 
