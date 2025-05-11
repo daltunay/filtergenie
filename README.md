@@ -45,17 +45,37 @@ graph TD
 
 ### Browser Extension
 
+You can use the FilterGenie extension with **either**:
+
+- A **locally deployed API** (running on your own machine, e.g. `http://localhost:8000`)
+- The **hosted API** at [`https://filtergenie-api.onrender.com`](https://filtergenie-api.onrender.com)
+
+**To configure the extension:**
+
 1. Clone the repo:
 
    ```bash
    git clone https://github.com/daltunay/filtergenie.git
    ```
 
-2. In your browser, open the extensions page (e.g. `chrome://extensions/`)
-3. Enable "Developer mode"
+2. In your browser, open the extensions page (e.g. `chrome://extensions` for Chrome)
+3. Enable "Developer mode" (top right corner toggle)
 4. Click "Load unpacked" and select the `extension` folder
+5. **Open the extension settings and set the API endpoint:**
+   - For local API: `http://localhost:8000`
+   - For hosted API: `https://filtergenie-api.onrender.com`
+6. **Set your API key in the extension settings.**
+   - If you need an API key for the hosted API, please ask me directly.
 
 ### API
+
+#### Prerequisites
+
+- Install [**uv**](https://docs.astral.sh/uv/) (Python package manager):
+
+  ```bash
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  ```
 
 1. Create and activate a virtual environment:
 
@@ -75,16 +95,27 @@ graph TD
 3. Run the API server:
 
    ```bash
-   fastapi dev backend/app.py
+    # For remote VLM
+   MODEL_REMOTE_API_KEY=your_gemini_api_key fastapi dev backend/app.py
+   ```
+
+   or
+
+   ```bash
+   # For local VLM
+   MODEL__USE_LOCAL=true fastapi dev backend/app.py
    ```
 
 Or use Docker:
 
 ```bash
+# Build the image
 docker build -t filtergenie .
-docker run \
+
+# Run the container
+docker run --rm \
   -p 8000:8000 \
-  -v $.data:/app/data \
+  -v ./data:/app/data \
   -e MODEL__REMOTE__API_KEY=your_gemini_api_key \
   filtergenie
 ```
@@ -94,19 +125,18 @@ docker run \
 For local VLM:
 
 ```bash
+# Build the image
 docker build --build-arg LOCAL=true -t filtergenie:local .
-docker run \
+
+# Run the container
+docker run --rm \
   -p 8000:8000 \
-  -v $.data:/app/data \
-  -e MODEL__USE_LOCAL=true \
+  -v ./data:/app/data \
+  -v ~/.cache/huggingface:/root/.cache/huggingface \
   filtergenie:local
 ```
 
-## API Usage
-
-- Hosted: `https://filtergenie-api.onrender.com/` (API key required)
-- Docs: `https://filtergenie-api.onrender.com/docs`
-- Health check: `curl https://filtergenie-api.onrender.com/health`
+> **Note:** Mount the `~/.cache/huggingface` folder to persist the Hugging Face model cache outside the container.
 
 ## Configuration
 

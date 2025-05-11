@@ -20,6 +20,7 @@ dependencies = [
 local = [
     "accelerate>=1.6.0",
     "datasets>=3.5.0",
+    "hf-xet>=1.1.0",
     "outlines>=0.2.3",
     "sentencepiece>=0.2.0",
     "transformers>=4.51.2",

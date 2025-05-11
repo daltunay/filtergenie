@@ -31,4 +31,5 @@ ENV LOCAL=${LOCAL}
 EXPOSE 8000
 HEALTHCHECK CMD curl --fail http://localhost:8000/health || exit 1
 
+ENV MODEL__USE_LOCAL=${LOCAL}
 CMD ["fastapi", "run", "backend/app.py", "--host", "0.0.0.0", "--port", "8000"]
