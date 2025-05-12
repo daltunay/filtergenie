@@ -2,6 +2,7 @@
 __pycache__/
 *.py[oc]
 build/
+dist/
 wheels/
 *.egg-info
 
@@ -15,3 +16,4 @@ wheels/
 *.db
 TODO.txt
 node_modules/
+extension/dist/
