@@ -1,4 +1,3 @@
-import { DEFAULTS } from "../utils/defaults.js";
 import { platformRegistry } from "../utils/platformRegistry.js";
 import "../platforms/leboncoin.js";
 import "../platforms/vinted.js";
@@ -8,10 +7,6 @@ import {
   DEFAULT_REMOTE_API_ENDPOINT,
   DEFAULT_LOCAL_API_ENDPOINT,
 } from "../utils/apiSettings.js";
-
-const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-let spinnerInterval = null;
-let spinnerStartTime = null;
 
 function getPlatform() {
   const reg = platformRegistry;
@@ -146,8 +141,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!last?.filtersData) return;
     const platform = getPlatform();
     if (!platform) return;
-    const maxItems =
-      typeof last.maxItems === "number" ? last.maxItems : DEFAULTS.maxItems;
+    const maxItems = typeof last.maxItems === "number" ? last.maxItems : 10;
     const items = Array.from(platform.getItemElements()).slice(0, maxItems);
     if (!items.length) return;
     updateItemStatus(items, last.filtersData, last.minMatch);
@@ -161,7 +155,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       msg.activeFilters,
       msg.minMatch,
       platform,
-      msg.maxItems || DEFAULTS.maxItems,
+      msg.maxItems,
       sendResponse,
     );
     return true;
@@ -169,7 +163,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "UPDATE_MIN_MATCH") {
     updateItemVisibility(
       msg.minMatch,
-      typeof msg.maxItems === "number" ? msg.maxItems : DEFAULTS.maxItems,
+      typeof msg.maxItems === "number" ? msg.maxItems : 10,
     );
   }
 });

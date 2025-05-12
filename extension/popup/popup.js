@@ -1,4 +1,3 @@
-import { DEFAULTS } from "../utils/defaults.js";
 import "../platforms/leboncoin.js";
 import "../platforms/vinted.js";
 import { showSpinner, removeSpinner } from "../utils/spinnerUtils.js";
@@ -11,25 +10,28 @@ document.addEventListener("DOMContentLoaded", () => {
   const FILTERS_KEY = "popupFilters";
   const MIN_MATCH_KEY = "popupMinMatch";
   const MAX_ITEMS_KEY = "popupMaxItems";
+  const API_MODE_KEY = "popupApiMode";
+  const API_KEY_KEY = "popupApiKey";
   function clampMinMatch(minMatch, count) {
     return Math.max(0, Math.min(minMatch, count));
   }
-  const listeners = [];
   const state = {
-    filters: [...DEFAULTS.filters],
-    minMatch: DEFAULTS.minMatch,
-    maxItems: DEFAULTS.maxItems,
-    apiMode: DEFAULTS.apiMode,
-    apiKey: DEFAULTS.apiKey,
+    filters: [],
+    minMatch: undefined,
+    maxItems: undefined,
+    apiMode: undefined,
+    apiKey: undefined,
     subscribe(fn) {
-      listeners.push(fn);
+      (this._listeners ||= []).push(fn);
     },
     notify() {
-      listeners.forEach((fn) => fn());
+      (this._listeners || []).forEach((fn) => fn());
     },
     set(key, value) {
       this[key] = value;
-      saveState();
+      if (key !== "apiMode" && key !== "apiKey") {
+        saveState();
+      }
       this.notify();
     },
     setFilters(filters) {
@@ -57,43 +59,16 @@ document.addEventListener("DOMContentLoaded", () => {
       this.set("maxItems", Math.max(1, val));
     },
     setApiMode(mode) {
-      this.set("apiMode", mode);
+      this.apiMode = mode;
+      chrome.storage.local.set({ [API_MODE_KEY]: mode });
+      this.notify();
     },
     setApiKey(key) {
-      this.set("apiKey", key);
+      this.apiKey = key;
+      chrome.storage.local.set({ [API_KEY_KEY]: key });
+      this.notify();
     },
   };
-  function saveState() {
-    chrome.storage.local.set({
-      [FILTERS_KEY]: state.filters,
-      [MIN_MATCH_KEY]: state.minMatch,
-      [MAX_ITEMS_KEY]: state.maxItems,
-    });
-  }
-  function loadState(cb) {
-    chrome.storage.local.get(
-      {
-        [FILTERS_KEY]: [...DEFAULTS.filters],
-        [MIN_MATCH_KEY]: DEFAULTS.minMatch,
-        [MAX_ITEMS_KEY]: DEFAULTS.maxItems,
-      },
-      (res) => {
-        state.filters = res[FILTERS_KEY];
-        state.minMatch = clampMinMatch(
-          typeof res[MIN_MATCH_KEY] === "number"
-            ? res[MIN_MATCH_KEY]
-            : DEFAULTS.minMatch,
-          state.filters.length,
-        );
-        state.maxItems =
-          typeof res[MAX_ITEMS_KEY] === "number"
-            ? res[MAX_ITEMS_KEY]
-            : DEFAULTS.maxItems;
-        state.notify();
-        if (cb) cb();
-      },
-    );
-  }
   const ui = {};
   [
     "filters-form",
@@ -127,6 +102,48 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById(id);
   });
 
+  function loadDefaultsFromHtml() {
+    state.filters = Array.from(ui.filtersList.children)
+      .map((li) => li.textContent?.replace(/✖$/, "").trim())
+      .filter(Boolean);
+    state.minMatch = Number(ui.minMatch.value);
+    state.maxItems = Number(ui.maxItems.value);
+    state.apiMode = ui.apiModeRemote.checked ? "remote" : "local";
+    state.apiKey = ui.apiKey.value;
+  }
+
+  function saveState() {
+    chrome.storage.local.set({
+      popupFilters: state.filters,
+      popupMinMatch: state.minMatch,
+      popupMaxItems: state.maxItems,
+    });
+  }
+  function loadState(cb) {
+    chrome.storage.local.get(
+      [
+        "popupFilters",
+        "popupMinMatch",
+        "popupMaxItems",
+        "popupApiMode",
+        "popupApiKey",
+      ],
+      (res) => {
+        loadDefaultsFromHtml();
+        if (Array.isArray(res.popupFilters)) state.filters = res.popupFilters;
+        if (typeof res.popupMinMatch === "number")
+          state.minMatch = res.popupMinMatch;
+        if (typeof res.popupMaxItems === "number")
+          state.maxItems = res.popupMaxItems;
+        if (typeof res.popupApiMode === "string")
+          state.apiMode = res.popupApiMode;
+        if (typeof res.popupApiKey === "string") state.apiKey = res.popupApiKey;
+        state.notify();
+        if (cb) cb();
+      },
+    );
+  }
+
   function renderUI() {
     ui.filtersList.innerHTML = "";
     state.filters.forEach((f, i) => {
@@ -154,7 +171,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ui.apiModeRemote.checked = state.apiMode === "remote";
     ui.apiModeLocal.checked = state.apiMode === "local";
     ui.apiKeyRow.style.display = state.apiMode === "remote" ? "" : "none";
-    ui.apiKey.value = state.apiKey || "";
+    ui.apiKey.value = state.apiKey;
     ui.apiAuthRow.style.display = state.apiMode === "remote" ? "" : "none";
     ui.apiAuthBtn.disabled = state.apiMode === "local";
     ui.authStatus.textContent =
@@ -299,7 +316,9 @@ document.addEventListener("DOMContentLoaded", () => {
       if (
         changes.popupFilters ||
         changes.popupMinMatch ||
-        changes.popupMaxItems
+        changes.popupMaxItems ||
+        changes.popupApiMode ||
+        changes.popupApiKey
       ) {
         loadState(renderUI);
       }

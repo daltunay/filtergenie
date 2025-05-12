@@ -2,18 +2,29 @@ const DEFAULT_REMOTE_API_ENDPOINT = "https://filtergenie-api.onrender.com";
 const DEFAULT_LOCAL_API_ENDPOINT = "http://localhost:8000";
 
 class ApiSettings {
-  static async get(defaults) {
+  static async get() {
     return new Promise((resolve) => {
       chrome.storage.local.get(
-        { apiMode: defaults.apiMode, apiKey: defaults.apiKey },
-        ({ apiMode, apiKey }) => resolve({ apiMode, apiKey }),
+        ["popupApiMode", "popupApiKey"],
+        ({ popupApiMode, popupApiKey }) => {
+          resolve({
+            apiMode: popupApiMode,
+            apiKey: popupApiKey,
+          });
+        },
       );
     });
   }
   static async save(apiMode, apiKey) {
     return new Promise((resolve) => {
-      chrome.storage.local.set({ apiMode, apiKey }, resolve);
+      chrome.storage.local.set(
+        { popupApiMode: apiMode, popupApiKey: apiKey },
+        resolve,
+      );
     });
+  }
+  static async getApiSettings() {
+    return this.get();
   }
 }
 
