@@ -18,7 +18,12 @@ jobs:
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
           RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
-        run: npx render-status-badge >> badge-url.txt
+        run: |
+          echo "About to run: npx render-status-badge >> badge-url.txt"
+          npx render-status-badge >> badge-url.txt
+          echo "Badge generation step exit code: $?"
+          echo "Contents of badge-url.txt:"
+          cat badge-url.txt
 
       - name: Update Badge
         run: |
