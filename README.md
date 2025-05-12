@@ -1,6 +1,6 @@
 # FilterGenie 🧞‍♂️
 
-![Render Status](https://img.shields.io/badge/Render-Unknown-lightgrey?logo=renderhttps://img.shields.io/badge/Render-Live-brightgreen?logo=render&style=for-the-badgestyle=for-the-badge)
+![Render Status](https://img.shields.io/badge/Render-Unknown-lightgrey?logo=render&style=for-the-badge)
 
 <p align="center">
   <img src="extension/assets/logo.png" alt="FilterGenie Logo" width="256" height="256">

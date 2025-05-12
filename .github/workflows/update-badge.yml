@@ -2,16 +2,11 @@ name: update-badge
 permissions:
   contents: write
 
-on:
-  workflow_run:
-    workflows: ["pre-commit"]
-    types:
-      - completed
-  schedule:
-    - cron: "*/5 * * * *"
+on: deployment_status
 
 jobs:
   update-badge:
+    if: github.event.deployment_status.state == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
