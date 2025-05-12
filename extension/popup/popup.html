@@ -15,14 +15,12 @@
         <fieldset>
           <legend>Filters</legend>
           <div>
-            <label for="filter-input">
-              <input
-                type="text"
-                id="filter-input"
-                placeholder="Enter filter"
-                autocomplete="off"
-              />
-            </label>
+            <input
+              type="text"
+              id="filter-input"
+              placeholder="Enter filter"
+              autocomplete="off"
+            />
             <button type="button" id="add-filter">Add</button>
           </div>
           <ul id="filters-list"></ul>
@@ -61,7 +59,6 @@
         </section>
         <details id="settings-expander">
           <summary>Settings</summary>
-          <legend class="visually-hidden"></legend>
           <div>
             <label>
               <input
@@ -102,8 +99,7 @@
           </div>
         </details>
       </fieldset>
-      <hr />
-      <div>
+      <footer>
         <span>Made by Daniel Altunay</span>
         <nav id="social-links">
           <a
@@ -131,7 +127,7 @@
             />
           </a>
         </nav>
-      </div>
+      </footer>
     </main>
     <script src="../dist/popup.bundle.js"></script>
   </body>
