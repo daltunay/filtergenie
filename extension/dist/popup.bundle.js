@@ -40,8 +40,7 @@
     }
     async getItemHtml(item) {
       const url = this.getItemUrl(item);
-      if (!url)
-        return "";
+      if (!url) return "";
       try {
         const resp = await fetch(url, { credentials: "include" });
         return await resp.text();
@@ -58,12 +57,10 @@
       this._platforms = [];
     }
     registerPlatform(config) {
-      if (config == null ? void 0 : config.name)
-        this._platforms.push(new Platform(config));
+      if (config == null ? void 0 : config.name) this._platforms.push(new Platform(config));
     }
     getCurrentPlatform(url) {
-      if (!url)
-        return null;
+      if (!url) return null;
       return this._platforms.find((p) => p.isSupported(url)) || null;
     }
     isCurrentPageSearchPage(url) {
@@ -88,8 +85,7 @@
     getItemUrl(item) {
       const link = item.querySelector('a.absolute.inset-0[href^="/ad/"]');
       const href = link == null ? void 0 : link.getAttribute("href");
-      if (!href)
-        return null;
+      if (!href) return null;
       return href.startsWith("http") ? href : `${this.baseUrl}${href.startsWith("/") ? href : `/${href}`}`;
     }
   };
@@ -109,8 +105,7 @@
         'a.new-item-box__overlay[data-testid$="--overlay-link"][href^="https://www.vinted.fr/items/"]'
       );
       const href = link == null ? void 0 : link.getAttribute("href");
-      if (!href)
-        return null;
+      if (!href) return null;
       return href.startsWith("http") ? href : `${this.baseUrl}${href.startsWith("/") ? href : `/${href}`}`;
     }
   };
@@ -121,8 +116,7 @@
   var spinnerInterval = null;
   var spinnerStart = null;
   function showSpinner(targets, message = "filtering...") {
-    if (spinnerInterval)
-      clearInterval(spinnerInterval);
+    if (spinnerInterval) clearInterval(spinnerInterval);
     let frame = 0;
     spinnerStart = Date.now();
     spinnerInterval = setInterval(() => {
@@ -141,8 +135,7 @@
     }
     spinnerStart = null;
     targets.forEach((el) => {
-      if (el)
-        el.textContent = "";
+      if (el) el.textContent = "";
     });
   }
 
@@ -273,19 +266,16 @@
         ],
         (res) => {
           loadDefaultsFromHtml();
-          if (Array.isArray(res.popupFilters))
-            state.filters = res.popupFilters;
+          if (Array.isArray(res.popupFilters)) state.filters = res.popupFilters;
           if (typeof res.popupMinMatch === "number")
             state.minMatch = res.popupMinMatch;
           if (typeof res.popupMaxItems === "number")
             state.maxItems = res.popupMaxItems;
           if (typeof res.popupApiMode === "string")
             state.apiMode = res.popupApiMode;
-          if (typeof res.popupApiKey === "string")
-            state.apiKey = res.popupApiKey;
+          if (typeof res.popupApiKey === "string") state.apiKey = res.popupApiKey;
           state.notify();
-          if (cb)
-            cb();
+          if (cb) cb();
         }
       );
     }
@@ -407,8 +397,7 @@
         }
       };
       ui.apiAuthBtn.onclick = async () => {
-        if (state.apiMode === "local")
-          return;
+        if (state.apiMode === "local") return;
         const endpoint = DEFAULT_REMOTE_API_ENDPOINT.replace(/\/+$/, "");
         ui.authStatus.textContent = "Checking...";
         try {

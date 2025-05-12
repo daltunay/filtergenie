@@ -40,8 +40,7 @@
     }
     async getItemHtml(item) {
       const url = this.getItemUrl(item);
-      if (!url)
-        return "";
+      if (!url) return "";
       try {
         const resp = await fetch(url, { credentials: "include" });
         return await resp.text();
@@ -58,12 +57,10 @@
       this._platforms = [];
     }
     registerPlatform(config) {
-      if (config == null ? void 0 : config.name)
-        this._platforms.push(new Platform(config));
+      if (config == null ? void 0 : config.name) this._platforms.push(new Platform(config));
     }
     getCurrentPlatform(url) {
-      if (!url)
-        return null;
+      if (!url) return null;
       return this._platforms.find((p) => p.isSupported(url)) || null;
     }
     isCurrentPageSearchPage(url) {
@@ -88,8 +85,7 @@
     getItemUrl(item) {
       const link = item.querySelector('a.absolute.inset-0[href^="/ad/"]');
       const href = link == null ? void 0 : link.getAttribute("href");
-      if (!href)
-        return null;
+      if (!href) return null;
       return href.startsWith("http") ? href : `${this.baseUrl}${href.startsWith("/") ? href : `/${href}`}`;
     }
   };
@@ -109,8 +105,7 @@
         'a.new-item-box__overlay[data-testid$="--overlay-link"][href^="https://www.vinted.fr/items/"]'
       );
       const href = link == null ? void 0 : link.getAttribute("href");
-      if (!href)
-        return null;
+      if (!href) return null;
       return href.startsWith("http") ? href : `${this.baseUrl}${href.startsWith("/") ? href : `/${href}`}`;
     }
   };
@@ -121,8 +116,7 @@
   var spinnerInterval = null;
   var spinnerStart = null;
   function showSpinner(targets, message = "filtering...") {
-    if (spinnerInterval)
-      clearInterval(spinnerInterval);
+    if (spinnerInterval) clearInterval(spinnerInterval);
     let frame = 0;
     spinnerStart = Date.now();
     spinnerInterval = setInterval(() => {
@@ -141,8 +135,7 @@
     }
     spinnerStart = null;
     targets.forEach((el) => {
-      if (el)
-        el.textContent = "";
+      if (el) el.textContent = "";
     });
   }
 
@@ -181,8 +174,7 @@
     var _a;
     const reg = platformRegistry;
     const url = window.location.href;
-    if (!reg || !((_a = reg._platforms) == null ? void 0 : _a.length))
-      return null;
+    if (!reg || !((_a = reg._platforms) == null ? void 0 : _a.length)) return null;
     return reg.getCurrentPlatform(url);
   }
   function getApiEndpoint(apiMode) {
@@ -199,8 +191,7 @@
   }
   async function callApiAnalyze(items, filters, apiEndpoint, apiKey) {
     const headers = { "Content-Type": "application/json" };
-    if (apiKey)
-      headers["X-API-Key"] = apiKey;
+    if (apiKey) headers["X-API-Key"] = apiKey;
     apiEndpoint = apiEndpoint.replace(/\/+$/, "");
     let resp;
     try {
@@ -239,11 +230,9 @@
     });
   }
   async function analyzeItems(filters, minMatch, platform, maxItems, sendResponse) {
-    if (!platform)
-      return;
+    if (!platform) return;
     const items = Array.from(platform.getItemElements()).slice(0, maxItems);
-    if (!items.length)
-      return;
+    if (!items.length) return;
     const statusDivs = items.map((item) => {
       let div = item.querySelector(".filtergenie-status");
       if (!div) {
@@ -283,8 +272,7 @@
   }
   function updateItemVisibility(minMatch, maxItems) {
     const platform = getPlatform();
-    if (!platform)
-      return;
+    if (!platform) return;
     const items = Array.from(platform.getItemElements()).slice(0, maxItems);
     items.forEach((item) => {
       const statusDiv = item.querySelector(".filtergenie-status");
@@ -296,15 +284,12 @@
     chrome.storage.local.set({ popupAppliedFilters: [] });
     chrome.storage.local.get("filtergenieLastAnalyzed", (res) => {
       const last = res.filtergenieLastAnalyzed;
-      if (!(last == null ? void 0 : last.filtersData))
-        return;
+      if (!(last == null ? void 0 : last.filtersData)) return;
       const platform = getPlatform();
-      if (!platform)
-        return;
+      if (!platform) return;
       const maxItems = typeof last.maxItems === "number" ? last.maxItems : 10;
       const items = Array.from(platform.getItemElements()).slice(0, maxItems);
-      if (!items.length)
-        return;
+      if (!items.length) return;
       updateItemStatus(items, last.filtersData, last.minMatch);
     });
   });
