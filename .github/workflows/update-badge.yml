@@ -21,6 +21,8 @@ jobs:
         run: bash scripts/update_badge.sh
 
       - name: Update Badge
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           new_url=$(cat badge-url.txt)
           sed -i "s|https://img.shields.io/badge/Render-[^?]*?logo=render&style=for-the-badge|$new_url|" README.md
