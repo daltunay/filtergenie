@@ -9,40 +9,18 @@ on:
 
 jobs:
   update-badge:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          persist-credentials: true
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Generate Badge URL
-        id: badge
+      - name: Generate Badge
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
           RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
-        run: |
-          BADGE_URL=$(node index.js)
-          echo "BADGE_URL=$BADGE_URL" >> $GITHUB_ENV
+        run: npx render-status-badge >> badge-url.txt
 
-      - name: Update README
-        env:
-          BADGE_URL: ${{ env.BADGE_URL }}
+      - name: Update Badge
         run: |
-          sed -i "s|<!-- RENDER_BADGE -->.*|<!-- RENDER_BADGE --> $BADGE_URL|" README.md
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
-          git add README.md
-          git diff --cached --quiet || git commit -m "Update Render status badge"
-          git push
+          sed -i "s|https://img.shields.io/badge/Render-Unknown-lightgrey?logo=render
+          git commit -am "[skip render] update badge" && git push
