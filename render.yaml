@@ -17,5 +17,5 @@ services:
     envVars:
       - key: MODEL__REMOTE__API_KEY
         sync: false
-      - key: API_KEY
+      - key: API__KEY
         generateValue: true

@@ -153,7 +153,7 @@ docker run --rm \
 
 | Variable                  | Description                                      | Default / Example                                          |
 | ------------------------- | ------------------------------------------------ | ---------------------------------------------------------- |
-| `API_KEY`                 | API authentication key                           | `None` (no auth)                                           |
+| `API__KEY`                | API authentication key                           | `None` (no auth)                                           |
 | `MODEL__USE_LOCAL`        | Use local model (`true`/`false`)                 | `false`                                                    |
 | `MODEL__REMOTE__API_KEY`  | Remote model API key (required for remote usage) | (your remote model API key)                                |
 | `MODEL__REMOTE__BASE_URL` | Remote model API base URL                        | `https://generativelanguage.googleapis.com/v1beta/openai/` |
