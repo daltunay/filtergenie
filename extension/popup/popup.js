@@ -123,10 +123,42 @@ document.addEventListener("DOMContentLoaded", () => {
     "api-clear-cache-row",
     "api-clear-cache-btn",
     "clear-cache-status",
+    "api-spinner",
+    "api-elapsed",
+    "api-status",
+    "api-total-time",
   ].forEach((id) => {
     ui[id.replace(/-([a-z])/g, (g) => g[1].toUpperCase())] =
       document.getElementById(id);
   });
+
+  let apiSpinnerInterval = null;
+  let apiSpinnerStart = null;
+
+  function showSpinner(targets, message = "filtering...") {
+    clearSpinner();
+    let frame = 0;
+    apiSpinnerStart = Date.now();
+    apiSpinnerInterval = setInterval(() => {
+      const elapsed = ((Date.now() - apiSpinnerStart) / 1000).toFixed(1);
+      targets.forEach((el) => {
+        el.textContent = ` ${["|", "/", "-", "\\"][frame % 4]} ${message} (${elapsed}s)`;
+      });
+      frame++;
+    }, 120);
+  }
+
+  function clearSpinner(targets = [ui.apiSpinner]) {
+    if (apiSpinnerInterval) {
+      clearInterval(apiSpinnerInterval);
+      apiSpinnerInterval = null;
+    }
+    apiSpinnerStart = null;
+    targets.forEach((el) => {
+      el.textContent = "";
+    });
+  }
+
   function renderUI() {
     ui.filtersList.innerHTML = "";
     state.filters.forEach((f, i) => {
@@ -156,16 +188,9 @@ document.addEventListener("DOMContentLoaded", () => {
     ui.apiKeyRow.style.display = state.apiMode === "remote" ? "" : "none";
     ui.apiKey.value = state.apiKey || "";
     ui.apiAuthRow.style.display = state.apiMode === "remote" ? "" : "none";
-    if (state.apiMode !== "remote") {
-      ui.authStatus.textContent = "";
-    }
-    if (state.apiMode === "local") {
-      ui.apiAuthBtn.disabled = true;
-      ui.authStatus.textContent = "Not required for local API";
-    } else {
-      ui.apiAuthBtn.disabled = false;
-      ui.authStatus.textContent = "";
-    }
+    ui.apiAuthBtn.disabled = state.apiMode === "local";
+    ui.authStatus.textContent =
+      state.apiMode === "local" ? "Not required for local API" : "";
     ui.apiClearCacheRow.style.display = "";
     if (!["remote", "local"].includes(state.apiMode)) {
       ui.clearCacheStatus.textContent = "";
@@ -194,11 +219,23 @@ document.addEventListener("DOMContentLoaded", () => {
     ui.applyFilters.onclick = () => {
       state.setMaxItems(+ui.maxItems.value);
       ui.applyFilters.disabled = true;
+      showSpinner([ui.apiSpinner]);
+      const requestStart = Date.now();
       sendToContent({
         type: "APPLY_FILTERS",
         activeFilters: state.filters,
         minMatch: state.minMatch,
         maxItems: state.maxItems,
+      });
+      chrome.runtime.onMessage.addListener(function apiStatusListener(msg) {
+        if (msg.type === "API_STATUS") {
+          const totalTime = (Date.now() - requestStart) / 1000;
+          clearSpinner([ui.apiSpinner]);
+          ui.apiStatus.textContent = `API status: ${msg.status}`;
+          ui.apiTotalTime.textContent = `Total request time: ${totalTime.toFixed(1)}s`;
+          chrome.runtime.onMessage.removeListener(apiStatusListener);
+          ui.applyFilters.disabled = false;
+        }
       });
     };
   }

@@ -2,31 +2,29 @@ const SPINNER_FRAMES = ["|", "/", "-", "\\"];
 let spinnerInterval = null;
 let spinnerStartTime = null;
 
-function showSpinnerOnItems(items) {
+function showSpinner(targets, message = "filtering...") {
   let frame = 0;
   spinnerStartTime = Date.now();
   if (spinnerInterval) clearInterval(spinnerInterval);
   spinnerInterval = setInterval(() => {
     const elapsed = ((Date.now() - spinnerStartTime) / 1000).toFixed(1);
-    items.forEach((item) => {
-      let statusDiv = item.querySelector(".filtergenie-status");
-      if (!statusDiv) {
-        statusDiv = document.createElement("div");
-        statusDiv.className = "filtergenie-status";
-        item.appendChild(statusDiv);
-      }
-      statusDiv.textContent = ` ${SPINNER_FRAMES[frame % SPINNER_FRAMES.length]} filtering... (${elapsed}s)`;
+    targets.forEach((el) => {
+      if (el)
+        el.textContent = ` ${SPINNER_FRAMES[frame % SPINNER_FRAMES.length]} ${message} (${elapsed}s)`;
     });
     frame++;
   }, 120);
 }
 
-function removeSpinner() {
+function removeSpinner(targets) {
   if (spinnerInterval) {
     clearInterval(spinnerInterval);
     spinnerInterval = null;
   }
   spinnerStartTime = null;
+  targets.forEach((el) => {
+    if (el) el.textContent = "";
+  });
 }
 
 function getPlatform() {
@@ -106,7 +104,16 @@ async function analyzeItems(
   if (!platform) return;
   const items = Array.from(platform.getItemElements()).slice(0, maxItems);
   if (!items.length) return;
-  showSpinnerOnItems(items);
+  const statusDivs = items.map((item) => {
+    let div = item.querySelector(".filtergenie-status");
+    if (!div) {
+      div = document.createElement("div");
+      div.className = "filtergenie-status";
+      item.appendChild(div);
+    }
+    return div;
+  });
+  showSpinner(statusDivs);
   const itemSources = await fetchItemSources(platform, items);
   const { apiMode, apiKey } = await window.getApiSettings();
   let apiEndpoint = getApiEndpoint(apiMode);
@@ -114,11 +121,11 @@ async function analyzeItems(
   try {
     data = await callApiAnalyze(itemSources, filters, apiEndpoint, apiKey);
   } catch {
-    removeSpinner();
+    removeSpinner(statusDivs);
     sendResponse?.({ apiResponse: "API error" });
     return;
   }
-  removeSpinner();
+  removeSpinner(statusDivs);
   if (!data.filters) {
     sendResponse?.({ apiResponse: data });
     return;
