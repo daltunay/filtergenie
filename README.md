@@ -1,6 +1,6 @@
 # FilterGenie 🧞‍♂️
 
-[![API Status](https://img.shields.io/endpoint?url=https://filtergenie-api.onrender.com/badge)](https://filtergenie-api.onrender.com)
+![Render Status](https://img.shields.io/badge/Render-Live-brightgreen?logo=render&style=for-the-badge)
 
 <p align="center">
   <img src="extension/assets/logo.png" alt="FilterGenie Logo" width="256" height="256">

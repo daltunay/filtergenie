@@ -1,0 +1,42 @@
+name: Update Render Status Badge
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  update-badge:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Generate Badge URL
+        id: badge
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+        run: |
+          BADGE_URL=$(node index.js)
+          echo "BADGE_URL=$BADGE_URL" >> $GITHUB_ENV
+
+      - name: Update README
+        env:
+          BADGE_URL: ${{ env.BADGE_URL }}
+        run: |
+          sed -i "s|<!-- RENDER_BADGE -->.*|<!-- RENDER_BADGE --> $BADGE_URL|" README.md
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add README.md
+          git commit -m "Update Render status badge"
+          git push
