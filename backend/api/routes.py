@@ -31,6 +31,17 @@ async def health_check():
     return {"status": "ok"}
 
 
+@public_router.get("/badge")
+async def badge_check():
+    """Health check endpoint for badge service."""
+    return {
+        "schemaVersion": 1,
+        "label": "FilterGenie",
+        "message": "up",
+        "color": "green",
+    }
+
+
 @authenticated_router.get("/auth/check")
 async def check_api_auth():
     """Check API authentication validity."""

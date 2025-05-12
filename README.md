@@ -1,5 +1,7 @@
 # FilterGenie 🧞‍♂️
 
+[![API Status](https://img.shields.io/endpoint?url=https://filtergenie-api.onrender.com/badge)](https://filtergenie-api.onrender.com)
+
 <p align="center">
   <img src="extension/assets/logo.png" alt="FilterGenie Logo" width="256" height="256">
 </p>
@@ -11,6 +13,15 @@ FilterGenie is an AI-powered browser extension and API that filters e-commerce s
 - Analyzes item images and descriptions
 - Works with multiple e-commerce sites
 - Use as browser extension or API (cloud/local)
+
+## Supported Websites
+
+| Name      | Domains                                          | Status |
+| --------- | ------------------------------------------------ | ------ |
+| leboncoin | leboncoin.fr                                     | ✅     |
+| vinted    | vinted.fr, vinted.com, vinted.it, vinted.de, ... | ✅     |
+| ebay      | ebay.fr, ebay.com, ebay.it, ebay.de, ...         | 🛠️ WIP |
+| amazon    | amazon.fr, amazon.com, amazon.it, amazon.de, ... | 🛠️ WIP |
 
 <details>
 <summary>Architecture</summary>
