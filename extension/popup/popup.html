@@ -3,132 +3,357 @@
   <head>
     <meta charset="utf-8" />
     <title>FilterGenie</title>
-    <link rel="stylesheet" href="popup.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../dist/popup.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   </head>
-  <body>
-    <header>
-      <h1>FilterGenie</h1>
+  <body class="min-h-screen min-w-[400px] max-w-lg p-4 text-white">
+    <header class="flex items-center justify-between mb-6">
+      <div class="flex items-center">
+        <img
+          src="../assets/logo.png"
+          alt="FilterGenie"
+          class="h-24 w-24 mr-3"
+        />
+        <h1
+          class="text-2xl font-bold bg-gradient-to-r from-primary-300 to-secondary-300 bg-clip-text text-transparent"
+        >
+          FilterGenie
+        </h1>
+      </div>
+      <div id="connection-status" class="flex items-center text-xs">
+        <span class="inline-flex h-4 w-4 rounded-full mr-2 bg-gray-500"></span>
+        <span>Not available</span>
+      </div>
     </header>
-    <main>
-      <div id="filtergenie-message" role="alert"></div>
-      <form id="filters-form" autocomplete="off">
-        <fieldset>
-          <legend>Filters</legend>
-          <div>
+
+    <div id="notification-area" class="mb-4" role="alert"></div>
+
+    <main class="space-y-6">
+      <section class="card p-4">
+        <h2 class="text-lg font-medium text-primary-200 mb-3 flex items-center">
+          <svg
+            class="h-5 w-5 mr-2 text-primary-400"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z"
+              clip-rule="evenodd"
+            />
+          </svg>
+          Filters
+        </h2>
+
+        <form id="filters-form" class="space-y-4" autocomplete="off">
+          <div class="flex gap-2">
             <input
               type="text"
               id="filter-input"
-              placeholder="Enter filter"
+              placeholder="e.g., 'original packaging', 'no scratches'"
+              class="input flex-grow"
               autocomplete="off"
             />
-            <button type="button" id="add-filter">Add</button>
+            <button
+              type="button"
+              id="add-filter"
+              class="btn btn-primary whitespace-nowrap"
+            >
+              Add
+            </button>
           </div>
-          <ul id="filters-list"></ul>
+
           <div>
-            <button type="button" id="apply-filters">Apply filters</button>
-            <button type="button" id="reset-filters">Reset filters</button>
+            <ul id="filters-list" class="flex flex-wrap mt-2"></ul>
           </div>
-        </fieldset>
-        <fieldset>
-          <legend>Filter options</legend>
-          <div>
-            <label for="max-items">
-              Max. items:
-              <input type="number" id="max-items" min="1" />
-            </label>
+
+          <div class="card bg-primary-900/20 p-3 rounded-lg">
+            <h3
+              class="text-sm font-medium text-primary-300 mb-2 flex items-center"
+            >
+              <svg
+                id="options-lens"
+                class="h-4 w-4 mr-1 text-primary-400 cursor-pointer"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <circle cx="11" cy="11" r="8" stroke-width="2"></circle>
+                <line
+                  x1="21"
+                  y1="21"
+                  x2="16.65"
+                  y2="16.65"
+                  stroke-width="2"
+                ></line>
+              </svg>
+              Options
+            </h3>
+            <div class="space-y-3">
+              <div class="flex flex-col">
+                <label for="max-items" class="text-sm mr-2 text-primary-300">
+                  Max. items:
+                </label>
+                <div class="flex items-center mt-1">
+                  <input
+                    type="number"
+                    id="max-items"
+                    min="1"
+                    max="50"
+                    class="input w-full text-center"
+                  />
+                </div>
+              </div>
+              <div class="flex flex-col">
+                <label for="min-match" class="text-sm mr-2 text-primary-300">
+                  Min. matches:
+                </label>
+                <div class="flex items-center mt-1">
+                  <input
+                    type="range"
+                    id="min-match"
+                    min="0"
+                    max="0"
+                    class="w-full accent-primary-500"
+                  />
+                  <span
+                    id="min-match-value"
+                    class="ml-2 text-xs font-medium px-2 py-1 bg-primary-800/80 rounded-md min-w-[24px] text-center"
+                    >0</span
+                  >
+                </div>
+              </div>
+            </div>
           </div>
-          <div>
-            <label for="min-match">
-              Min. matching filters:
-              <input type="range" id="min-match" min="0" />
-              <span id="min-match-value"></span>
-            </label>
+
+          <div class="flex gap-2 pt-2">
+            <button
+              type="button"
+              id="apply-filters"
+              class="btn btn-secondary flex-grow"
+              disabled
+            >
+              Apply
+            </button>
+            <button
+              type="button"
+              id="reset-filters"
+              class="btn btn-outline"
+              disabled
+            >
+              Reset
+            </button>
           </div>
-        </fieldset>
-      </form>
-      <fieldset>
-        <legend>API</legend>
-        <section id="api-progress-section">
-          <div id="api-spinner"></div>
-          <div id="api-elapsed"></div>
-          <div id="api-status"></div>
-          <div id="api-total-time"></div>
-        </section>
-        <section id="api-response-section">
-          <pre id="api-response"></pre>
-        </section>
-        <details id="settings-expander">
-          <summary>Settings</summary>
-          <div>
-            <label>
-              <input
-                type="radio"
-                name="api-mode"
-                id="api-mode-local"
-                value="local"
+        </form>
+      </section>
+
+      <section class="card">
+        <div
+          class="flex items-center justify-between px-4 py-3 border-b border-primary-800/30"
+        >
+          <h2 class="text-lg font-medium text-primary-200 flex items-center">
+            <svg
+              class="h-5 w-5 mr-2 text-primary-400"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z"
+                clip-rule="evenodd"
               />
-              Local
-            </label>
-            <label>
-              <input
-                type="radio"
-                name="api-mode"
-                id="api-mode-remote"
-                value="remote"
+            </svg>
+            API
+          </h2>
+          <button
+            id="settings-toggle"
+            class="text-primary-400 hover:text-primary-300 p-1 rounded-full hover:bg-primary-800/50"
+          >
+            <svg
+              class="h-5 w-5"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"
+                clip-rule="evenodd"
               />
-              Remote
-            </label>
+            </svg>
+          </button>
+        </div>
+
+        <div id="api-progress-section" class="p-4 space-y-2">
+          <div class="flex items-center space-x-3">
+            <div id="api-spinner"></div>
+            <div id="api-status" class="text-sm text-primary-300 min-w-[100px]">
+              Ready
+            </div>
           </div>
-          <div id="api-key-row">
-            <label for="api-key">
-              API key:
-              <input type="text" id="api-key" autocomplete="off" />
-            </label>
+          <div class="text-xs text-gray-400 flex justify-between">
+            <div id="api-elapsed"></div>
+            <div id="api-total-time"></div>
           </div>
-          <div>
-            <button type="button" id="api-health-btn">Check health</button>
-            <span id="health-status"></span>
+        </div>
+
+        <div
+          id="api-settings"
+          class="hidden border-t border-primary-800/30 p-4 space-y-4 bg-dark-900/50 rounded-b-xl"
+        >
+          <div class="flex flex-col space-y-1">
+            <label class="text-sm font-medium text-primary-200">API Mode</label>
+            <div class="flex space-x-4 mt-1">
+              <label class="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  name="api-mode"
+                  id="api-mode-remote"
+                  value="remote"
+                  class="accent-primary-500"
+                />
+                <span class="text-sm">Remote</span>
+              </label>
+              <label class="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  name="api-mode"
+                  id="api-mode-local"
+                  value="local"
+                  class="accent-primary-500"
+                />
+                <span class="text-sm">Local</span>
+              </label>
+            </div>
           </div>
-          <div id="api-auth-row" style="display: none">
-            <button type="button" id="api-auth-btn">Check auth.</button>
-            <span id="auth-status"></span>
+
+          <div id="api-key-row" class="mb-3 flex flex-col">
+            <label for="api-key" class="text-sm font-medium text-primary-200"
+              >API Key</label
+            >
+            <div class="flex items-center mt-1">
+              <input
+                type="password"
+                id="api-key"
+                class="input flex-grow"
+                autocomplete="off"
+              />
+              <button
+                type="button"
+                id="api-key-toggle"
+                class="ml-2 p-1 rounded-full text-primary-400 hover:text-primary-300 hover:bg-primary-800/50 focus:outline-none"
+                aria-label="Show API Key"
+                tabindex="0"
+              >
+                <svg
+                  id="api-key-eye"
+                  class="h-5 w-5"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
-          <div id="api-clear-cache-row" style="display: none">
-            <button type="button" id="api-clear-cache-btn">Clear cache</button>
-            <span id="clear-cache-status"></span>
+
+          <div class="flex flex-col gap-2">
+            <div
+              id="api-health-row"
+              class="flex items-center justify-between bg-dark-800/50 p-3 rounded-lg"
+            >
+              <button
+                type="button"
+                id="api-health-btn"
+                class="btn btn-outline text-xs"
+              >
+                Check Health
+              </button>
+              <div id="health-status" class="text-xs"></div>
+            </div>
+            <div
+              id="api-auth-row"
+              class="flex items-center justify-between bg-dark-800/50 p-3 rounded-lg"
+            >
+              <button
+                type="button"
+                id="api-auth-btn"
+                class="btn btn-outline text-xs"
+              >
+                Check Auth
+              </button>
+              <div id="auth-status" class="text-xs"></div>
+            </div>
+            <div
+              id="api-clear-cache-row"
+              class="flex items-center justify-between bg-dark-800/50 p-3 rounded-lg"
+            >
+              <button
+                type="button"
+                id="api-clear-cache-btn"
+                class="btn btn-outline text-xs"
+              >
+                Clear Cache
+              </button>
+              <div id="clear-cache-status" class="text-xs"></div>
+            </div>
           </div>
-        </details>
-      </fieldset>
-      <footer>
-        <span>Made by Daniel Altunay</span>
-        <nav id="social-links">
-          <a
-            href="https://github.com/daltunay/filtergenie"
-            target="_blank"
-            rel="noopener"
-          >
-            <img
-              src="../assets/social/github.png"
-              alt="GitHub"
-              width="16"
-              height="16"
-            />
-          </a>
-          <a
-            href="https://www.linkedin.com/in/daltunay/"
-            target="_blank"
-            rel="noopener"
-          >
-            <img
-              src="../assets/social/linkedin.png"
-              alt="LinkedIn"
-              width="16"
-              height="16"
-            />
-          </a>
-        </nav>
-      </footer>
+        </div>
+      </section>
     </main>
+
+    <footer
+      class="mt-6 pt-4 border-t border-primary-800/30 text-xs text-gray-400 flex items-center justify-between"
+    >
+      <span>Made by Daniel Altunay</span>
+      <div id="social-links" class="flex items-center space-x-3">
+        <a
+          href="https://github.com/daltunay/filtergenie"
+          target="_blank"
+          rel="noopener"
+          class="text-gray-400 hover:text-primary-400 transition-colors"
+        >
+          <img
+            src="../assets/social/github.png"
+            alt="GitHub"
+            class="w-4 h-4 opacity-70 hover:opacity-100"
+          />
+        </a>
+        <a
+          href="https://www.linkedin.com/in/daltunay/"
+          target="_blank"
+          rel="noopener"
+          class="text-gray-400 hover:text-primary-400 transition-colors"
+        >
+          <img
+            src="../assets/social/linkedin.png"
+            alt="LinkedIn"
+            class="w-4 h-4 opacity-70 hover:opacity-100"
+          />
+        </a>
+      </div>
+    </footer>
+
     <script src="../dist/popup.bundle.js"></script>
   </body>
 </html>

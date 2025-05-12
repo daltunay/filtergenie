@@ -9,22 +9,28 @@ on:
 
 jobs:
   update-badge:
-    if: github.event_name != 'deployment_status' || github.event.deployment_status.state == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Generate Badge
+      - name: Generate Render Badge
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
           RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
-        run: bash scripts/generate_badge.sh
+        run: bash scripts/render_badge.sh
 
-      - name: Update badge
+      - name: Generate Deployment Badge
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/deployment_badge.sh
+
+      - name: Update badges in README
         run: |
-          new_url=$(cat badge-url.txt)
-          sed -i "s|![Render Status](https://img.shields.io/badge/Render-[^?)]*?logo=render&style=for-the-badge)|![Render Status]($new_url)|" README.md
+          render_url=$(cat render-badge-url.txt)
+          deployment_url=$(cat deployment-badge-url.txt)
+          sed -i "s|![Render Status](https://img.shields.io/badge/Render-[^?)]*?logo=render&style=for-the-badge)|![Render Status]($render_url)|" README.md
+          sed -i "s|![Deployment Status](https://img.shields.io/badge/GitHub-[^?)]*?logo=github&style=for-the-badge)|![Deployment Status]($deployment_url)|" README.md
 
       - name: Commit and push
         run: |

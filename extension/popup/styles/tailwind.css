@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gradient-to-br from-dark-900 to-dark-800 text-white min-h-screen font-sans;
+  }
+
+  ::-webkit-scrollbar {
+    @apply w-2;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-dark-800 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-primary-600 rounded-full hover:bg-primary-500 transition-colors;
+  }
+
+  :focus-visible {
+    @apply outline-none ring ring-primary-500/50;
+  }
+
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-text-fill-color: white;
+    -webkit-box-shadow: 0 0 0px 1000px #0c4a6e inset;
+    transition: background-color 5000s ease-in-out 0s;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200
+           focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-dark-900
+           disabled:opacity-50 disabled:cursor-not-allowed text-sm;
+  }
+
+  .btn-primary {
+    @apply bg-primary-600 text-white hover:bg-primary-500
+           active:bg-primary-700 focus:ring-primary-500;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary-500 text-dark-900 hover:bg-secondary-400
+           active:bg-secondary-600 focus:ring-secondary-400;
+  }
+
+  .btn-outline {
+    @apply border border-primary-500 text-primary-400 hover:bg-primary-500/10
+           active:bg-primary-600/20 focus:ring-primary-500;
+  }
+
+  .btn-danger {
+    @apply bg-red-600 text-white hover:bg-red-500
+           active:bg-red-700 focus:ring-red-500;
+  }
+
+  .input {
+    @apply bg-dark-800/80 border border-primary-800/50 rounded-lg px-3 py-2
+           text-white placeholder-gray-400 w-full transition-all duration-200
+           focus:border-primary-500 focus:bg-dark-800 focus:outline-none
+           focus:ring-1 focus:ring-primary-500/50 text-sm;
+  }
+
+  .card {
+    @apply bg-dark-800/80 backdrop-blur-sm border border-primary-800/30
+           rounded-xl shadow-lg overflow-hidden animate-fade-in;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-success {
+    @apply bg-green-500/20 text-green-400;
+  }
+
+  .badge-error {
+    @apply bg-red-500/20 text-red-400;
+  }
+
+  .genie-spinner {
+    @apply inline-block h-4 w-4 animate-spin-slow text-primary-400 opacity-75;
+  }
+}

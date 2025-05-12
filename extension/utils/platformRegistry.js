@@ -3,32 +3,39 @@ class Platform {
     this.name = config.name;
     this._config = config;
   }
+
+  _parseUrl(url) {
+    try {
+      return new URL(url);
+    } catch {
+      return null;
+    }
+  }
+
   isSupported(url) {
-    try {
-      return this._config.hostPattern.test(new URL(url).hostname);
-    } catch {
-      return false;
-    }
+    const parsedUrl = this._parseUrl(url);
+    return parsedUrl && this._config.hostPattern.test(parsedUrl.hostname);
   }
+
   isSearchPage(url) {
-    try {
-      return this._config.searchPathPatterns.some((pat) =>
-        pat.test(new URL(url).pathname),
-      );
-    } catch {
-      return false;
-    }
+    const parsedUrl = this._parseUrl(url);
+    return (
+      parsedUrl &&
+      this._config.searchPathPatterns.some((pat) =>
+        pat.test(parsedUrl.pathname),
+      )
+    );
   }
+
   isItemPage(url) {
-    try {
-      return this._config.itemPathPattern.test(new URL(url).pathname);
-    } catch {
-      return false;
-    }
+    const parsedUrl = this._parseUrl(url);
+    return parsedUrl && this._config.itemPathPattern.test(parsedUrl.pathname);
   }
+
   getItemElements() {
     return document.querySelectorAll(this._config.itemSelector);
   }
+
   getItemUrl(item) {
     if (typeof this._config.getItemUrl === "function") {
       return this._config.getItemUrl(item);
@@ -36,6 +43,7 @@ class Platform {
     const link = item.querySelector(this._config.itemLinkSelector);
     return link?.getAttribute("href") || null;
   }
+
   async getItemHtml(item) {
     const url = this.getItemUrl(item);
     if (!url) return "";
@@ -46,6 +54,7 @@ class Platform {
       return "";
     }
   }
+
   getItemContainer(item) {
     return item;
   }
@@ -55,17 +64,21 @@ class PlatformRegistry {
   constructor() {
     this._platforms = [];
   }
+
   registerPlatform(config) {
     if (config?.name) this._platforms.push(new Platform(config));
   }
+
   getCurrentPlatform(url) {
     if (!url) return null;
     return this._platforms.find((p) => p.isSupported(url)) || null;
   }
+
   isCurrentPageSearchPage(url) {
     const platform = this.getCurrentPlatform(url);
     return !!(platform && platform.isSearchPage(url));
   }
+
   getAllPlatforms() {
     return this._platforms;
   }

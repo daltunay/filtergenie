@@ -15,6 +15,7 @@ class ApiSettings {
       );
     });
   }
+
   static async save(apiMode, apiKey) {
     return new Promise((resolve) => {
       chrome.storage.local.set(
@@ -22,9 +23,6 @@ class ApiSettings {
         resolve,
       );
     });
-  }
-  static async getApiSettings() {
-    return this.get();
   }
 }
 
