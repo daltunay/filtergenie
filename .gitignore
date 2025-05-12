@@ -15,3 +15,4 @@ wheels/
 *.ipynb
 *.db
 TODO.txt
+node_modules/

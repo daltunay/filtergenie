@@ -1,34 +1,20 @@
-const SPINNER_FRAMES = ["|", "/", "-", "\\"];
+import { DEFAULTS } from "../utils/defaults.js";
+import { platformRegistry } from "../utils/platformRegistry.js";
+import "../platforms/leboncoin.js";
+import "../platforms/vinted.js";
+import { showSpinner, removeSpinner } from "../utils/spinnerUtils.js";
+import {
+  ApiSettings,
+  DEFAULT_REMOTE_API_ENDPOINT,
+  DEFAULT_LOCAL_API_ENDPOINT,
+} from "../utils/apiSettings.js";
+
+const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 let spinnerInterval = null;
 let spinnerStartTime = null;
 
-function showSpinner(targets, message = "filtering...") {
-  let frame = 0;
-  spinnerStartTime = Date.now();
-  if (spinnerInterval) clearInterval(spinnerInterval);
-  spinnerInterval = setInterval(() => {
-    const elapsed = ((Date.now() - spinnerStartTime) / 1000).toFixed(1);
-    targets.forEach((el) => {
-      if (el)
-        el.textContent = ` ${SPINNER_FRAMES[frame % SPINNER_FRAMES.length]} ${message} (${elapsed}s)`;
-    });
-    frame++;
-  }, 120);
-}
-
-function removeSpinner(targets) {
-  if (spinnerInterval) {
-    clearInterval(spinnerInterval);
-    spinnerInterval = null;
-  }
-  spinnerStartTime = null;
-  targets.forEach((el) => {
-    if (el) el.textContent = "";
-  });
-}
-
 function getPlatform() {
-  const reg = window.platformRegistry;
+  const reg = platformRegistry;
   const url = window.location.href;
   if (!reg || !reg._platforms?.length) return null;
   return reg.getCurrentPlatform(url);
@@ -36,8 +22,8 @@ function getPlatform() {
 
 function getApiEndpoint(apiMode) {
   return apiMode === "remote"
-    ? window.DEFAULT_REMOTE_API_ENDPOINT
-    : window.DEFAULT_LOCAL_API_ENDPOINT;
+    ? DEFAULT_REMOTE_API_ENDPOINT
+    : DEFAULT_LOCAL_API_ENDPOINT;
 }
 
 async function fetchItemSources(platform, items) {
@@ -115,7 +101,7 @@ async function analyzeItems(
   });
   showSpinner(statusDivs);
   const itemSources = await fetchItemSources(platform, items);
-  const { apiMode, apiKey } = await window.getApiSettings();
+  const { apiMode, apiKey } = await ApiSettings.getApiSettings();
   let apiEndpoint = getApiEndpoint(apiMode);
   let data;
   try {
@@ -161,9 +147,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const platform = getPlatform();
     if (!platform) return;
     const maxItems =
-      typeof last.maxItems === "number"
-        ? last.maxItems
-        : window.DEFAULTS.maxItems;
+      typeof last.maxItems === "number" ? last.maxItems : DEFAULTS.maxItems;
     const items = Array.from(platform.getItemElements()).slice(0, maxItems);
     if (!items.length) return;
     updateItemStatus(items, last.filtersData, last.minMatch);
@@ -177,7 +161,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       msg.activeFilters,
       msg.minMatch,
       platform,
-      msg.maxItems || window.DEFAULTS.maxItems,
+      msg.maxItems || DEFAULTS.maxItems,
       sendResponse,
     );
     return true;
@@ -185,9 +169,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "UPDATE_MIN_MATCH") {
     updateItemVisibility(
       msg.minMatch,
-      typeof msg.maxItems === "number"
-        ? msg.maxItems
-        : window.DEFAULTS.maxItems,
+      typeof msg.maxItems === "number" ? msg.maxItems : DEFAULTS.maxItems,
     );
   }
 });

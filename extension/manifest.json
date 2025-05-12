@@ -18,14 +18,7 @@
   "content_scripts": [
     {
       "matches": ["https://*.leboncoin.fr/*", "https://*.vinted.fr/*"],
-      "js": [
-        "src/defaults.js",
-        "src/platform-registry.js",
-        "platforms/leboncoin.js",
-        "platforms/vinted.js",
-        "src/api-settings.js",
-        "src/content.js"
-      ],
+      "js": ["dist/content.bundle.js"],
       "css": [],
       "run_at": "document_idle"
     }

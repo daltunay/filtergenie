@@ -1,5 +1,3 @@
-const STATUS_CLASS = "filtergenie-status";
-
 class Platform {
   constructor(config) {
     this.name = config.name;
@@ -73,6 +71,6 @@ class PlatformRegistry {
   }
 }
 
-if (typeof window !== "undefined") {
-  window.platformRegistry = new PlatformRegistry();
-}
+const platformRegistry = new PlatformRegistry();
+
+export { Platform, PlatformRegistry, platformRegistry };

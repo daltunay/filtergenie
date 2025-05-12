@@ -1,8 +1,13 @@
+import { DEFAULTS } from "../utils/defaults.js";
+import "../platforms/leboncoin.js";
+import "../platforms/vinted.js";
+import { showSpinner, removeSpinner } from "../utils/spinnerUtils.js";
+import {
+  DEFAULT_REMOTE_API_ENDPOINT,
+  DEFAULT_LOCAL_API_ENDPOINT,
+} from "../utils/apiSettings.js";
+
 document.addEventListener("DOMContentLoaded", () => {
-  if (!window.DEFAULTS) {
-    console.error("DEFAULTS not loaded!");
-    return;
-  }
   const FILTERS_KEY = "popupFilters";
   const MIN_MATCH_KEY = "popupMinMatch";
   const MAX_ITEMS_KEY = "popupMaxItems";
@@ -11,11 +16,11 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   const listeners = [];
   const state = {
-    filters: [...window.DEFAULTS.filters],
-    minMatch: window.DEFAULTS.minMatch,
-    maxItems: window.DEFAULTS.maxItems,
-    apiMode: window.DEFAULTS.apiMode,
-    apiKey: window.DEFAULTS.apiKey,
+    filters: [...DEFAULTS.filters],
+    minMatch: DEFAULTS.minMatch,
+    maxItems: DEFAULTS.maxItems,
+    apiMode: DEFAULTS.apiMode,
+    apiKey: DEFAULTS.apiKey,
     subscribe(fn) {
       listeners.push(fn);
     },
@@ -64,38 +69,28 @@ document.addEventListener("DOMContentLoaded", () => {
       [MIN_MATCH_KEY]: state.minMatch,
       [MAX_ITEMS_KEY]: state.maxItems,
     });
-    window.saveApiSettings?.(state.apiMode, state.apiKey);
   }
   function loadState(cb) {
     chrome.storage.local.get(
       {
-        [FILTERS_KEY]: [...window.DEFAULTS.filters],
-        [MIN_MATCH_KEY]: window.DEFAULTS.minMatch,
-        [MAX_ITEMS_KEY]: window.DEFAULTS.maxItems,
+        [FILTERS_KEY]: [...DEFAULTS.filters],
+        [MIN_MATCH_KEY]: DEFAULTS.minMatch,
+        [MAX_ITEMS_KEY]: DEFAULTS.maxItems,
       },
       (res) => {
         state.filters = res[FILTERS_KEY];
         state.minMatch = clampMinMatch(
           typeof res[MIN_MATCH_KEY] === "number"
             ? res[MIN_MATCH_KEY]
-            : window.DEFAULTS.minMatch,
+            : DEFAULTS.minMatch,
           state.filters.length,
         );
         state.maxItems =
           typeof res[MAX_ITEMS_KEY] === "number"
             ? res[MAX_ITEMS_KEY]
-            : window.DEFAULTS.maxItems;
-        if (window.getApiSettings) {
-          window.getApiSettings().then(({ apiMode, apiKey }) => {
-            state.apiMode = apiMode;
-            state.apiKey = apiKey;
-            state.notify();
-            if (cb) cb();
-          });
-        } else {
-          state.notify();
-          if (cb) cb();
-        }
+            : DEFAULTS.maxItems;
+        state.notify();
+        if (cb) cb();
       },
     );
   }
@@ -131,33 +126,6 @@ document.addEventListener("DOMContentLoaded", () => {
     ui[id.replace(/-([a-z])/g, (g) => g[1].toUpperCase())] =
       document.getElementById(id);
   });
-
-  let apiSpinnerInterval = null;
-  let apiSpinnerStart = null;
-
-  function showSpinner(targets, message = "filtering...") {
-    clearSpinner();
-    let frame = 0;
-    apiSpinnerStart = Date.now();
-    apiSpinnerInterval = setInterval(() => {
-      const elapsed = ((Date.now() - apiSpinnerStart) / 1000).toFixed(1);
-      targets.forEach((el) => {
-        el.textContent = ` ${["|", "/", "-", "\\"][frame % 4]} ${message} (${elapsed}s)`;
-      });
-      frame++;
-    }, 120);
-  }
-
-  function clearSpinner(targets = [ui.apiSpinner]) {
-    if (apiSpinnerInterval) {
-      clearInterval(apiSpinnerInterval);
-      apiSpinnerInterval = null;
-    }
-    apiSpinnerStart = null;
-    targets.forEach((el) => {
-      el.textContent = "";
-    });
-  }
 
   function renderUI() {
     ui.filtersList.innerHTML = "";
@@ -219,7 +187,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ui.applyFilters.onclick = () => {
       state.setMaxItems(+ui.maxItems.value);
       ui.applyFilters.disabled = true;
-      showSpinner([ui.apiSpinner]);
+      showSpinner([ui.apiSpinner], "filtering...");
       const requestStart = Date.now();
       sendToContent({
         type: "APPLY_FILTERS",
@@ -230,7 +198,7 @@ document.addEventListener("DOMContentLoaded", () => {
       chrome.runtime.onMessage.addListener(function apiStatusListener(msg) {
         if (msg.type === "API_STATUS") {
           const totalTime = (Date.now() - requestStart) / 1000;
-          clearSpinner([ui.apiSpinner]);
+          removeSpinner([ui.apiSpinner]);
           ui.apiStatus.textContent = `API status: ${msg.status}`;
           ui.apiTotalTime.textContent = `Total request time: ${totalTime.toFixed(1)}s`;
           chrome.runtime.onMessage.removeListener(apiStatusListener);
@@ -273,8 +241,8 @@ document.addEventListener("DOMContentLoaded", () => {
     ui.apiHealthBtn.onclick = async () => {
       const endpoint =
         state.apiMode === "remote"
-          ? window.DEFAULT_REMOTE_API_ENDPOINT
-          : window.DEFAULT_LOCAL_API_ENDPOINT;
+          ? DEFAULT_REMOTE_API_ENDPOINT
+          : DEFAULT_LOCAL_API_ENDPOINT;
       ui.healthStatus.textContent = "Checking...";
       try {
         const resp = await fetch(endpoint.replace(/\/+$/, "") + "/health");
@@ -285,7 +253,7 @@ document.addEventListener("DOMContentLoaded", () => {
     };
     ui.apiAuthBtn.onclick = async () => {
       if (state.apiMode === "local") return;
-      const endpoint = window.DEFAULT_REMOTE_API_ENDPOINT.replace(/\/+$/, "");
+      const endpoint = DEFAULT_REMOTE_API_ENDPOINT.replace(/\/+$/, "");
       ui.authStatus.textContent = "Checking...";
       try {
         const resp = await fetch(endpoint + "/auth/check", {
@@ -303,8 +271,8 @@ document.addEventListener("DOMContentLoaded", () => {
     ui.apiClearCacheBtn.onclick = async () => {
       const endpoint =
         state.apiMode === "remote"
-          ? window.DEFAULT_REMOTE_API_ENDPOINT.replace(/\/+$/, "")
-          : window.DEFAULT_LOCAL_API_ENDPOINT.replace(/\/+$/, "");
+          ? DEFAULT_REMOTE_API_ENDPOINT.replace(/\/+$/, "")
+          : DEFAULT_LOCAL_API_ENDPOINT.replace(/\/+$/, "");
       ui.clearCacheStatus.textContent = "Clearing...";
       try {
         const resp = await fetch(endpoint + "/cache/clear", {
@@ -333,7 +301,7 @@ document.addEventListener("DOMContentLoaded", () => {
         changes.popupMinMatch ||
         changes.popupMaxItems
       ) {
-        window.loadStateAndRender();
+        loadState(renderUI);
       }
     });
   }
@@ -355,8 +323,6 @@ document.addEventListener("DOMContentLoaded", () => {
       tab?.id && chrome.tabs.sendMessage(tab.id, msg);
     });
   }
-
-  window.loadStateAndRender = () => loadState();
 
   loadState(() => {
     renderUI();

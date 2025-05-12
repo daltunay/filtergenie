@@ -1,4 +1,4 @@
-window.DEFAULTS = {
+export const DEFAULTS = {
   filters: [],
   appliedFilters: [],
   minMatch: 0,
