@@ -21,13 +21,14 @@ jobs:
       - name: Update badge
         run: |
           new_url=$(cat badge-url.txt)
-          sed -i "s|https://img.shields.io/badge/Render-[^?]*?logo=render&style=for-the-badge|$new_url|" README.md
+          sed -i -E "s|(https://img.shields.io/badge/Render-[^?)]*\?logo=render&style=for-the-badge)|$new_url|" README.md
 
       - name: Commit and push
         run: |
           git config --global user.email "actions@github.com"
           git config --global user.name "github-actions"
           if ! git diff --quiet README.md; then
+            echo "README.md has changed, committing and pushing..."
             git commit -am "[skip render] update badge"
             git push
           fi
