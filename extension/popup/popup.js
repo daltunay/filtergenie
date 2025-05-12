@@ -99,35 +99,87 @@ document.addEventListener("DOMContentLoaded", () => {
       },
     );
   }
-  const ui = {};
-  [
-    "filters-form",
-    "filter-input",
-    "filters-list",
-    "add-filter",
-    "apply-filters",
-    "reset-filters",
-    "min-match",
-    "min-match-value",
-    "max-items",
-    "api-mode-remote",
-    "api-mode-local",
-    "api-key-row",
-    "api-key",
-    "filtergenie-message",
-    "api-health-btn",
-    "health-status",
-    "api-auth-row",
-    "api-auth-btn",
-    "auth-status",
-    "api-clear-cache-row",
-    "api-clear-cache-btn",
-    "clear-cache-status",
-  ].forEach((id) => {
-    ui[id.replace(/-([a-z])/g, (g) => g[1].toUpperCase())] =
-      document.getElementById(id);
-  });
-  function renderUI() {
+
+  const mainUi = document.getElementById("main-ui");
+  const apiUi = document.getElementById("api-ui");
+  const filtergenieMessage = document.getElementById("filtergenie-message");
+
+  function isSupportedSite(url) {
+    try {
+      const platforms = window.platformRegistry?.getAllPlatforms?.() || [];
+      return platforms.some((p) => p.isSupported(url));
+    } catch {
+      return false;
+    }
+  }
+
+  function updateUiVisibility(isSupported) {
+    if (mainUi) mainUi.style.display = isSupported ? "" : "none";
+    if (apiUi) apiUi.style.display = "";
+    if (filtergenieMessage) {
+      filtergenieMessage.textContent = isSupported
+        ? ""
+        : "This site is not supported.";
+      filtergenieMessage.style.display = isSupported ? "none" : "";
+    }
+  }
+
+  function renderApiUI(state) {
+    const ui = {};
+    [
+      "api-mode-remote",
+      "api-mode-local",
+      "api-key-row",
+      "api-key",
+      "api-health-btn",
+      "health-status",
+      "api-auth-row",
+      "api-auth-btn",
+      "auth-status",
+      "api-clear-cache-row",
+      "api-clear-cache-btn",
+      "clear-cache-status",
+    ].forEach((id) => {
+      ui[id.replace(/-([a-z])/g, (g) => g[1].toUpperCase())] =
+        document.getElementById(id);
+    });
+    ui.apiModeRemote.checked = state.apiMode === "remote";
+    ui.apiModeLocal.checked = state.apiMode === "local";
+    ui.apiKeyRow.style.display = state.apiMode === "remote" ? "" : "none";
+    ui.apiKey.value = state.apiKey || "";
+    ui.apiAuthRow.style.display = state.apiMode === "remote" ? "" : "none";
+    if (state.apiMode !== "remote") {
+      ui.authStatus.textContent = "";
+    }
+    if (state.apiMode === "local") {
+      ui.apiAuthBtn.disabled = true;
+      ui.authStatus.textContent = "Not required for local API";
+    } else {
+      ui.apiAuthBtn.disabled = false;
+      ui.authStatus.textContent = "";
+    }
+    ui.apiClearCacheRow.style.display = "";
+    if (!["remote", "local"].includes(state.apiMode)) {
+      ui.clearCacheStatus.textContent = "";
+    }
+  }
+
+  function renderFilterUI(state) {
+    const ui = {};
+    [
+      "filters-form",
+      "filter-input",
+      "filters-list",
+      "add-filter",
+      "apply-filters",
+      "reset-filters",
+      "min-match",
+      "min-match-value",
+      "max-items",
+    ].forEach((id) => {
+      ui[id.replace(/-([a-z])/g, (g) => g[1].toUpperCase())] =
+        document.getElementById(id);
+    });
     ui.filtersList.innerHTML = "";
     state.filters.forEach((f, i) => {
       const li = document.createElement("li");
@@ -151,28 +203,30 @@ document.addEventListener("DOMContentLoaded", () => {
     ui.applyFilters.disabled = !hasFilters;
     ui.resetFilters.disabled = !hasFilters;
     ui.addFilter.disabled = !ui.filterInput.value.trim();
-    ui.apiModeRemote.checked = state.apiMode === "remote";
-    ui.apiModeLocal.checked = state.apiMode === "local";
-    ui.apiKeyRow.style.display = state.apiMode === "remote" ? "" : "none";
-    ui.apiKey.value = state.apiKey || "";
-    ui.apiAuthRow.style.display = state.apiMode === "remote" ? "" : "none";
-    if (state.apiMode !== "remote") {
-      ui.authStatus.textContent = "";
-    }
-    if (state.apiMode === "local") {
-      ui.apiAuthBtn.disabled = true;
-      ui.authStatus.textContent = "Not required for local API";
-    } else {
-      ui.apiAuthBtn.disabled = false;
-      ui.authStatus.textContent = "";
-    }
-    ui.apiClearCacheRow.style.display = "";
-    if (!["remote", "local"].includes(state.apiMode)) {
-      ui.clearCacheStatus.textContent = "";
-    }
+  }
+
+  function renderUI() {
+    chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+      const supported = !!(tab?.url && isSupportedSite(tab.url));
+      updateUiVisibility(supported);
+      renderApiUI(state);
+      if (supported) renderFilterUI(state);
+    });
   }
 
   function bindFilterEvents(sendToContent) {
+    const ui = {};
+    [
+      "filter-input",
+      "add-filter",
+      "reset-filters",
+      "apply-filters",
+      "max-items",
+    ].forEach((id) => {
+      ui[id.replace(/-([a-z])/g, (g) => g[1].toUpperCase())] =
+        document.getElementById(id);
+    });
+
     ui.addFilter.onclick = () => {
       const v = ui.filterInput.value.trim();
       if (v) {
@@ -204,6 +258,12 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function bindMatchEvents(sendToContent) {
+    const ui = {};
+    ["min-match", "min-match-value", "max-items"].forEach((id) => {
+      ui[id.replace(/-([a-z])/g, (g) => g[1].toUpperCase())] =
+        document.getElementById(id);
+    });
+
     ui.minMatch.oninput = () => {
       state.setMinMatch(+ui.minMatch.value);
       ui.minMatchValue.textContent = ui.minMatch.value;
@@ -224,6 +284,22 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function bindApiEvents() {
+    const ui = {};
+    [
+      "api-mode-remote",
+      "api-mode-local",
+      "api-key",
+      "api-health-btn",
+      "health-status",
+      "api-auth-btn",
+      "auth-status",
+      "api-clear-cache-btn",
+      "clear-cache-status",
+    ].forEach((id) => {
+      ui[id.replace(/-([a-z])/g, (g) => g[1].toUpperCase())] =
+        document.getElementById(id);
+    });
+
     [ui.apiModeRemote, ui.apiModeLocal].forEach((el) => {
       el.onchange = () => {
         state.setApiMode(ui.apiModeRemote.checked ? "remote" : "local");

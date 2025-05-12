@@ -11,28 +11,30 @@
     </header>
     <main>
       <div id="filtergenie-message" role="alert"></div>
-      <form id="filters-form" autocomplete="off">
+      <div id="main-ui">
+        <form id="filters-form" autocomplete="off">
+          <fieldset>
+            <legend>Filters</legend>
+            <div>
+              <label for="filter-input">
+                <input
+                  type="text"
+                  id="filter-input"
+                  placeholder="Enter filter"
+                  autocomplete="off"
+                />
+              </label>
+              <button type="button" id="add-filter">Add</button>
+            </div>
+            <ul id="filters-list"></ul>
+            <div>
+              <button type="button" id="apply-filters">Apply filters</button>
+              <button type="button" id="reset-filters">Reset filters</button>
+            </div>
+          </fieldset>
+        </form>
         <fieldset>
-          <legend>Filters</legend>
-          <div>
-            <label for="filter-input">
-              <input
-                type="text"
-                id="filter-input"
-                placeholder="Enter filter"
-                autocomplete="off"
-              />
-            </label>
-            <button type="button" id="add-filter">Add</button>
-          </div>
-          <ul id="filters-list"></ul>
-          <div>
-            <button type="button" id="apply-filters">Apply filters</button>
-            <button type="button" id="reset-filters">Reset filters</button>
-          </div>
-        </fieldset>
-        <fieldset>
-          <legend>Filter options</legend>
+          <legend>Options</legend>
           <div>
             <label for="max-items">
               Max. items:
@@ -47,55 +49,59 @@
             </label>
           </div>
         </fieldset>
-      </form>
-      <fieldset>
-        <legend>API</legend>
-        <section id="api-response-section">
-          <pre id="api-response"></pre>
-        </section>
-        <details id="settings-expander">
-          <summary>Settings</summary>
-          <legend class="visually-hidden"></legend>
-          <div>
-            <label>
-              <input
-                type="radio"
-                name="api-mode"
-                id="api-mode-local"
-                value="local"
-              />
-              Local
-            </label>
-            <label>
-              <input
-                type="radio"
-                name="api-mode"
-                id="api-mode-remote"
-                value="remote"
-              />
-              Remote
-            </label>
-          </div>
-          <div id="api-key-row">
-            <label for="api-key">
-              API key:
-              <input type="text" id="api-key" autocomplete="off" />
-            </label>
-          </div>
-          <div>
-            <button type="button" id="api-health-btn">Check health</button>
-            <span id="health-status"></span>
-          </div>
-          <div id="api-auth-row" style="display: none">
-            <button type="button" id="api-auth-btn">Check auth.</button>
-            <span id="auth-status"></span>
-          </div>
-          <div id="api-clear-cache-row" style="display: none">
-            <button type="button" id="api-clear-cache-btn">Clear cache</button>
-            <span id="clear-cache-status"></span>
-          </div>
-        </details>
-      </fieldset>
+      </div>
+      <div id="api-ui">
+        <fieldset>
+          <legend>API</legend>
+          <section id="api-response-section">
+            <pre id="api-response"></pre>
+          </section>
+          <details id="settings-expander">
+            <summary>Settings</summary>
+            <legend class="visually-hidden"></legend>
+            <div>
+              <label>
+                <input
+                  type="radio"
+                  name="api-mode"
+                  id="api-mode-local"
+                  value="local"
+                />
+                Local
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  name="api-mode"
+                  id="api-mode-remote"
+                  value="remote"
+                />
+                Remote
+              </label>
+            </div>
+            <div id="api-key-row">
+              <label for="api-key">
+                API key:
+                <input type="text" id="api-key" autocomplete="off" />
+              </label>
+            </div>
+            <div>
+              <button type="button" id="api-health-btn">Check health</button>
+              <span id="health-status"></span>
+            </div>
+            <div id="api-auth-row" style="display: none">
+              <button type="button" id="api-auth-btn">Check auth.</button>
+              <span id="auth-status"></span>
+            </div>
+            <div id="api-clear-cache-row" style="display: none">
+              <button type="button" id="api-clear-cache-btn">
+                Clear cache
+              </button>
+              <span id="clear-cache-status"></span>
+            </div>
+          </details>
+        </fieldset>
+      </div>
       <hr />
       <div>
         <span>Made by Daniel Altunay</span>
