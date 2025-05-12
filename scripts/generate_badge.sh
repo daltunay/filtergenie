@@ -27,6 +27,7 @@ case "$status" in
 esac
 
 label="${status//[_ ]/-}"
+encoded_label=$(printf '%s' "$label" | jq -sRr @uri)
 
-badge_url="https://img.shields.io/badge/Render-${label// /%20}-$color?logo=render&style=for-the-badge"
+badge_url="https://img.shields.io/badge/Render-${encoded_label}-$color?logo=render&style=for-the-badge"
 echo "$badge_url" > badge-url.txt
