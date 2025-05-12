@@ -252,9 +252,7 @@ document.addEventListener("DOMContentLoaded", () => {
       ui.authStatus.textContent = "Checking...";
       try {
         const resp = await fetch(endpoint + "/auth/check", {
-          headers: state.apiKey
-            ? { Authorization: `Bearer ${state.apiKey}` }
-            : {},
+          headers: state.apiKey ? { "X-API-Key": state.apiKey } : {},
         });
         if (resp.ok) {
           ui.authStatus.textContent = "✅ Authenticated";
@@ -274,9 +272,7 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         const resp = await fetch(endpoint + "/cache/clear", {
           method: "POST",
-          headers: state.apiKey
-            ? { Authorization: `Bearer ${state.apiKey}` }
-            : {},
+          headers: state.apiKey ? { "X-API-Key": state.apiKey } : {},
         });
         if (resp.ok) {
           const data = await resp.json();

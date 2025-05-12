@@ -23,7 +23,7 @@ async function fetchItemSources(platform, items) {
 
 async function callApiAnalyze(items, filters, apiEndpoint, apiKey) {
   const headers = { "Content-Type": "application/json" };
-  if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
+  if (apiKey) headers["X-API-Key"] = apiKey;
   apiEndpoint = apiEndpoint.replace(/\/+$/, "");
   let resp;
   try {
