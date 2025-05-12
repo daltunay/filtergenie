@@ -1,4 +1,7 @@
 name: update-badge
+permissions:
+  contents: write
+
 on:
   workflow_run:
     workflows: ["pre-commit"]
