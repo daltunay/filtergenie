@@ -29,6 +29,5 @@ jobs:
           git config --global user.name "github-actions"
           if ! git diff --quiet README.md; then
             git commit -am "[skip render] update badge"
-            git pull --rebase
             git push
           fi

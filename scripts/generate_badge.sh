@@ -5,6 +5,8 @@ status=$(curl -s -H "Accept: application/json" -H "Authorization: Bearer $RENDER
   "https://api.render.com/v1/services/$RENDER_SERVICE_ID/deploys?limit=1" \
   | jq -r '.[0].deploy.status // "unknown"')
 
+echo "Render deployment status: $status"
+
 case "$status" in
   succeeded)
     label="Live"; color="brightgreen";;
