@@ -1,11 +1,13 @@
 name: update-badge
 on:
-  schedule:
-    - cron: "*/5 * * * *"
-  workflow_dispatch:
+  workflow_run:
+    workflows: ["pre-commit"]
+    types:
+      - completed
 
 jobs:
   update-badge:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
