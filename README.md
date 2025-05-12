@@ -105,7 +105,7 @@ You can use the FilterGenie extension with **either**:
 
    ```bash
    # For remote VLM
-   MODEL_REMOTE_API_KEY=your_gemini_api_key fastapi dev backend/app.py
+   MODEL__REMOTE__API_KEY=your_gemini_api_key fastapi dev backend/app.py
    ```
 
    or
