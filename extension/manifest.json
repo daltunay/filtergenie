@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "FilterGenie",
   "version": "0.1.0",
-  "description": "Filter search results using AI",
+  "description": "FilterGenie: AI-powered filtering",
   "permissions": ["activeTab", "scripting", "storage", "webRequest"],
   "host_permissions": ["<all_urls>"],
   "background": {},

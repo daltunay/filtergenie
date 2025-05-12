@@ -16,12 +16,15 @@ FilterGenie is an AI-powered browser extension and API that filters e-commerce s
 
 ## Supported Websites
 
-| Name      | Domains                                          | Status |
-| --------- | ------------------------------------------------ | ------ |
-| leboncoin | leboncoin.fr                                     | ✅     |
-| vinted    | vinted.fr, vinted.com, vinted.it, vinted.de, ... | ✅     |
-| ebay      | ebay.fr, ebay.com, ebay.it, ebay.de, ...         | 🛠️ WIP |
-| amazon    | amazon.fr, amazon.com, amazon.it, amazon.de, ... | 🛠️ WIP |
+| Name       | Domains                                           | Status  |
+| ---------- | ------------------------------------------------- | ------- |
+| leboncoin  | leboncoin.fr                                      | ✅      |
+| vinted     | vinted.fr, vinted.com, vinted.it, vinted.de, ...  | ✅      |
+| ebay       | ebay.fr, ebay.com, ebay.it, ebay.de, ...          | 🛠️ WIP  |
+| amazon     | amazon.fr, amazon.com, amazon.it, amazon.de, ...  | 🛠️ WIP  |
+| aliexpress | aliexpress.fr, aliexpress.com, aliexpress.it, ... | 📝 TODO |
+| doctolib   | doctolib.fr                                       | 📝 TODO |
+| seloger    | seloger.fr                                        | 📝 TODO |
 
 <details>
 <summary>Architecture</summary>
