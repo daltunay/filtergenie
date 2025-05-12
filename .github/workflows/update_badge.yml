@@ -1,4 +1,4 @@
-name: Update Render Status Badge
+name: update-badge
 on:
   schedule:
     - cron: "*/5 * * * *"
@@ -17,6 +17,8 @@ jobs:
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
+        with:
+          node-version: "22"
 
       - name: Install dependencies
         run: npm install
@@ -27,7 +29,7 @@ jobs:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
           RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
         run: |
-          BADGE_URL=$(node index.js)
+          BADGE_URL=$(node build.js)
           echo "BADGE_URL=$BADGE_URL" >> $GITHUB_ENV
 
       - name: Update README
