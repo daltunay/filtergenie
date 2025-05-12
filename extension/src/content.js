@@ -1,3 +1,34 @@
+const SPINNER_FRAMES = ["|", "/", "-", "\\"];
+let spinnerInterval = null;
+let spinnerStartTime = null;
+
+function showSpinnerOnItems(items) {
+  let frame = 0;
+  spinnerStartTime = Date.now();
+  if (spinnerInterval) clearInterval(spinnerInterval);
+  spinnerInterval = setInterval(() => {
+    const elapsed = ((Date.now() - spinnerStartTime) / 1000).toFixed(1);
+    items.forEach((item) => {
+      let statusDiv = item.querySelector(".filtergenie-status");
+      if (!statusDiv) {
+        statusDiv = document.createElement("div");
+        statusDiv.className = "filtergenie-status";
+        item.appendChild(statusDiv);
+      }
+      statusDiv.textContent = ` ${SPINNER_FRAMES[frame % SPINNER_FRAMES.length]} filtering... (${elapsed}s)`;
+    });
+    frame++;
+  }, 120);
+}
+
+function removeSpinner() {
+  if (spinnerInterval) {
+    clearInterval(spinnerInterval);
+    spinnerInterval = null;
+  }
+  spinnerStartTime = null;
+}
+
 function getPlatform() {
   const reg = window.platformRegistry;
   const url = window.location.href;
@@ -75,6 +106,7 @@ async function analyzeItems(
   if (!platform) return;
   const items = Array.from(platform.getItemElements()).slice(0, maxItems);
   if (!items.length) return;
+  showSpinnerOnItems(items);
   const itemSources = await fetchItemSources(platform, items);
   const { apiMode, apiKey } = await window.getApiSettings();
   let apiEndpoint = getApiEndpoint(apiMode);
@@ -82,9 +114,11 @@ async function analyzeItems(
   try {
     data = await callApiAnalyze(itemSources, filters, apiEndpoint, apiKey);
   } catch {
+    removeSpinner();
     sendResponse?.({ apiResponse: "API error" });
     return;
   }
+  removeSpinner();
   if (!data.filters) {
     sendResponse?.({ apiResponse: data });
     return;
