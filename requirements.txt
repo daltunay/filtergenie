@@ -42,6 +42,8 @@ colorama==0.4.6 ; sys_platform == 'win32'
     #   uvicorn
 comm==0.2.2
     # via ipykernel
+coverage==7.8.0
+    # via pytest-cov
 debugpy==1.8.14
     # via ipykernel
 decorator==5.2.1
@@ -162,6 +164,8 @@ pygments==2.19.1
     #   ipython-pygments-lexers
     #   rich
 pytest==8.3.5
+    # via pytest-cov
+pytest-cov==6.1.1
 python-dateutil==2.9.0.post0
     # via jupyter-client
 python-dotenv==1.1.0
