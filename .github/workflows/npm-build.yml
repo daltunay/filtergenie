@@ -4,19 +4,6 @@ permissions:
 
 on:
   workflow_call:
-    inputs: {}
-  push:
-    paths:
-      - extension/**
-      - package.json
-      - package-lock.json
-      - build.js
-  pull_request:
-    paths:
-      - extension/**
-      - package.json
-      - package-lock.json
-      - build.js
 
 jobs:
   npm-build:
@@ -25,13 +12,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Check if build-relevant files changed
+        id: check_diff
+        run: |
+          git fetch origin ${{ github.event.before }}
+          git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -Eq '^(extension/|package.json$|package-lock.json$|build.js$)'
+        continue-on-error: true
+
       - name: Set up Node.js
+        if: steps.check_diff.outcome == 'success'
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
       - name: Install Node.js dependencies
+        if: steps.check_diff.outcome == 'success'
         run: npm install
 
       - name: Run npm build
+        if: steps.check_diff.outcome == 'success'
         run: npm run build
