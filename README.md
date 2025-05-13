@@ -14,6 +14,7 @@
 <!-- Social badge -->
 
 [![LinkedIn](https://custom-icon-badges.demolab.com/badge/LinkedIn-0A66C2?logo=linkedin-white&logoColor=fff)](https://www.linkedin.com/in/daltunay/)
+[![GitHub](https://custom-icon-badges.demolab.com/badge/GitHub-181717?logo=github&logoColor=fff)](https://github.com/daltunay)
 
 <p align="center">
   <img src="extension/assets/logo.png" alt="FilterGenie Logo" width="512" height="512">
