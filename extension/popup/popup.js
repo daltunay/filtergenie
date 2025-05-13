@@ -15,7 +15,6 @@ function sendToContent(msg) {
 import "../platforms/leboncoin.js";
 import "../platforms/vinted.js";
 import { createFilterBadge } from "./components/ui-components.js";
-import { showApiSpinner, removeApiSpinner } from "../utils/spinnerUtils.js";
 import {
   DEFAULT_REMOTE_API_ENDPOINT,
   DEFAULT_LOCAL_API_ENDPOINT,
@@ -202,20 +201,41 @@ document.addEventListener("DOMContentLoaded", () => {
     },
   };
 
+  let lastApiDoneTime = null;
+  let lastApiStatus = "ready";
+  let lastApiError = null;
+
   function setApiStatus(status, elapsed = null, doneTime = null, error = null) {
+    lastApiStatus = status;
+    lastApiError = error;
+    if (status === "done") lastApiDoneTime = doneTime;
+    else if (status !== "done") lastApiDoneTime = null;
+    renderApiStatusBadge();
+  }
+
+  function renderApiStatusBadge() {
     ui.apiSpinner.innerHTML = "";
-    if (status === "filtering") {
-      showApiSpinner(ui.apiSpinner, "Filtering...");
-      ui.apiStatus.innerHTML = `<span class="text-primary-400">Filtering...</span>`;
-    } else if (status === "done") {
-      removeApiSpinner(ui.apiSpinner, doneTime);
-      ui.apiStatus.innerHTML = `<span class="text-green-400">Ready</span>`;
-    } else if (status === "error") {
-      removeApiSpinner(ui.apiSpinner);
-      ui.apiStatus.innerHTML = `<span class="text-red-400">${error || "API Error"}</span>`;
+    let badge = document.createElement("span");
+    badge.className = "badge ";
+    if (lastApiStatus === "filtering") {
+      badge.className += "bg-blue-500/20 text-blue-300 badge";
+      badge.textContent = "Filtering...";
+    } else if (lastApiStatus === "done" && lastApiDoneTime != null) {
+      badge.className += "bg-green-500/20 text-green-400 badge";
+      badge.textContent = `Done (${lastApiDoneTime.toFixed(1)}s)`;
+    } else if (lastApiStatus === "error") {
+      badge.className += "bg-red-500/20 text-red-400 badge";
+      badge.textContent = lastApiError || "API Error";
     } else {
-      removeApiSpinner(ui.apiSpinner);
-      ui.apiStatus.innerHTML = `<span class="text-primary-300">Ready</span>`;
+      badge.className += "bg-primary-600/20 text-primary-300 badge";
+      badge.textContent = "Ready";
+    }
+    ui.apiSpinner.appendChild(badge);
+  }
+
+  function resetApiBadgeOnInteraction() {
+    if (lastApiStatus === "done" || lastApiStatus === "error") {
+      setApiStatus("ready");
     }
   }
 
@@ -312,7 +332,8 @@ document.addEventListener("DOMContentLoaded", () => {
     statusText.className = connected ? "text-green-400" : "text-red-400";
     state.showNotification(connected);
 
-    setApiStatus();
+    ui.apiStatus.innerHTML = "";
+    renderApiStatusBadge();
 
     ui.apiTotalTime.textContent = "";
   }
@@ -336,6 +357,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function bindFilterEvents(sendToContent) {
     ui.addFilter.onclick = () => {
+      resetApiBadgeOnInteraction();
       const value = ui.filterInput.value.trim();
       if (value && state.addFilter(value)) {
         ui.filterInput.value = "";
@@ -350,45 +372,57 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     ui.filterInput.oninput = () => {
+      resetApiBadgeOnInteraction();
       ui.addFilter.disabled = !ui.filterInput.value.trim();
     };
 
     ui.filterInput.onkeydown = (e) => {
       if (e.key === "Enter") {
+        resetApiBadgeOnInteraction();
         e.preventDefault();
         ui.addFilter.onclick();
       }
     };
 
     ui.resetFilters.onclick = () => {
+      resetApiBadgeOnInteraction();
       state.resetFilters();
       chrome.storage.local.remove("filtergenieLastAnalyzed");
       sendToContent({ type: "RESET_FILTERS_ON_PAGE" });
     };
 
     ui.applyFilters.onclick = () => {
+      resetApiBadgeOnInteraction();
       state.setMaxItems(+ui.maxItems.value);
       ui.applyFilters.disabled = true;
       setApiStatus("filtering");
       const requestStart = Date.now();
+      const apiEndpoint =
+        state.apiMode === "local"
+          ? DEFAULT_LOCAL_API_ENDPOINT
+          : DEFAULT_REMOTE_API_ENDPOINT;
+      const apiKey = state.apiKey;
       sendToContent({
         type: "APPLY_FILTERS",
         activeFilters: state.filters,
         minMatch: state.minMatch,
         maxItems: state.maxItems,
+        apiEndpoint,
+        apiKey,
       });
-      chrome.runtime.onMessage.addListener(function apiStatusListener(msg) {
-        if (msg.type === "API_STATUS") {
-          const totalTime = (Date.now() - requestStart) / 1000;
-          if (msg.status === 200) {
+      function apiListener(msg) {
+        if (msg.type === "FILTERS_APPLIED") {
+          if (msg.success) {
+            const totalTime = (Date.now() - requestStart) / 1000;
             setApiStatus("done", null, totalTime);
           } else {
             setApiStatus("error", null, null, msg.error);
           }
-          chrome.runtime.onMessage.removeListener(apiStatusListener);
           ui.applyFilters.disabled = false;
+          chrome.runtime.onMessage.removeListener(apiListener);
         }
-      });
+      }
+      chrome.runtime.onMessage.addListener(apiListener);
     };
   }
 
@@ -413,11 +447,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 300);
 
     ui.minMatch.oninput = (e) => {
+      resetApiBadgeOnInteraction();
       ui.minMatchValue.textContent = e.target.value;
       debouncedMinMatchHandler(e.target.value);
     };
 
     ui.maxItems.oninput = (e) => {
+      resetApiBadgeOnInteraction();
       debouncedMaxItemsHandler(e.target.value);
     };
   }

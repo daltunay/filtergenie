@@ -2,11 +2,6 @@ import { platformRegistry } from "../utils/platformRegistry.js";
 import "../platforms/leboncoin.js";
 import "../platforms/vinted.js";
 import { showItemSpinner, removeItemSpinner } from "../utils/spinnerUtils.js";
-import {
-  ApiSettings,
-  DEFAULT_REMOTE_API_ENDPOINT,
-  DEFAULT_LOCAL_API_ENDPOINT,
-} from "../utils/apiSettings.js";
 
 function getPlatform() {
   const reg = platformRegistry;
@@ -36,21 +31,8 @@ async function callApiAnalyze(items, filters, apiEndpoint, apiKey) {
       headers,
       body: JSON.stringify({ items, filters }),
     });
-
-    chrome.runtime.sendMessage({
-      type: "API_STATUS",
-      status: resp.status,
-      error: resp.ok ? undefined : await resp.text(),
-    });
-
     return resp.json();
   } catch (e) {
-    const errorMessage = e?.message || String(e);
-    chrome.runtime.sendMessage({
-      type: "API_STATUS",
-      status: 0,
-      error: errorMessage,
-    });
     throw e;
   }
 }
@@ -82,6 +64,8 @@ async function analyzeItems(
   platform,
   maxItems,
   sendResponse,
+  apiEndpoint,
+  apiKey,
 ) {
   if (!platform) return;
 
@@ -102,9 +86,6 @@ async function analyzeItems(
 
   try {
     const itemSources = await fetchItemSources(platform, items);
-    const { apiMode, apiKey } = await ApiSettings.get();
-    const apiEndpoint = DEFAULT_REMOTE_API_ENDPOINT;
-
     const data = await callApiAnalyze(
       itemSources,
       filters,
@@ -116,7 +97,6 @@ async function analyzeItems(
 
     if (data.filters) {
       updateItemStatus(items, data.filters, minMatch);
-
       chrome.storage.local.set({
         filtergenieLastAnalyzed: {
           filtersData: data.filters,
@@ -125,14 +105,24 @@ async function analyzeItems(
           timestamp: Date.now(),
         },
       });
+      chrome.runtime.sendMessage({ type: "FILTERS_APPLIED", success: true });
+      sendResponse?.({ apiResponse: data });
+    } else {
+      chrome.runtime.sendMessage({
+        type: "FILTERS_APPLIED",
+        success: false,
+        error: "Invalid response format",
+      });
+      sendResponse?.({ apiResponse: "Invalid response format" });
     }
-
-    sendResponse?.({
-      apiResponse: data.filters ? data : "Invalid response format",
-    });
   } catch (error) {
     console.error("FilterGenie analysis error:", error);
     removeItemSpinner(items);
+    chrome.runtime.sendMessage({
+      type: "FILTERS_APPLIED",
+      success: false,
+      error: "API error",
+    });
     sendResponse?.({ apiResponse: "API error" });
   }
 }
@@ -163,6 +153,8 @@ function handleMessage(msg, sender, sendResponse) {
         getPlatform(),
         msg.maxItems,
         sendResponse,
+        msg.apiEndpoint,
+        msg.apiKey,
       );
       return true;
 
