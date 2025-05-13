@@ -9,7 +9,7 @@ services:
     dockerfilePath: ./Dockerfile
 
     # Deployment configuration
-    region: oregon
+    region: frankfurt
     autoDeploy: true
     healthCheckPath: /health
 
@@ -19,3 +19,9 @@ services:
         sync: false
       - key: API__KEY
         generateValue: true
+
+    # Build configuration
+    buildFilter:
+      paths:
+        - backend/**
+        - render.yaml
