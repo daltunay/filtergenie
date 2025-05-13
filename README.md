@@ -1,17 +1,24 @@
 # FilterGenie 🧞‍♂️
 
 <!-- Project info badges -->
+<div align="center">
 
 [![License: CC BY-NC 4.0](https://img.shields.io/badge/license-CC--BY--NC%204.0-lightgrey?logo=creativecommons)](https://github.com/daltunay/filtergenie/blob/master/LICENSE)
 [![Last Commit](https://img.shields.io/github/last-commit/daltunay/filtergenie)](https://github.com/daltunay/filtergenie/commits/master/?author=daltunay)
 [![Deployment Status](https://img.shields.io/badge/deployment-success-brightgreen?logo=github)](https://github.com/daltunay/filtergenie/deployments)
 [![Render Status](https://img.shields.io/badge/render-live-brightgreen?logo=render)](https://filtergenie-api.onrender.com/)
 
+</div>
+
 <!-- Chrome Extension badge -->
+<div align="center">
 
 [![Chrome Extension](https://img.shields.io/badge/-Chrome_Extension-4285F4?logo=google-chrome&logoColor=ffffff)](https://chromewebstore.google.com/category/extensions)
 
+</div>
+
 <!-- Tech stack badges -->
+<div align="center">
 
 [![FastAPI](https://img.shields.io/badge/FastAPI-009485.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
@@ -21,10 +28,17 @@
 [![OpenAI](https://shields.io/badge/-OpenAI-93f6ef?logo=openai)](https://openai.com/)
 [![Gemini](https://img.shields.io/badge/Gemini-8E75B2?logo=google%20gemini&logoColor=white)](https://ai.google.dev/)
 
+</div>
+
 <!-- Social badge -->
+<div align="center">
 
 [![LinkedIn](https://custom-icon-badges.demolab.com/badge/LinkedIn-0A66C2?logo=linkedin-white&logoColor=fff)](https://www.linkedin.com/in/daltunay/)
 [![GitHub](https://custom-icon-badges.demolab.com/badge/GitHub-181717?logo=github&logoColor=fff)](https://github.com/daltunay)
+
+</div>
+
+<hr>
 
 <p align="center">
   <img src="extension/assets/logo.png" alt="FilterGenie Logo" width="512" height="512">
