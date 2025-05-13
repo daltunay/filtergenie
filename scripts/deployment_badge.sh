@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 set -e
 
 GITHUB_TOKEN="${GITHUB_TOKEN:?GITHUB_TOKEN is not set}"
