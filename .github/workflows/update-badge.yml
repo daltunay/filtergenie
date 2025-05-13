@@ -29,8 +29,8 @@ jobs:
         run: |
           render_url=$(cat render-badge-url.txt)
           deployment_url=$(cat deployment-badge-url.txt)
-          sed -i "s|![Render Status](https://img.shields.io/badge/Render-[^?)]*?logo=render&style=for-the-badge)|![Render Status]($render_url)|" README.md
-          sed -i "s|![Deployment Status](https://img.shields.io/badge/GitHub-[^?)]*?logo=github&style=for-the-badge)|![Deployment Status]($deployment_url)|" README.md
+          sed -i "s|![Render Status](https://img.shields.io/badge/render-[^?)]*?logo=render&style=for-the-badge)|![Render Status]($render_url)|" README.md
+          sed -i "s|![Deployment Status](https://img.shields.io/badge/deployment-[^?)]*?logo=github&style=for-the-badge)|![Deployment Status]($deployment_url)|" README.md
 
       - name: Commit and push
         run: |
