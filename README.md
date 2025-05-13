@@ -1,7 +1,7 @@
 # FilterGenie 🧞‍♂️
 
 ![Deployment Status](https://img.shields.io/badge/deployment-in%20progress-blue?logo=github&style=for-the-badge)
-![Render Status](https://img.shields.io/badge/render-unknown-lightgrey?logo=render&style=for-the-badge)
+![Render Status](https://img.shields.io/badge/render-build%20in%20progress-blue?logo=render&style=for-the-badge)
 
 <p align="center">
   <img src="extension/assets/logo.png" alt="FilterGenie Logo" width="512" height="512">
