@@ -1,6 +1,6 @@
 # FilterGenie 🧞‍♂️
 
-![Deployment Status](https://img.shields.io/badge/deployment-in-progress-blue?logo=github[Deployment Status](https://img.shields.io/badge/deployment-unknown-lightgrey?logo=github&style=for-the-badge)style=for-the-badge)
+![Deployment Status](https://img.shields.io/badge/deployment-success-brightgreen?logo=github[Deployment Status](https://img.shields.io/badge/deployment-in-progress-blue?logo=github[Deployment Status](https://img.shields.io/badge/deployment-unknown-lightgrey?logo=github&style=for-the-badge)style=for-the-badge)style=for-the-badge)
 ![Render Status](https://img.shields.io/badge/render-build-in-progress-blue?logo=render[Render Status](https://img.shields.io/badge/render-unknown-lightgrey?logo=render&style=for-the-badge)style=for-the-badge)
 
 <p align="center">
