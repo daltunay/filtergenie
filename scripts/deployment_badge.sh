@@ -36,7 +36,8 @@ case "$status" in
     color="lightgrey";;
 esac
 
-label="${status//[_ ]/-}"
+label="$status"
+label="${label//_/ }"
 encoded_label=$(printf '%s' "$label" | jq -sRr @uri)
 
 badge_url="https://img.shields.io/badge/deployment-${encoded_label}-$color?logo=github&style=for-the-badge"

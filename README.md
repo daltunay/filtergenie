@@ -4,7 +4,7 @@
 ![Render Status](https://img.shields.io/badge/render-unknown-lightgrey?logo=render&style=for-the-badge)
 
 <p align="center">
-  <img src="extension/assets/logo.png" alt="FilterGenie Logo" width="256" height="256">
+  <img src="extension/assets/logo.png" alt="FilterGenie Logo" width="512" height="512">
 </p>
 FilterGenie is an AI-powered browser extension and API that filters e-commerce search results using natural language and vision-language models.
 
