@@ -28,7 +28,7 @@ jobs:
         id: update_readme
         run: |
           render_url="${{ steps.render_badge.outputs.url }}"
-          sed -i "s|!\[Render Status\](\([^)]*\))|![Render Status]($render_url)|" README.md
+          sed -i "s|!\[Render Status\](https://img.shields.io/badge/render-[^)]*)|![Render Status]($render_url)|" README.md
           diff=$(git diff README.md)
           echo "$diff"
           if [ -n "$diff" ]; then
@@ -64,7 +64,7 @@ jobs:
         id: update_readme
         run: |
           deployment_url="${{ steps.deployment_badge.outputs.url }}"
-          sed -i "s|!\[Deployment Status\](\([^)]*\))|![Deployment Status]($deployment_url)|" README.md
+          sed -i "s|!\[Deployment Status\](https://img.shields.io/badge/deployment-[^)]*)|![Deployment Status]($deployment_url)|" README.md
           diff=$(git diff README.md)
           echo "$diff"
           if [ -n "$diff" ]; then
