@@ -23,7 +23,7 @@ jobs:
       - name: Update badge in README
         run: |
           render_url=$(cat render-badge-url.txt)
-          sed -i "s|![Render Status](https://img.shields.io/badge/render-[^?)]*\?logo=render&style=for-the-badge)|![Render Status]($render_url)|" README.md
+          sed -i "s|\\[Render Status\\](.*)|![Render Status]($render_url)|" README.md
           echo "=== README diff after sed ==="
           git --no-pager diff README.md || true
 
@@ -50,7 +50,7 @@ jobs:
       - name: Update badge in README
         run: |
           deployment_url=$(cat deployment-badge-url.txt)
-          sed -i "s|![Deployment Status](https://img.shields.io/badge/deployment-[^?)]*\?logo=github&style=for-the-badge)|![Deployment Status]($deployment_url)|" README.md
+          sed -i "s|\\[Deployment Status\\](.*)|![Deployment Status]($deployment_url)|" README.md
           echo "=== README diff after sed ==="
           git --no-pager diff README.md || true
 
