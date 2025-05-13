@@ -1,5 +1,6 @@
 # FilterGenie 🧞‍♂️
 
+![License: CC BY-NC 4.0](https://img.shields.io/badge/license-CC--BY--NC%204.0-lightgrey?style=for-the-badge&logo=creativecommons)
 ![Deployment Status](https://img.shields.io/badge/deployment-success-brightgreen?logo=github&style=for-the-badge)
 ![Render Status](https://img.shields.io/badge/render-live-brightgreen?logo=render&style=for-the-badge)
 
