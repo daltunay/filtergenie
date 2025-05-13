@@ -1,4 +1,4 @@
-name: pre-commit
+name: ci
 permissions:
   contents: read
 
@@ -9,7 +9,7 @@ on:
     branches: [master]
 
 jobs:
-  pre-commit:
+  ci:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -36,5 +36,11 @@ jobs:
       - name: Install Node.js dependencies
         run: npm install
 
-      - name: Run pre-commit
+      - name: Run pre-commit hooks
         uses: pre-commit/action@v3.0.1
+
+      - name: Run Python tests
+        run: uv run pytest
+
+      - name: Run npm build
+        run: npm run build

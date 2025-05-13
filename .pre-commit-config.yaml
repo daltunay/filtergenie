@@ -54,11 +54,3 @@ repos:
       - id: eslint
         args: [--fix]
         additional_dependencies: [eslint]
-
-  - repo: local
-    hooks:
-      - id: npm-build
-        name: npm-build
-        language: system
-        entry: npm run build
-        pass_filenames: false
