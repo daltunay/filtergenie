@@ -1,7 +1,7 @@
 # FilterGenie 🧞‍♂️
 
 ![Deployment Status](GitHub deployment status: in_progress)
-![Render Status](https://img.shields.io/badge/render-unknown-lightgrey?logo=render&style=for-the-badge)
+![Render Status](Render deployment status: live)
 
 <p align="center">
   <img src="extension/assets/logo.png" alt="FilterGenie Logo" width="256" height="256">
