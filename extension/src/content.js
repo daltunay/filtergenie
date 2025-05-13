@@ -79,7 +79,6 @@ function updateItemStatus(items, filtersData, minMatch) {
       statusDiv.className = "filtergenie-status";
       container.appendChild(statusDiv);
     }
-    // Alphabetically order filter results for display
     const ordered = Object.entries(filterResults).sort(([a], [b]) =>
       a.localeCompare(b),
     );
@@ -124,7 +123,6 @@ async function analyzeItems(
 
   try {
     const itemSources = await fetchItemSources(platform, items);
-    // Sort filters alphabetically before sending to API
     const sortedFilters = [...filters].sort((a, b) => a.localeCompare(b));
     const data = await callApiAnalyze(
       itemSources,

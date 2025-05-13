@@ -20,8 +20,7 @@ const SPINNER_FRAMES = [
   "⠳",
   "⠓",
 ];
-let itemSpinnerIntervals = new WeakMap();
-let itemElapsedIntervals = new WeakMap();
+let itemIntervals = new WeakMap();
 
 export function showItemSpinner(targets) {
   targets.forEach((el) => {
@@ -30,33 +29,34 @@ export function showItemSpinner(targets) {
     if (!statusDiv) {
       statusDiv = document.createElement("div");
       statusDiv.className = "filtergenie-status";
-      // Insert as first child for consistent placement
       el.insertBefore(statusDiv, el.firstChild);
     }
     statusDiv.style.display = "";
     statusDiv.textContent = "";
-    if (itemSpinnerIntervals.has(statusDiv)) {
-      clearInterval(itemSpinnerIntervals.get(statusDiv));
-    }
-    if (itemElapsedIntervals.has(statusDiv)) {
-      clearInterval(itemElapsedIntervals.get(statusDiv));
+    if (itemIntervals.has(statusDiv)) {
+      clearInterval(itemIntervals.get(statusDiv));
     }
     let frame = 0;
     const start = Date.now();
-    let elapsed = 0;
-    function updateFrame() {
-      statusDiv.textContent = `${SPINNER_FRAMES[frame]} (${elapsed.toFixed(1)}s)`;
-      frame = (frame + 1) % SPINNER_FRAMES.length;
-    }
-    function updateElapsed() {
-      elapsed = (Date.now() - start) / 1000;
-    }
-    updateElapsed();
-    updateFrame();
-    const interval = setInterval(updateFrame, 350);
-    const elapsedInterval = setInterval(updateElapsed, 30); // much faster refresh for elapsed time
-    itemSpinnerIntervals.set(statusDiv, interval);
-    itemElapsedIntervals.set(statusDiv, elapsedInterval);
+    let lastFrameUpdate = 0;
+    let lastElapsedUpdate = 0;
+    const frameInterval = 350;
+    const elapsedInterval = 100;
+    const update = () => {
+      const now = Date.now();
+      if (now - lastFrameUpdate >= frameInterval) {
+        frame = (frame + 1) % SPINNER_FRAMES.length;
+        lastFrameUpdate = now;
+      }
+      if (now - lastElapsedUpdate >= elapsedInterval) {
+        const elapsed = (now - start) / 1000;
+        statusDiv.textContent = `${SPINNER_FRAMES[frame]} (${elapsed.toFixed(1)}s)`;
+        lastElapsedUpdate = now;
+      }
+    };
+    update();
+    const interval = setInterval(update, 30);
+    itemIntervals.set(statusDiv, interval);
   });
 }
 
@@ -64,15 +64,10 @@ export function removeItemSpinner(targets) {
   targets.forEach((el) => {
     if (!el) return;
     const statusDiv = el.querySelector(".filtergenie-status");
-    if (statusDiv && itemSpinnerIntervals.has(statusDiv)) {
-      clearInterval(itemSpinnerIntervals.get(statusDiv));
-      itemSpinnerIntervals.delete(statusDiv);
+    if (statusDiv && itemIntervals.has(statusDiv)) {
+      clearInterval(itemIntervals.get(statusDiv));
+      itemIntervals.delete(statusDiv);
     }
-    if (statusDiv && itemElapsedIntervals.has(statusDiv)) {
-      clearInterval(itemElapsedIntervals.get(statusDiv));
-      itemElapsedIntervals.delete(statusDiv);
-    }
-    // Do not clear statusDiv here, let the API response update it
   });
 }
 

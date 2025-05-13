@@ -126,7 +126,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function renderApiStatusBadge() {
-    // Modern, fixed-width badge with status color
     const badge = ui.apiStatus;
     let status = apiStatus.state;
     let text = "";
@@ -171,7 +170,6 @@ document.addEventListener("DOMContentLoaded", () => {
     badge.className = `status-badge status-${status}`;
     badge.textContent = text + elapsedText;
 
-    // Animate the Check API button icon when checking
     if (ui.apiCheckBtn) {
       const svg = ui.apiCheckBtn.querySelector("svg");
       if (status === "checking" && svg) {
@@ -360,7 +358,6 @@ document.addEventListener("DOMContentLoaded", () => {
   let lastRenderedFilters = null;
 
   function renderUI() {
-    // Only update filters list if changed
     if (
       !lastRenderedFilters ||
       JSON.stringify(state.filters) !== JSON.stringify(lastRenderedFilters)
@@ -411,7 +408,6 @@ document.addEventListener("DOMContentLoaded", () => {
     statusText.textContent = connected ? "Available" : "Not available";
     statusText.className = connected ? "text-green-400" : "text-red-400";
 
-    // Only update notification area if connection status changed
     if (lastConnectionStatus !== connected) {
       state.showNotification(connected);
       lastConnectionStatus = connected;
@@ -568,7 +564,6 @@ document.addEventListener("DOMContentLoaded", () => {
     ui.apiKey.oninput = () => state.setApiKey(ui.apiKey.value.trim());
     ui.apiCheckBtn.onclick = checkApiStatus;
 
-    // Clear Cache button logic
     if (ui.apiClearCacheBtn) {
       ui.apiClearCacheBtn.onclick = async () => {
         ui.apiClearCacheBtn.disabled = true;

@@ -130,8 +130,7 @@
     "\u2833",
     "\u2813"
   ];
-  var itemSpinnerIntervals = /* @__PURE__ */ new WeakMap();
-  var itemElapsedIntervals = /* @__PURE__ */ new WeakMap();
+  var itemIntervals = /* @__PURE__ */ new WeakMap();
   function showItemSpinner(targets) {
     targets.forEach((el) => {
       if (!el) return;
@@ -143,41 +142,39 @@
       }
       statusDiv.style.display = "";
       statusDiv.textContent = "";
-      if (itemSpinnerIntervals.has(statusDiv)) {
-        clearInterval(itemSpinnerIntervals.get(statusDiv));
-      }
-      if (itemElapsedIntervals.has(statusDiv)) {
-        clearInterval(itemElapsedIntervals.get(statusDiv));
+      if (itemIntervals.has(statusDiv)) {
+        clearInterval(itemIntervals.get(statusDiv));
       }
       let frame = 0;
       const start = Date.now();
-      let elapsed = 0;
-      function updateFrame() {
-        statusDiv.textContent = `${SPINNER_FRAMES[frame]} (${elapsed.toFixed(1)}s)`;
-        frame = (frame + 1) % SPINNER_FRAMES.length;
-      }
-      function updateElapsed() {
-        elapsed = (Date.now() - start) / 1e3;
-      }
-      updateElapsed();
-      updateFrame();
-      const interval = setInterval(updateFrame, 350);
-      const elapsedInterval = setInterval(updateElapsed, 30);
-      itemSpinnerIntervals.set(statusDiv, interval);
-      itemElapsedIntervals.set(statusDiv, elapsedInterval);
+      let lastFrameUpdate = 0;
+      let lastElapsedUpdate = 0;
+      const frameInterval = 350;
+      const elapsedInterval = 100;
+      const update = () => {
+        const now = Date.now();
+        if (now - lastFrameUpdate >= frameInterval) {
+          frame = (frame + 1) % SPINNER_FRAMES.length;
+          lastFrameUpdate = now;
+        }
+        if (now - lastElapsedUpdate >= elapsedInterval) {
+          const elapsed = (now - start) / 1e3;
+          statusDiv.textContent = `${SPINNER_FRAMES[frame]} (${elapsed.toFixed(1)}s)`;
+          lastElapsedUpdate = now;
+        }
+      };
+      update();
+      const interval = setInterval(update, 30);
+      itemIntervals.set(statusDiv, interval);
     });
   }
   function removeItemSpinner(targets) {
     targets.forEach((el) => {
       if (!el) return;
       const statusDiv = el.querySelector(".filtergenie-status");
-      if (statusDiv && itemSpinnerIntervals.has(statusDiv)) {
-        clearInterval(itemSpinnerIntervals.get(statusDiv));
-        itemSpinnerIntervals.delete(statusDiv);
-      }
-      if (statusDiv && itemElapsedIntervals.has(statusDiv)) {
-        clearInterval(itemElapsedIntervals.get(statusDiv));
-        itemElapsedIntervals.delete(statusDiv);
+      if (statusDiv && itemIntervals.has(statusDiv)) {
+        clearInterval(itemIntervals.get(statusDiv));
+        itemIntervals.delete(statusDiv);
       }
     });
   }
