@@ -25,7 +25,7 @@
 [![Pydantic v2](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/pydantic/pydantic/main/docs/badge/v2.json)](https://docs.pydantic.dev/latest/contributing/#badges)
 [![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-306998?logo=python&logoColor=white)](https://www.sqlalchemy.org/)
 [![BeautifulSoup](https://shields.io/badge/BeautifulSoup-4-green)](https://www.crummy.com/software/BeautifulSoup/)
-[![OpenAI](https://shields.io/badge/-OpenAI-93f6ef?logo=openai)](https://openai.com/)
+[![OpenAI](https://shields.io/badge/-OpenAI-93f6ef?logo=openai&logoColor=black)](https://openai.com/)
 [![Gemini](https://img.shields.io/badge/Gemini-8E75B2?logo=google%20gemini&logoColor=white)](https://ai.google.dev/)
 
 </div>
