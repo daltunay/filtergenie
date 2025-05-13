@@ -5,7 +5,7 @@
 
 [![License: CC BY-NC 4.0](https://img.shields.io/badge/license-CC--BY--NC%204.0-lightgrey?logo=creativecommons)](https://github.com/daltunay/filtergenie/blob/master/LICENSE)
 [![Last Commit](https://img.shields.io/github/last-commit/daltunay/filtergenie)](https://github.com/daltunay/filtergenie/commits/master/?author=daltunay)
-[![Deployment Status](https://img.shields.io/badge/deployment-in%20progress-blue?logo=github)](https://github.com/daltunay/filtergenie/deployments)
+[![Deployment Status](https://img.shields.io/badge/deployment-failure-red?logo=github)](https://github.com/daltunay/filtergenie/deployments)
 [![Render Status]()](https://filtergenie-api.onrender.com/)
 
 </div>
