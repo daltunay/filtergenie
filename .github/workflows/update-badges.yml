@@ -25,7 +25,7 @@ jobs:
         id: update_readme
         run: |
           render_url="${{ steps.render_badge.outputs.url }}"
-          sed -i "s|!\[Render Status\](.*)|![Render Status]($render_url)|" README.md
+          sed -i "s|!\[Render Status\](\([^)]*\))|![Render Status]($render_url)|" README.md
           diff=$(git diff README.md)
           echo "$diff"
           if [ -n "$diff" ]; then
@@ -39,6 +39,7 @@ jobs:
         run: |
           git config --global user.email "actions@github.com"
           git config --global user.name "github-actions"
+          git pull --rebase origin master
           git commit -am "[skip render] update render badge"
           git push
 
@@ -58,7 +59,7 @@ jobs:
         id: update_readme
         run: |
           deployment_url="${{ steps.deployment_badge.outputs.url }}"
-          sed -i "s|!\[Deployment Status\](.*)|![Deployment Status]($deployment_url)|" README.md
+          sed -i "s|!\[Deployment Status\](\([^)]*\))|![Deployment Status]($deployment_url)|" README.md
           diff=$(git diff README.md)
           echo "$diff"
           if [ -n "$diff" ]; then
@@ -72,5 +73,6 @@ jobs:
         run: |
           git config --global user.email "actions@github.com"
           git config --global user.name "github-actions"
+          git pull --rebase origin master
           git commit -am "[skip render] update deployment badge"
           git push
