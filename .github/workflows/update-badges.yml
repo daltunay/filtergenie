@@ -1,4 +1,4 @@
-name: update-badge
+name: update-badges
 permissions:
   contents: write
 
