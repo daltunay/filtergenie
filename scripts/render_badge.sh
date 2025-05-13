@@ -9,8 +9,6 @@ status=$(
     jq -r '.[0].deploy.status // "unknown"'
 )
 
-echo "Render deployment status: $status"
-
 case "$status" in
   live)
     color="brightgreen";;

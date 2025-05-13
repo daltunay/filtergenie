@@ -12,7 +12,6 @@ deployment_id=$(
 )
 
 if [[ -z "$deployment_id" ]]; then
-  echo "No deployments found."
   exit 1
 fi
 
@@ -23,8 +22,6 @@ status=$(
     "https://api.github.com/repos/daltunay/filtergenie/deployments/$deployment_id/statuses?per_page=1" |
     jq -r '.[0].state // "unknown"'
 )
-
-echo "GitHub deployment status: $status"
 
 case "$status" in
   success)
