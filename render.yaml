@@ -25,3 +25,5 @@ services:
       paths:
         - backend/**
         - render.yaml
+      ignoredPaths:
+        - backend/tests/**

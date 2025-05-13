@@ -3,7 +3,6 @@ import hashlib
 import json
 import types as t
 
-from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from backend.analyzer import Analyzer
@@ -12,35 +11,25 @@ from backend.common.db import AnalysisResult, ScrapedItem
 from backend.common.logging import log
 
 
-def _serialize(val: object) -> object:
-    """Serialize a value for caching."""
-    if isinstance(val, BaseModel):
-        return val.model_dump()
-    if isinstance(val, (str, int, float, bool, type(None))):
-        return val
-    if isinstance(val, (list, set, tuple)):
-        return [_serialize(item) for item in val]
-    if isinstance(val, dict):
-        return {k: _serialize(v) for k, v in sorted(val.items())}
-    return str(val)
+def scrape_cache(scrape_func):
+    """Decorator for caching scraped items, now takes scrape_func as argument."""
 
+    def decorator(func: t.FunctionType) -> t.FunctionType:
+        @functools.wraps(func)
+        async def wrapper(session: Session, platform: str, url: str, html: str, *args, **kwargs):
+            item = session.query(ScrapedItem).filter_by(platform=platform, url=url).first()
+            if item:
+                log.debug("Scrape cache hit", platform=platform, url=url)
+                return scrape_func(platform=platform, url=url, html=item.html)
+            log.debug("Scrape cache miss", platform=platform, url=url)
+            result = await func(session, platform, url, html, *args, **kwargs)
+            session.add(ScrapedItem(platform=platform, url=url, html=html))
+            session.commit()
+            return result
 
-def scrape_cache(func: t.FunctionType) -> t.FunctionType:
-    """Decorator for caching scraped items."""
+        return wrapper
 
-    @functools.wraps(func)
-    async def wrapper(session: Session, platform: str, url: str, html: str, *args, **kwargs):
-        item = session.query(ScrapedItem).filter_by(platform=platform, url=url).first()
-        if item:
-            log.debug("Scrape cache hit", platform=platform, url=url)
-            return func.__globals__["scrape_item"](platform=platform, url=url, html=item.html)
-        log.debug("Scrape cache miss", platform=platform, url=url)
-        result = await func(session, platform, url, html, *args, **kwargs)
-        session.add(ScrapedItem(platform=platform, url=url, html=html))
-        session.commit()
-        return result
-
-    return wrapper
+    return decorator
 
 
 def analyze_cache(func: t.FunctionType) -> t.FunctionType:
@@ -82,15 +71,6 @@ def analyze_cache(func: t.FunctionType) -> t.FunctionType:
         return result
 
     return wrapper
-
-
-def cached(func: t.FunctionType) -> t.FunctionType:
-    """Decorator that dispatches to scrape_cache or analyze_cache based on function name."""
-    if func.__name__ == "cached_scrape_item":
-        return scrape_cache(func)
-    elif func.__name__ == "cached_analyze_item":
-        return analyze_cache(func)
-    raise ValueError("Function name must be 'cached_scrape_item' or 'cached_analyze_item'")
 
 
 async def clear_cache(session: Session) -> int:
