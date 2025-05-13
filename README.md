@@ -7,7 +7,7 @@
 [![Build Status](https://img.shields.io/github/check-runs/daltunay/filtergenie/master)](https://github.com/daltunay/filtergenie/actions)
 [![Last Commit](https://img.shields.io/github/last-commit/daltunay/filtergenie)](https://github.com/daltunay/filtergenie/commits/master/?author=daltunay)
 [![Deployment Status](https://img.shields.io/badge/deployment-in%20progress-blue?logo=github)](https://github.com/daltunay/filtergenie/deployments)
-[![Render Status](https://img.shields.io/badge/render-live-brightgreen?logo=render)](https://filtergenie-api.onrender.com/)
+[![Render Status](https://img.shields.io/badge/render-build%20in%20progress-blue?logo=render)](https://filtergenie-api.onrender.com/)
 
 </div>
 
