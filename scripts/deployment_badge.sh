@@ -43,4 +43,4 @@ label="${status//[_ ]/-}"
 encoded_label=$(printf '%s' "$label" | jq -sRr @uri)
 
 badge_url="https://img.shields.io/badge/deployment-${encoded_label}-$color?logo=github&style=for-the-badge"
-echo "$badge_url" > deployment-badge-url.txt
+echo "$badge_url"

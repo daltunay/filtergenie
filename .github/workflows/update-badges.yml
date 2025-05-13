@@ -11,27 +11,25 @@ jobs:
   update-render-badge:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Generate Badge
+      - name: Badge URL
+        id: render_badge
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
           RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
-        run: bash scripts/render_badge.sh
+        run: echo "url=$(bash scripts/render_badge.sh)" >> "$GITHUB_OUTPUT"
 
-      - name: Update badge in README
+      - name: Update README and commit
         run: |
-          render_url=$(cat render-badge-url.txt)
-          sed -i "s|\\[Render Status\\](.*)|![Render Status]($render_url)|" README.md
-          echo "=== README diff after sed ==="
-          git --no-pager diff README.md || true
-
-      - name: Commit and push badge update
-        run: |
-          git config --global user.email "actions@github.com"
-          git config --global user.name "github-actions"
-          if ! git diff --quiet README.md; then
+          render_url="${{ steps.render_badge.outputs.url }}"
+          sed -i "s|!\[Render Status\](.*)|![Render Status]($render_url)|" README.md
+          diff=$(git diff README.md)
+          echo "$diff"
+          if [ -n "$diff" ]; then
+            git config --global user.email "actions@github.com"
+            git config --global user.name "github-actions"
             git commit -am "[skip render] update render badge"
             git push
           fi
@@ -39,26 +37,24 @@ jobs:
   update-deployment-badge:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Generate Badge
+      - name: Badge URL
+        id: deployment_badge
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bash scripts/deployment_badge.sh
+        run: echo "url=$(bash scripts/deployment_badge.sh)" >> "$GITHUB_OUTPUT"
 
-      - name: Update badge in README
+      - name: Update README and commit
         run: |
-          deployment_url=$(cat deployment-badge-url.txt)
-          sed -i "s|\\[Deployment Status\\](.*)|![Deployment Status]($deployment_url)|" README.md
-          echo "=== README diff after sed ==="
-          git --no-pager diff README.md || true
-
-      - name: Commit and push badge update
-        run: |
-          git config --global user.email "actions@github.com"
-          git config --global user.name "github-actions"
-          if ! git diff --quiet README.md; then
+          deployment_url="${{ steps.deployment_badge.outputs.url }}"
+          sed -i "s|!\[Deployment Status\](.*)|![Deployment Status]($deployment_url)|" README.md
+          diff=$(git diff README.md)
+          echo "$diff"
+          if [ -n "$diff" ]; then
+            git config --global user.email "actions@github.com"
+            git config --global user.name "github-actions"
             git commit -am "[skip render] update deployment badge"
             git push
           fi
