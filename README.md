@@ -1,9 +1,19 @@
 # FilterGenie 🧞‍♂️
 
-![License: CC BY-NC 4.0](https://img.shields.io/badge/license-CC--BY--NC%204.0-lightgrey?logo=creativecommons)
-![Deployment Status](https://img.shields.io/badge/deployment-success-brightgreen?logo=github)
-![Render Status](https://img.shields.io/badge/render-live-brightgreen?logo=render)
-![Last Commit](https://img.shields.io/github/last-commit/daltunay/filtergenie)
+<!-- Project info badges -->
+
+[![License: CC BY-NC 4.0](https://img.shields.io/badge/license-CC--BY--NC%204.0-lightgrey?logo=creativecommons)](https://github.com/daltunay/filtergenie/blob/master/LICENSE)
+[![Deployment Status](https://img.shields.io/badge/deployment-success-brightgreen?logo=github)](https://github.com/daltunay/filtergenie/deployments)
+[![Render Status](https://img.shields.io/badge/render-live-brightgreen?logo=render)](https://filtergenie-api.onrender.com/)
+[![Last Commit](https://img.shields.io/github/last-commit/daltunay/filtergenie)](https://github.com/daltunay/filtergenie/commits/master/?author=daltunay)
+
+<!-- Tech stack badges -->
+
+![FastAPI](https://img.shields.io/badge/FastAPI-009485.svg?logo=fastapi&logoColor=white)
+
+<!-- Social badge -->
+
+[![LinkedIn](https://custom-icon-badges.demolab.com/badge/LinkedIn-0A66C2?logo=linkedin-white&logoColor=fff)](https://www.linkedin.com/in/daltunay/)
 
 <p align="center">
   <img src="extension/assets/logo.png" alt="FilterGenie Logo" width="512" height="512">

@@ -28,8 +28,7 @@ jobs:
         run: |
           deployment_url="${{ steps.deployment_badge.outputs.url }}"
           escaped_url=$(printf '%s\n' "$deployment_url" | sed -e 's/[&/\]/\\&/g')
-          sed -i "s|!\[Deployment Status\]([^)]*)|![Deployment Status](${escaped_url})|g" README.md
-
+          sed -i "s|\(\[!\[Deployment Status\](\)[^)]*\()\](https://github.com/daltunay/filtergenie/deployments)\)|\1${escaped_url}\2|g" README.md
           diff=$(git diff README.md)
           echo "$diff"
           if [ -n "$diff" ]; then
@@ -68,7 +67,7 @@ jobs:
         run: |
           render_url="${{ steps.render_badge.outputs.url }}"
           escaped_url=$(printf '%s\n' "$render_url" | sed -e 's/[&/\]/\\&/g')
-          sed -i "s|!\[Render Status\]([^)]*)|![Render Status](${escaped_url})|g" README.md
+          sed -i "s|\(\[!\[Render Status\](\)[^)]*\()\](https://filtergenie-api.onrender.com/)\)|\1${escaped_url}\2|g" README.md
           diff=$(git diff README.md)
           echo "$diff"
           if [ -n "$diff" ]; then
