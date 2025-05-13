@@ -27,7 +27,9 @@ jobs:
         id: update_readme
         run: |
           deployment_url="${{ steps.deployment_badge.outputs.url }}"
-          sed -i "s|!\[Deployment Status\]([^)]*)|![Deployment Status](${deployment_url})|g" README.md
+          escaped_url=$(printf '%s\n' "$deployment_url" | sed -e 's/[&/\]/\\&/g')
+          sed -i "s|!\[Deployment Status\]([^)]*)|![Deployment Status](${escaped_url})|g" README.md
+
           diff=$(git diff README.md)
           echo "$diff"
           if [ -n "$diff" ]; then
@@ -65,7 +67,8 @@ jobs:
         id: update_readme
         run: |
           render_url="${{ steps.render_badge.outputs.url }}"
-          sed -i "s|!\[Render Status\]([^)]*)|![Render Status](${render_url})|g" README.md
+          escaped_url=$(printf '%s\n' "$render_url" | sed -e 's/[&/\]/\\&/g')
+          sed -i "s|!\[Render Status\]([^)]*)|![Render Status](${escaped_url})|g" README.md
           diff=$(git diff README.md)
           echo "$diff"
           if [ -n "$diff" ]; then
