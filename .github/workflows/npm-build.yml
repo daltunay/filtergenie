@@ -4,6 +4,19 @@ permissions:
 
 on:
   workflow_call:
+    inputs: {}
+  push:
+    paths:
+      - extension/**
+      - package.json
+      - package-lock.json
+      - build.js
+  pull_request:
+    paths:
+      - extension/**
+      - package.json
+      - package-lock.json
+      - build.js
 
 jobs:
   npm-build:
