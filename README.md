@@ -1,6 +1,6 @@
 # FilterGenie 🧞‍♂️
 
-![Deployment Status](GitHub deployment status: in_progress)
+![Deployment Status](GitHub deployment status: success)
 ![Render Status](https://img.shields.io/badge/render-unknown-lightgrey?logo=render&style=for-the-badge)
 
 <p align="center">
