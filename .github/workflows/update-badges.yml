@@ -21,6 +21,9 @@ jobs:
           RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
         run: echo "url=$(bash scripts/render_badge.sh)" >> "$GITHUB_OUTPUT"
 
+      - name: Pull latest changes
+        run: git pull --rebase origin master
+
       - name: Update README
         id: update_readme
         run: |
@@ -39,7 +42,6 @@ jobs:
         run: |
           git config --global user.email "actions@github.com"
           git config --global user.name "github-actions"
-          git pull --rebase origin master
           git commit -am "[skip render] update render badge"
           git push
 
@@ -54,6 +56,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: echo "url=$(bash scripts/deployment_badge.sh)" >> "$GITHUB_OUTPUT"
+
+      - name: Pull latest changes
+        run: git pull --rebase origin master
 
       - name: Update README
         id: update_readme
@@ -73,6 +78,5 @@ jobs:
         run: |
           git config --global user.email "actions@github.com"
           git config --global user.name "github-actions"
-          git pull --rebase origin master
           git commit -am "[skip render] update deployment badge"
           git push
