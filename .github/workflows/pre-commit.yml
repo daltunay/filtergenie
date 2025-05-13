@@ -3,10 +3,6 @@ permissions:
   contents: read
 
 on:
-  push:
-    branches: [master]
-  pull_request:
-    branches: [master]
   workflow_call:
 
 jobs:
