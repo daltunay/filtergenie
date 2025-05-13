@@ -32,7 +32,7 @@ export function createFilterBadge(text, onRemove) {
     const button = document.createElement("button");
     button.type = "button";
     button.className =
-      "ml-1 inline-flex items-center justify-center rounded-full h-5 w-5 transition ease-in-out duration-150 hover:bg-primary-500/40 focus:outline-none";
+      "ml-1 inline-flex items-center justify-center rounded-full h-5 w-5 transition ease-in-out duration-150 focus:outline-none";
     button.innerHTML = `<svg class="h-3 w-3" stroke="currentColor" fill="none" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
     </svg>`;
@@ -43,34 +43,6 @@ export function createFilterBadge(text, onRemove) {
   return badge;
 }
 
-export function createTooltip(element, text, position = "top") {
-  const tooltip = document.createElement("div");
-  tooltip.className = `hidden absolute z-10 px-3 py-2 text-sm font-medium text-white bg-dark-900/90 rounded-lg shadow-lg
-                      ${
-                        position === "top"
-                          ? "bottom-full mb-2"
-                          : position === "bottom"
-                            ? "top-full mt-2"
-                            : position === "left"
-                              ? "right-full mr-2"
-                              : "left-full ml-2"
-                      }`;
-  tooltip.textContent = text;
-
-  element.classList.add("relative");
-  element.appendChild(tooltip);
-
-  element.addEventListener("mouseenter", () => {
-    tooltip.classList.remove("hidden");
-    tooltip.classList.add("block", "animate-fade-in");
-  });
-
-  element.addEventListener("mouseleave", () => {
-    tooltip.classList.add("hidden");
-    tooltip.classList.remove("block", "animate-fade-in");
-  });
-}
-
 export function createModal(
   title,
   content,
@@ -79,7 +51,6 @@ export function createModal(
   const backdrop = document.createElement("div");
   backdrop.className =
     "fixed inset-0 bg-black/50 z-40 flex items-center justify-center backdrop-blur-sm animate-fade-in";
-
   const modal = document.createElement("div");
   modal.className =
     "bg-dark-800 border border-primary-700/30 rounded-xl shadow-xl max-w-md w-full mx-4 animate-slide-up";
@@ -88,89 +59,66 @@ export function createModal(
   const header = document.createElement("div");
   header.className =
     "flex items-center justify-between px-4 py-3 border-b border-primary-800/30";
-
   const titleEl = document.createElement("h3");
   titleEl.className = "text-lg font-medium text-primary-100";
   titleEl.textContent = title;
   header.appendChild(titleEl);
-
   const closeButton = document.createElement("button");
   closeButton.type = "button";
   closeButton.className =
-    "text-primary-400 hover:text-primary-300 focus:outline-none focus:text-primary-300";
-  closeButton.innerHTML = `<svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-  </svg>`;
-  closeButton.addEventListener("click", () => {
-    closeModal();
-    if (onClose) onClose();
-  });
+    "text-primary-400 focus:outline-none focus:text-primary-300";
+  closeButton.innerHTML = `<svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>`;
+  closeButton.onclick = close;
   header.appendChild(closeButton);
-
   modal.appendChild(header);
 
   const contentEl = document.createElement("div");
   contentEl.className = "p-4";
-
-  if (typeof content === "string") {
-    contentEl.innerHTML = content;
-  } else if (content instanceof Element) {
-    contentEl.appendChild(content);
-  }
-
+  if (typeof content === "string") contentEl.innerHTML = content;
+  else if (content instanceof Element) contentEl.appendChild(content);
   modal.appendChild(contentEl);
 
   if (onConfirm || cancelText) {
     const footer = document.createElement("div");
     footer.className =
       "flex items-center justify-end gap-3 px-4 py-3 border-t border-primary-800/30";
-
     if (cancelText) {
       const cancelButton = document.createElement("button");
       cancelButton.type = "button";
       cancelButton.className = "btn btn-outline";
       cancelButton.textContent = cancelText;
-      cancelButton.addEventListener("click", () => {
-        closeModal();
-        if (onClose) onClose();
-      });
+      cancelButton.onclick = close;
       footer.appendChild(cancelButton);
     }
-
     if (onConfirm && confirmText) {
       const confirmButton = document.createElement("button");
       confirmButton.type = "button";
       confirmButton.className = "btn btn-primary";
       confirmButton.textContent = confirmText;
-      confirmButton.addEventListener("click", () => {
+      confirmButton.onclick = () => {
         onConfirm();
-        closeModal();
-      });
+        close();
+      };
       footer.appendChild(confirmButton);
     }
-
     modal.appendChild(footer);
   }
 
   document.body.appendChild(backdrop);
 
-  function closeModal() {
+  function close() {
     backdrop.classList.add("opacity-0", "transition-opacity", "duration-300");
     setTimeout(() => backdrop.remove(), 300);
+    if (onClose) onClose();
+    document.removeEventListener("keydown", escHandler);
   }
 
-  document.addEventListener("keydown", function escHandler(e) {
-    if (e.key === "Escape") {
-      closeModal();
-      if (onClose) onClose();
-      document.removeEventListener("keydown", escHandler);
-    }
-  });
+  function escHandler(e) {
+    if (e.key === "Escape") close();
+  }
+  document.addEventListener("keydown", escHandler);
 
-  return {
-    modal,
-    close: closeModal,
-  };
+  return { modal, close };
 }
 
 export function createLabeledInput(
@@ -187,32 +135,25 @@ export function createLabeledInput(
 ) {
   const container = document.createElement("div");
   container.className = `mb-4 ${className}`;
-
   const labelEl = document.createElement("label");
   labelEl.htmlFor = id;
   labelEl.className = "block text-sm font-medium text-primary-200 mb-1";
   labelEl.textContent = label;
   container.appendChild(labelEl);
-
   const input = document.createElement("input");
   input.type = type;
   input.id = id;
   input.placeholder = placeholder;
   input.value = value;
-  input.className = `input ${error ? "border-red-500 focus:border-red-500" : ""}`;
-
-  if (onChange) {
+  input.className = `input${error ? " border-red-500 focus:border-red-500" : ""}`;
+  if (onChange)
     input.addEventListener("input", (e) => onChange(e.target.value, e));
-  }
-
   container.appendChild(input);
-
   if (error) {
     const errorEl = document.createElement("p");
     errorEl.className = "mt-1 text-xs text-red-400";
     errorEl.textContent = error;
     container.appendChild(errorEl);
   }
-
   return container;
 }

@@ -40,22 +40,22 @@
   }
 
   .btn-primary {
-    @apply bg-primary-600 text-white hover:bg-primary-500
+    @apply bg-primary-600 text-white
            active:bg-primary-700 focus:ring-primary-500;
   }
 
   .btn-secondary {
-    @apply bg-secondary-500 text-dark-900 hover:bg-secondary-400
+    @apply bg-secondary-500 text-dark-900
            active:bg-secondary-600 focus:ring-secondary-400;
   }
 
   .btn-outline {
-    @apply border border-primary-500 text-primary-400 hover:bg-primary-500/10
+    @apply border border-primary-500 text-primary-400
            active:bg-primary-600/20 focus:ring-primary-500;
   }
 
   .btn-danger {
-    @apply bg-red-600 text-white hover:bg-red-500
+    @apply bg-red-600 text-white
            active:bg-red-700 focus:ring-red-500;
   }
 

@@ -1,7 +1,7 @@
 import { platformRegistry } from "../utils/platformRegistry.js";
 import "../platforms/leboncoin.js";
 import "../platforms/vinted.js";
-import { showSpinner, removeSpinner } from "../utils/spinnerUtils.js";
+import { showItemSpinner, removeItemSpinner } from "../utils/spinnerUtils.js";
 import {
   ApiSettings,
   DEFAULT_REMOTE_API_ENDPOINT,
@@ -13,12 +13,6 @@ function getPlatform() {
   const url = window.location.href;
   if (!reg || !reg._platforms?.length) return null;
   return reg.getCurrentPlatform(url);
-}
-
-function getApiEndpoint(apiMode) {
-  return apiMode === "remote"
-    ? DEFAULT_REMOTE_API_ENDPOINT
-    : DEFAULT_LOCAL_API_ENDPOINT;
 }
 
 async function fetchItemSources(platform, items) {
@@ -73,9 +67,6 @@ function updateItemStatus(items, filtersData, minMatch) {
       item.appendChild(statusDiv);
     }
 
-    const spinner = statusDiv.querySelector(".filtergenie-spinner-container");
-    if (spinner) spinner.remove();
-
     statusDiv.style.display = "";
     statusDiv.innerHTML = Object.entries(filterResults)
       .map(([desc, matched]) => `${matched ? "✅" : "❌"} ${desc}`)
@@ -97,7 +88,7 @@ async function analyzeItems(
   const items = Array.from(platform.getItemElements()).slice(0, maxItems);
   if (!items.length) return;
 
-  const statusDivs = items.map((item) => {
+  items.forEach((item) => {
     let div = item.querySelector(".filtergenie-status");
     if (!div) {
       div = document.createElement("div");
@@ -105,19 +96,14 @@ async function analyzeItems(
       item.appendChild(div);
     }
     div.style.display = "none";
-    return div;
   });
 
-  showSpinner(
-    items.map((item) => {
-      return item;
-    }),
-  );
+  showItemSpinner(items);
 
   try {
     const itemSources = await fetchItemSources(platform, items);
     const { apiMode, apiKey } = await ApiSettings.get();
-    const apiEndpoint = getApiEndpoint(apiMode);
+    const apiEndpoint = DEFAULT_REMOTE_API_ENDPOINT;
 
     const data = await callApiAnalyze(
       itemSources,
@@ -126,8 +112,9 @@ async function analyzeItems(
       apiKey,
     );
 
+    removeItemSpinner(items);
+
     if (data.filters) {
-      removeSpinner(items);
       updateItemStatus(items, data.filters, minMatch);
 
       chrome.storage.local.set({
@@ -138,8 +125,6 @@ async function analyzeItems(
           timestamp: Date.now(),
         },
       });
-    } else {
-      removeSpinner(items);
     }
 
     sendResponse?.({
@@ -147,7 +132,7 @@ async function analyzeItems(
     });
   } catch (error) {
     console.error("FilterGenie analysis error:", error);
-    removeSpinner(items);
+    removeItemSpinner(items);
     sendResponse?.({ apiResponse: "API error" });
   }
 }

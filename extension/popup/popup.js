@@ -1,15 +1,21 @@
+function debounce(fn, delay) {
+  let timeout;
+  return (...args) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => fn(...args), delay);
+  };
+}
+
+function sendToContent(msg) {
+  chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+    tab?.id && chrome.tabs.sendMessage(tab.id, msg);
+  });
+}
+
 import "../platforms/leboncoin.js";
 import "../platforms/vinted.js";
-import {
-  createSpinner,
-  createFilterBadge,
-  createTooltip,
-} from "./components/ui-components.js";
-import {
-  showSpinner,
-  removeSpinner,
-  updateSpinnerMessage,
-} from "../utils/spinnerUtils.js";
+import { createFilterBadge } from "./components/ui-components.js";
+import { showApiSpinner, removeApiSpinner } from "../utils/spinnerUtils.js";
 import {
   DEFAULT_REMOTE_API_ENDPOINT,
   DEFAULT_LOCAL_API_ENDPOINT,
@@ -17,9 +23,6 @@ import {
 } from "../utils/apiSettings.js";
 
 document.addEventListener("DOMContentLoaded", () => {
-  const FILTERS_KEY = "popupFilters";
-  const MIN_MATCH_KEY = "popupMinMatch";
-  const MAX_ITEMS_KEY = "popupMaxItems";
   const API_MODE_KEY = "popupApiMode";
   const API_KEY_KEY = "popupApiKey";
 
@@ -50,7 +53,6 @@ document.addEventListener("DOMContentLoaded", () => {
     "api-clear-cache-btn",
     "clear-cache-status",
     "api-spinner",
-    "api-elapsed",
     "api-status",
     "api-total-time",
     "settings-toggle",
@@ -91,7 +93,6 @@ document.addEventListener("DOMContentLoaded", () => {
     apiKey: "",
     isConnected: false,
     currentActiveTab: null,
-    notificationShown: false,
     renderInProgress: false,
 
     _listeners: [],
@@ -116,14 +117,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (this[key] === value) return;
 
       this[key] = value;
-      if (
-        key !== "apiMode" &&
-        key !== "apiKey" &&
-        key !== "isConnected" &&
-        key !== "currentActiveTab" &&
-        key !== "notificationShown" &&
-        key !== "renderInProgress"
-      ) {
+      if (["filters", "minMatch", "maxItems"].includes(key)) {
         saveState();
       }
       this.notify();
@@ -184,7 +178,8 @@ document.addEventListener("DOMContentLoaded", () => {
     },
 
     showNotification(isConnected) {
-      if (!isConnected && !this.notificationShown) {
+      ui.notificationArea.innerHTML = "";
+      if (!isConnected) {
         const notification = document.createElement("div");
         notification.className =
           "bg-amber-500/20 text-amber-300 rounded-md px-4 py-3 text-sm animate-fade-in";
@@ -202,54 +197,39 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
           </div>
         `;
-        ui.notificationArea.innerHTML = "";
         ui.notificationArea.appendChild(notification);
-        this.notificationShown = true;
-      } else if (isConnected) {
-        ui.notificationArea.innerHTML = "";
-        this.notificationShown = false;
       }
     },
   };
 
-  function setApiStatusBadge(status, message, statusCode) {
-    let color,
-      icon,
-      label = "";
-    if (status === "ready") {
-      color = "bg-green-500/20 text-green-400";
-      icon = `<svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>`;
-      label = "Ready";
-      if (statusCode !== undefined) label += ` (${statusCode})`;
+  function setApiStatus(status, elapsed = null, doneTime = null, error = null) {
+    ui.apiSpinner.innerHTML = "";
+    if (status === "filtering") {
+      showApiSpinner(ui.apiSpinner, "Filtering...");
+      ui.apiStatus.innerHTML = `<span class="text-primary-400">Filtering...</span>`;
+    } else if (status === "done") {
+      removeApiSpinner(ui.apiSpinner, doneTime);
+      ui.apiStatus.innerHTML = `<span class="text-green-400">Ready</span>`;
     } else if (status === "error") {
-      color = "bg-red-500/20 text-red-400";
-      icon = `<svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>`;
-      label = message || "Error";
-      if (statusCode !== undefined) label += ` (${statusCode})`;
-    } else if (status === "loading") {
-      color = "bg-primary-600/20 text-primary-400";
-      icon = `<svg class="h-4 w-4 mr-1 animate-spin" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10"/><path class="opacity-75" d="M4 12a8 8 0 018-8"/></svg>`;
-      label = message || "Loading...";
+      removeApiSpinner(ui.apiSpinner);
+      ui.apiStatus.innerHTML = `<span class="text-red-400">${error || "API Error"}</span>`;
     } else {
-      color = "";
-      icon = "";
-      label = "";
-    }
-    if (ui.apiStatus) {
-      ui.apiStatus.innerHTML = label
-        ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${color}">${icon}${label}</span>`
-        : "";
+      removeApiSpinner(ui.apiSpinner);
+      ui.apiStatus.innerHTML = `<span class="text-primary-300">Ready</span>`;
     }
   }
 
   function loadDefaultsFromHtml() {
-    state.filters = Array.from(ui.filtersList.children)
-      .map((li) => li.textContent?.replace(/✖$/, "").trim())
-      .filter(Boolean);
-    state.minMatch = Number(ui.minMatch.value);
-    state.maxItems = Number(ui.maxItems.value);
-    state.apiMode = ui.apiModeRemote.checked ? "remote" : "local";
-    state.apiKey = ui.apiKey.value;
+    if (!state.filters.length) {
+      state.filters = Array.from(ui.filtersList.children)
+        .map((li) => li.textContent?.replace(/✖$/, "").trim())
+        .filter(Boolean);
+    }
+    if (!state.minMatch) state.minMatch = Number(ui.minMatch.value);
+    if (!state.maxItems) state.maxItems = Number(ui.maxItems.value);
+    if (!state.apiMode)
+      state.apiMode = ui.apiModeRemote.checked ? "remote" : "local";
+    if (!state.apiKey) state.apiKey = ui.apiKey.value;
   }
 
   function saveState() {
@@ -324,22 +304,15 @@ document.addEventListener("DOMContentLoaded", () => {
       statusText = document.createElement("span");
       ui.connectionStatus.appendChild(statusText);
     }
+    const connected = state.isConnected;
+    statusIndicator.className =
+      "inline-flex h-4 w-4 rounded-full mr-2 " +
+      (connected ? "bg-green-500" : "bg-red-500");
+    statusText.textContent = connected ? "Available" : "Not available";
+    statusText.className = connected ? "text-green-400" : "text-red-400";
+    state.showNotification(connected);
 
-    if (state.isConnected) {
-      statusIndicator.className =
-        "inline-flex h-4 w-4 rounded-full mr-2 bg-green-500";
-      statusText.textContent = "Available";
-      statusText.className = "text-green-400";
-      state.showNotification(true);
-    } else {
-      statusIndicator.className =
-        "inline-flex h-4 w-4 rounded-full mr-2 bg-red-500";
-      statusText.textContent = "Not available";
-      statusText.className = "text-red-400";
-      state.showNotification(false);
-    }
-
-    setApiStatusBadge();
+    setApiStatus();
 
     ui.apiTotalTime.textContent = "";
   }
@@ -389,7 +362,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     ui.resetFilters.onclick = () => {
       state.resetFilters();
-      // Also clear last analyzed data so filters do not reappear on reload
       chrome.storage.local.remove("filtergenieLastAnalyzed");
       sendToContent({ type: "RESET_FILTERS_ON_PAGE" });
     };
@@ -397,37 +369,22 @@ document.addEventListener("DOMContentLoaded", () => {
     ui.applyFilters.onclick = () => {
       state.setMaxItems(+ui.maxItems.value);
       ui.applyFilters.disabled = true;
-
-      const spinner = createSpinner("sm");
-      ui.apiSpinner.innerHTML = "";
-      ui.apiSpinner.appendChild(spinner);
-
-      setApiStatusBadge("loading", "Filtering...");
-
+      setApiStatus("filtering");
       const requestStart = Date.now();
-
-      ui.apiElapsed.textContent = "";
-
       sendToContent({
         type: "APPLY_FILTERS",
         activeFilters: state.filters,
         minMatch: state.minMatch,
         maxItems: state.maxItems,
       });
-
       chrome.runtime.onMessage.addListener(function apiStatusListener(msg) {
         if (msg.type === "API_STATUS") {
           const totalTime = (Date.now() - requestStart) / 1000;
-          ui.apiSpinner.innerHTML = "";
-
           if (msg.status === 200) {
-            setApiStatusBadge("ready", undefined, msg.status);
+            setApiStatus("done", null, totalTime);
           } else {
-            setApiStatusBadge("error", msg.error || "API Error", msg.status);
+            setApiStatus("error", null, null, msg.error);
           }
-
-          ui.apiElapsed.textContent = `Time: ${totalTime.toFixed(1)}s`;
-
           chrome.runtime.onMessage.removeListener(apiStatusListener);
           ui.applyFilters.disabled = false;
         }
@@ -436,14 +393,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function bindMatchEvents(sendToContent) {
-    const debounce = (fn, delay) => {
-      let timeout;
-      return (...args) => {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => fn(...args), delay);
-      };
-    };
-
     const debouncedMinMatchHandler = debounce((value) => {
       state.setMinMatch(+value);
       ui.minMatchValue.textContent = state.minMatch;
@@ -677,30 +626,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setInterval(checkConnection, 10000);
   }
 
-  function sendToContent(msg) {
-    chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
-      tab?.id && chrome.tabs.sendMessage(tab.id, msg);
-    });
-  }
-
-  function addTooltips() {
-    createTooltip(ui.addFilter, "Add a new filter", "top");
-    createTooltip(ui.applyFilters, "Apply filters to current page", "top");
-    createTooltip(ui.resetFilters, "Clear all filters", "top");
-    createTooltip(ui.apiHealthBtn, "Check API health", "top");
-    createTooltip(ui.apiClearCacheBtn, "Clear API cache", "top");
-    const lens = document.getElementById("options-lens");
-    if (lens) {
-      createTooltip(
-        lens,
-        "Adjust how many items to analyze and the minimum number of filters that must match for an item to be shown.",
-        "top",
-      );
-    }
-  }
-
   loadState(() => {
     setupEvents(sendToContent);
-    addTooltips();
   });
 });

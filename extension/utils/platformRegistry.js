@@ -1,35 +1,33 @@
+function parseUrl(url) {
+  try {
+    return new URL(url);
+  } catch {
+    return null;
+  }
+}
+
 class Platform {
   constructor(config) {
     this.name = config.name;
     this._config = config;
   }
 
-  _parseUrl(url) {
-    try {
-      return new URL(url);
-    } catch {
-      return null;
-    }
-  }
-
   isSupported(url) {
-    const parsedUrl = this._parseUrl(url);
-    return parsedUrl && this._config.hostPattern.test(parsedUrl.hostname);
+    const parsed = parseUrl(url);
+    return parsed && this._config.hostPattern.test(parsed.hostname);
   }
 
   isSearchPage(url) {
-    const parsedUrl = this._parseUrl(url);
+    const parsed = parseUrl(url);
     return (
-      parsedUrl &&
-      this._config.searchPathPatterns.some((pat) =>
-        pat.test(parsedUrl.pathname),
-      )
+      parsed &&
+      this._config.searchPathPatterns.some((pat) => pat.test(parsed.pathname))
     );
   }
 
   isItemPage(url) {
-    const parsedUrl = this._parseUrl(url);
-    return parsedUrl && this._config.itemPathPattern.test(parsedUrl.pathname);
+    const parsed = parseUrl(url);
+    return parsed && this._config.itemPathPattern.test(parsed.pathname);
   }
 
   getItemElements() {
