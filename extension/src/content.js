@@ -10,13 +10,27 @@ function getPlatform() {
   return reg.getCurrentPlatform(url);
 }
 
-async function fetchItemSources(platform, items) {
+async function fetchItemSources(platform, items, maxImagesPerItem) {
   return Promise.all(
-    items.map(async (item) => ({
-      platform: platform.name,
-      url: platform.getItemUrl(item),
-      html: await platform.getItemHtml(item),
-    })),
+    items.map(async (item) => {
+      const html = await platform.getItemHtml(item);
+      let images = [];
+      try {
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        images = Array.from(doc.querySelectorAll("img"))
+          .map((img) => img.src)
+          .filter(Boolean);
+      } catch {}
+      if (images.length > maxImagesPerItem) {
+        images = images.slice(0, maxImagesPerItem);
+      }
+      return {
+        platform: platform.name,
+        url: platform.getItemUrl(item),
+        html,
+        images,
+      };
+    }),
   );
 }
 
@@ -103,6 +117,7 @@ async function analyzeItems(
   sendResponse,
   apiEndpoint,
   apiKey,
+  maxImagesPerItem,
 ) {
   if (!platform) return;
 
@@ -122,7 +137,16 @@ async function analyzeItems(
   showItemSpinner(items);
 
   try {
-    const itemSources = await fetchItemSources(platform, items);
+    const itemSources = await fetchItemSources(
+      platform,
+      items,
+      maxImagesPerItem,
+    );
+    itemSources.forEach((item) => {
+      if (Array.isArray(item.images)) {
+        item.images = item.images.slice(0, maxImagesPerItem);
+      }
+    });
     const sortedFilters = [...filters].sort((a, b) => a.localeCompare(b));
     const data = await callApiAnalyze(
       itemSources,
@@ -193,6 +217,7 @@ function handleMessage(msg, sender, sendResponse) {
         sendResponse,
         msg.apiEndpoint,
         msg.apiKey,
+        msg.maxImagesPerItem,
       );
       return true;
 

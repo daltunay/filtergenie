@@ -38,6 +38,7 @@ document.addEventListener("DOMContentLoaded", () => {
     "min-match",
     "min-match-value",
     "max-items",
+    "max-images",
     "api-mode-remote",
     "api-mode-local",
     "api-key-row",
@@ -241,6 +242,7 @@ document.addEventListener("DOMContentLoaded", () => {
     filters: [],
     minMatch: 0,
     maxItems: 10,
+    maxImagesPerItem: 3,
     apiMode: "remote",
     apiKey: "",
     isConnected: false,
@@ -269,7 +271,9 @@ document.addEventListener("DOMContentLoaded", () => {
       if (this[key] === value) return;
 
       this[key] = value;
-      if (["filters", "minMatch", "maxItems"].includes(key)) {
+      if (
+        ["filters", "minMatch", "maxItems", "maxImagesPerItem"].includes(key)
+      ) {
         saveState();
       }
       this.notify();
@@ -306,6 +310,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     setMaxItems(val) {
       this.set("maxItems", Math.max(1, val));
+    },
+
+    setMaxImagesPerItem(val) {
+      this.set("maxImagesPerItem", Math.max(0, Math.min(10, val)));
     },
 
     setApiMode(mode) {
@@ -381,6 +389,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ui.minMatchValue.textContent = ui.minMatch.value;
 
     ui.maxItems.value = state.maxItems;
+    ui.maxImages.value = state.maxImagesPerItem;
 
     const hasFilters = state.filters.length > 0;
     ui.applyFilters.disabled = !hasFilters || !state.isConnected;
@@ -475,6 +484,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ui.applyFilters.onclick = () => {
       resetApiBadgeOnInteraction();
       state.setMaxItems(+ui.maxItems.value);
+      state.setMaxImagesPerItem(+ui.maxImages.value);
       ui.applyFilters.disabled = true;
       setApiStatus("filtering");
       const requestStart = Date.now();
@@ -488,6 +498,7 @@ document.addEventListener("DOMContentLoaded", () => {
         activeFilters: state.filters,
         minMatch: state.minMatch,
         maxItems: state.maxItems,
+        maxImagesPerItem: state.maxImagesPerItem,
         apiEndpoint,
         apiKey,
       });
@@ -527,6 +538,10 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }, 300);
 
+    const debouncedMaxImagesHandler = debounce((value) => {
+      state.setMaxImagesPerItem(+value);
+    }, 300);
+
     ui.minMatch.oninput = (e) => {
       resetApiBadgeOnInteraction();
       ui.minMatchValue.textContent = e.target.value;
@@ -536,6 +551,11 @@ document.addEventListener("DOMContentLoaded", () => {
     ui.maxItems.oninput = (e) => {
       resetApiBadgeOnInteraction();
       debouncedMaxItemsHandler(e.target.value);
+    };
+
+    ui.maxImages.oninput = (e) => {
+      resetApiBadgeOnInteraction();
+      debouncedMaxImagesHandler(e.target.value);
     };
   }
 
@@ -635,6 +655,7 @@ document.addEventListener("DOMContentLoaded", () => {
         changes.popupFilters ||
         changes.popupMinMatch ||
         changes.popupMaxItems ||
+        changes.popupMaxImagesPerItem ||
         changes.popupApiMode ||
         changes.popupApiKey ||
         changes.filtergenieApiStatus
@@ -650,6 +671,7 @@ document.addEventListener("DOMContentLoaded", () => {
       popupFilters: state.filters,
       popupMinMatch: state.minMatch,
       popupMaxItems: state.maxItems,
+      popupMaxImagesPerItem: state.maxImagesPerItem,
     });
   }
 
@@ -661,6 +683,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     if (!state.minMatch) state.minMatch = Number(ui.minMatch.value);
     if (!state.maxItems) state.maxItems = Number(ui.maxItems.value);
+    if (!state.maxImagesPerItem && state.maxImagesPerItem !== 0)
+      state.maxImagesPerItem = Number(ui.maxImages.value) || 3;
     if (!state.apiMode)
       state.apiMode = ui.apiModeRemote.checked ? "remote" : "local";
     if (!state.apiKey) state.apiKey = ui.apiKey.value;
@@ -672,6 +696,7 @@ document.addEventListener("DOMContentLoaded", () => {
         "popupFilters",
         "popupMinMatch",
         "popupMaxItems",
+        "popupMaxImagesPerItem",
         "popupApiMode",
         "popupApiKey",
         "filtergenieApiStatus",
@@ -683,6 +708,8 @@ document.addEventListener("DOMContentLoaded", () => {
           state.minMatch = res.popupMinMatch;
         if (typeof res.popupMaxItems === "number")
           state.maxItems = res.popupMaxItems;
+        if (typeof res.popupMaxImagesPerItem === "number")
+          state.maxImagesPerItem = res.popupMaxImagesPerItem;
         if (typeof res.popupApiMode === "string")
           state.apiMode = res.popupApiMode;
         if (typeof res.popupApiKey === "string") state.apiKey = res.popupApiKey;

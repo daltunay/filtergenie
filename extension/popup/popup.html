@@ -96,22 +96,39 @@
               Options
             </h3>
             <div class="space-y-3">
-              <div class="flex flex-col">
-                <label for="max-items" class="text-sm mr-2 text-primary-300">
-                  Max. items:
-                </label>
-                <div class="flex items-center mt-1">
-                  <input
-                    type="number"
-                    id="max-items"
-                    min="1"
-                    max="50"
-                    class="input w-full text-center"
-                  />
+              <div class="flex flex-row gap-3">
+                <div class="flex flex-col flex-1">
+                  <label for="max-items" class="text-xs mr-2 text-primary-300">
+                    Max. items:
+                  </label>
+                  <div class="flex items-center mt-1">
+                    <input
+                      type="number"
+                      id="max-items"
+                      min="1"
+                      value="10"
+                      class="input w-full text-center text-xs"
+                    />
+                  </div>
+                </div>
+                <div class="flex flex-col flex-1">
+                  <label for="max-images" class="text-xs mr-2 text-primary-300">
+                    Max. images per item:
+                  </label>
+                  <div class="flex items-center mt-1">
+                    <input
+                      type="number"
+                      id="max-images"
+                      min="0"
+                      max="10"
+                      value="3"
+                      class="input w-full text-center text-xs"
+                    />
+                  </div>
                 </div>
               </div>
               <div class="flex flex-col">
-                <label for="min-match" class="text-sm mr-2 text-primary-300">
+                <label for="min-match" class="text-xs mr-2 text-primary-300">
                   Min. matches:
                 </label>
                 <div class="flex items-center mt-1">
@@ -232,9 +249,9 @@
           class="border-t border-primary-800/30 p-4 space-y-4 bg-dark-900/50 rounded-b-xl"
         >
           <div class="flex flex-col space-y-1">
-            <label class="text-sm font-medium text-primary-200">API Mode</label>
+            <label class="text-xs font-medium text-primary-200">API Mode</label>
             <div class="flex space-x-4 mt-1">
-              <label class="flex items-center space-x-2">
+              <label class="flex items-center space-x-2 text-xs">
                 <input
                   type="radio"
                   name="api-mode"
@@ -242,9 +259,9 @@
                   value="remote"
                   class="accent-primary-500"
                 />
-                <span class="text-sm">Remote</span>
+                <span class="text-xs">Remote</span>
               </label>
-              <label class="flex items-center space-x-2">
+              <label class="flex items-center space-x-2 text-xs">
                 <input
                   type="radio"
                   name="api-mode"
@@ -252,19 +269,19 @@
                   value="local"
                   class="accent-primary-500"
                 />
-                <span class="text-sm">Local</span>
+                <span class="text-xs">Local</span>
               </label>
             </div>
           </div>
           <div id="api-key-row" class="mb-3 flex flex-col">
-            <label for="api-key" class="text-sm font-medium text-primary-200"
+            <label for="api-key" class="text-xs font-medium text-primary-200"
               >API Key</label
             >
             <div class="flex items-center mt-1">
               <input
                 type="password"
                 id="api-key"
-                class="input flex-grow"
+                class="input flex-grow text-xs"
                 autocomplete="off"
               />
               <button
