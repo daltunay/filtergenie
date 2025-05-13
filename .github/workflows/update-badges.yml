@@ -26,7 +26,9 @@ jobs:
           sed -i "s|![Render Status](https://img.shields.io/badge/render-[^?)]*?logo=render&style=for-the-badge)|![Render Status]($render_url)|" README.md
 
       - name: Show diff for Render badge
-        run: git diff README.md || true
+        run: |
+          echo "Diff for Render badge:"
+          git diff README.md
 
       - name: Commit and push Render badge update
         run: |
@@ -54,7 +56,9 @@ jobs:
           sed -i "s|![Deployment Status](https://img.shields.io/badge/deployment-[^?)]*?logo=github&style=for-the-badge)|![Deployment Status]($deployment_url)|" README.md
 
       - name: Show diff for Deployment badge
-        run: git diff README.md || true
+        run: |
+          echo "Diff for Deployment badge:"
+          git diff README.md
 
       - name: Commit and push Deployment badge update
         run: |
