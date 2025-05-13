@@ -30,6 +30,24 @@
     -webkit-box-shadow: 0 0 0px 1000px #0c4a6e inset;
     transition: background-color 5000s ease-in-out 0s;
   }
+
+  #api-settings {
+    max-height: 0;
+    overflow: hidden;
+    transition:
+      max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+      padding 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.25s;
+    opacity: 0;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+  #api-settings.expanded {
+    max-height: 300px;
+    opacity: 1;
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+  }
 }
 
 @layer components {
@@ -37,26 +55,31 @@
     @apply px-4 py-2 rounded-lg font-medium transition-all duration-200
            focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-dark-900
            disabled:opacity-50 disabled:cursor-not-allowed text-sm;
+    @apply hover:brightness-110 hover:scale-[1.03];
   }
 
   .btn-primary {
     @apply bg-primary-600 text-white
            active:bg-primary-700 focus:ring-primary-500;
+    @apply hover:bg-primary-500 hover:text-white;
   }
 
   .btn-secondary {
     @apply bg-secondary-500 text-dark-900
            active:bg-secondary-600 focus:ring-secondary-400;
+    @apply hover:bg-secondary-400 hover:text-dark-900;
   }
 
   .btn-outline {
     @apply border border-primary-500 text-primary-400
            active:bg-primary-600/20 focus:ring-primary-500;
+    @apply hover:bg-primary-500/20 hover:text-primary-300;
   }
 
   .btn-danger {
     @apply bg-red-600 text-white
            active:bg-red-700 focus:ring-red-500;
+    @apply hover:bg-red-500 hover:text-white;
   }
 
   .input {
@@ -85,5 +108,71 @@
 
   .genie-spinner {
     @apply inline-block h-4 w-4 animate-spin-slow text-primary-400 opacity-75;
+  }
+
+  /* Add hover effect for filter badge remove button (cross) */
+  .filtergenie-badge-remove {
+    @apply text-yellow-300 hover:text-yellow-100 hover:bg-yellow-400/30 transition-colors duration-150 rounded-full;
+  }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 110px;
+    height: 2.1rem;
+    border-radius: 0.75rem;
+    font-size: 0.97rem;
+    font-weight: 500;
+    background: rgba(30, 41, 59, 0.7);
+    transition:
+      background 0.2s,
+      color 0.2s;
+    letter-spacing: 0.01em;
+    padding: 0 1.1rem;
+    text-align: center;
+    box-sizing: border-box;
+  }
+  .status-badge.status-ready {
+    background: rgba(59, 130, 246, 0.12);
+    color: #93c5fd;
+  }
+  .status-badge.status-filtering,
+  .status-badge.status-checking {
+    background: rgba(59, 130, 246, 0.18);
+    color: #60a5fa;
+  }
+  .status-badge.status-available,
+  .status-badge.status-done {
+    background: rgba(34, 197, 94, 0.18);
+    color: #4ade80;
+  }
+  .status-badge.status-unavailable,
+  .status-badge.status-error,
+  .status-badge.status-auth-failed {
+    background: rgba(239, 68, 68, 0.18);
+    color: #f87171;
+  }
+
+  .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.35rem;
+    transition:
+      background 0.15s,
+      color 0.15s,
+      box-shadow 0.15s;
+    color: #60a5fa;
+    cursor: pointer;
+  }
+  .icon-btn:hover,
+  .icon-btn:focus {
+    background: rgba(59, 130, 246, 0.12);
+    color: #2563eb;
+    box-shadow: 0 1px 4px 0 rgba(59, 130, 246, 0.08);
   }
 }

@@ -107,41 +107,78 @@
   };
   platformRegistry.registerPlatform(vintedConfig);
 
-  // extension/popup/components/ui-components.js
-  function createSpinner(size = "sm") {
-    const spinnerSizes = {
-      sm: "h-4 w-4",
-      md: "h-6 w-6",
-      lg: "h-8 w-8"
-    };
-    const spinner = document.createElement("span");
-    spinner.className = `inline-block align-middle ${spinnerSizes[size] || spinnerSizes.sm} animate-spin`;
-    spinner.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="w-full h-full">
-    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-  </svg>`;
-    return spinner;
-  }
-
   // extension/utils/spinnerUtils.js
+  var SPINNER_FRAMES = [
+    "\u280B",
+    "\u2819",
+    "\u281A",
+    "\u281E",
+    "\u2816",
+    "\u2826",
+    "\u2834",
+    "\u2832",
+    "\u2833",
+    "\u2813",
+    "\u280B",
+    "\u2819",
+    "\u281A",
+    "\u281E",
+    "\u2816",
+    "\u2826",
+    "\u2834",
+    "\u2832",
+    "\u2833",
+    "\u2813"
+  ];
+  var itemSpinnerIntervals = /* @__PURE__ */ new WeakMap();
+  var itemElapsedIntervals = /* @__PURE__ */ new WeakMap();
   function showItemSpinner(targets) {
     targets.forEach((el) => {
       if (!el) return;
-      const prev = el.querySelector(".filtergenie-spinner-container");
-      if (prev) prev.remove();
-      const spinner = document.createElement("span");
-      spinner.className = "filtergenie-spinner-container inline-flex items-center animate-fade-in";
-      spinner.appendChild(createSpinner("sm"));
-      el.appendChild(spinner);
+      let statusDiv = el.querySelector(".filtergenie-status");
+      if (!statusDiv) {
+        statusDiv = document.createElement("div");
+        statusDiv.className = "filtergenie-status";
+        el.insertBefore(statusDiv, el.firstChild);
+      }
+      statusDiv.style.display = "";
+      statusDiv.textContent = "";
+      if (itemSpinnerIntervals.has(statusDiv)) {
+        clearInterval(itemSpinnerIntervals.get(statusDiv));
+      }
+      if (itemElapsedIntervals.has(statusDiv)) {
+        clearInterval(itemElapsedIntervals.get(statusDiv));
+      }
+      let frame = 0;
+      const start = Date.now();
+      let elapsed = 0;
+      function updateFrame() {
+        statusDiv.textContent = `${SPINNER_FRAMES[frame]} (${elapsed.toFixed(1)}s)`;
+        frame = (frame + 1) % SPINNER_FRAMES.length;
+      }
+      function updateElapsed() {
+        elapsed = (Date.now() - start) / 1e3;
+      }
+      updateElapsed();
+      updateFrame();
+      const interval = setInterval(updateFrame, 350);
+      const elapsedInterval = setInterval(updateElapsed, 30);
+      itemSpinnerIntervals.set(statusDiv, interval);
+      itemElapsedIntervals.set(statusDiv, elapsedInterval);
     });
   }
   function removeItemSpinner(targets) {
     targets.forEach((el) => {
       if (!el) return;
-      const spinner = el.querySelector(".filtergenie-spinner-container");
-      if (spinner) spinner.remove();
-      const statusContent = el.querySelector(".filtergenie-status");
-      if (statusContent) statusContent.style.display = "";
+      const statusDiv = el.querySelector(".filtergenie-status");
+      if (statusDiv && itemSpinnerIntervals.has(statusDiv)) {
+        clearInterval(itemSpinnerIntervals.get(statusDiv));
+        itemSpinnerIntervals.delete(statusDiv);
+      }
+      if (statusDiv && itemElapsedIntervals.has(statusDiv)) {
+        clearInterval(itemElapsedIntervals.get(statusDiv));
+        itemElapsedIntervals.delete(statusDiv);
+      }
     });
   }
 
@@ -178,17 +215,51 @@
     }
   }
   function updateItemStatus(items, filtersData, minMatch) {
+    if (!document.getElementById("filtergenie-status-style")) {
+      const style = document.createElement("style");
+      style.id = "filtergenie-status-style";
+      style.textContent = `
+      .filtergenie-status {
+        display: flex !important;
+        width: 100% !important;
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        background: none !important;
+        border: none !important;
+        z-index: 10;
+        overflow: visible !important;
+        position: relative;
+        min-height: 0;
+      }
+      .filtergenie-status .filtergenie-status-block {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: flex-start;
+        width: 100%;
+        row-gap: 6px;
+      }
+    `;
+      document.head.appendChild(style);
+    }
+    const platform = getPlatform();
     items.forEach((item, idx) => {
       const filterResults = filtersData[idx] || {};
       const matchCount = Object.values(filterResults).filter(Boolean).length;
-      let statusDiv = item.querySelector(".filtergenie-status");
+      const container = platform ? platform.getItemContainer(item) : item;
+      let statusDiv = container.querySelector(".filtergenie-status");
       if (!statusDiv) {
         statusDiv = document.createElement("div");
         statusDiv.className = "filtergenie-status";
-        item.appendChild(statusDiv);
+        container.appendChild(statusDiv);
       }
-      statusDiv.style.display = "";
-      statusDiv.innerHTML = Object.entries(filterResults).map(([desc, matched]) => `${matched ? "\u2705" : "\u274C"} ${desc}`).join("<br>");
+      const ordered = Object.entries(filterResults).sort(
+        ([a], [b]) => a.localeCompare(b)
+      );
+      statusDiv.innerHTML = '<div class="filtergenie-status-block">' + ordered.map(
+        ([desc, matched]) => `<span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:8px;font-size:13px;${matched ? "background:rgba(34,197,94,0.13);color:#4ade80;" : "background:rgba(239,68,68,0.13);color:#f87171;"}margin-bottom:2px;max-width:100%;word-break:break-word;">${matched ? "\u2705" : "\u274C"} <span style='margin-left:5px;'>${desc}</span></span>`
+      ).join("") + "</div>";
       item.style.display = matchCount >= minMatch ? "" : "none";
     });
   }
@@ -208,9 +279,10 @@
     showItemSpinner(items);
     try {
       const itemSources = await fetchItemSources(platform, items);
+      const sortedFilters = [...filters].sort((a, b) => a.localeCompare(b));
       const data = await callApiAnalyze(
         itemSources,
-        filters,
+        sortedFilters,
         apiEndpoint,
         apiKey
       );

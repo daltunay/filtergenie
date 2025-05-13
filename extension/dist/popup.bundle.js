@@ -1,4 +1,24 @@
 (() => {
+  var __defProp = Object.defineProperty;
+  var __defProps = Object.defineProperties;
+  var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
+  var __getOwnPropSymbols = Object.getOwnPropertySymbols;
+  var __hasOwnProp = Object.prototype.hasOwnProperty;
+  var __propIsEnum = Object.prototype.propertyIsEnumerable;
+  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+  var __spreadValues = (a, b) => {
+    for (var prop in b || (b = {}))
+      if (__hasOwnProp.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
+    if (__getOwnPropSymbols)
+      for (var prop of __getOwnPropSymbols(b)) {
+        if (__propIsEnum.call(b, prop))
+          __defNormalProp(a, prop, b[prop]);
+      }
+    return a;
+  };
+  var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
+
   // extension/utils/platformRegistry.js
   function parseUrl(url) {
     try {
@@ -110,14 +130,14 @@
   // extension/popup/components/ui-components.js
   function createFilterBadge(text, onRemove) {
     const badge = document.createElement("li");
-    badge.className = "inline-flex items-center rounded-full bg-primary-600/30 px-3 py-1 text-sm font-medium text-primary-200 ring-1 ring-inset ring-primary-700/30 mr-2 mb-2 animate-fade-in";
+    badge.className = "inline-flex items-center rounded-full bg-yellow-400/20 px-3 py-1 text-sm font-medium text-yellow-200 ring-1 ring-inset ring-yellow-300/30 mr-2 mb-2 animate-fade-in";
     const span = document.createElement("span");
     span.textContent = text;
     badge.appendChild(span);
     if (onRemove) {
       const button = document.createElement("button");
       button.type = "button";
-      button.className = "ml-1 inline-flex items-center justify-center rounded-full h-5 w-5 transition ease-in-out duration-150 focus:outline-none";
+      button.className = "ml-1 inline-flex items-center justify-center rounded-full h-5 w-5 transition ease-in-out duration-150 focus:outline-none filtergenie-badge-remove";
       button.innerHTML = `<svg class="h-3 w-3" stroke="currentColor" fill="none" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
     </svg>`;
@@ -166,39 +186,168 @@
       "api-key-toggle",
       "connection-status",
       "notification-area",
-      "api-health-btn",
-      "health-status",
-      "api-auth-btn",
-      "auth-status",
-      "api-clear-cache-btn",
-      "clear-cache-status",
+      "api-check-btn",
       "api-spinner",
       "api-status",
       "api-total-time",
       "settings-toggle",
       "api-settings",
       "api-progress-section",
-      "api-auth-row"
+      "api-clear-cache-btn",
+      "api-clear-cache-status"
     ].forEach((id) => {
       ui[id.replace(/-([a-z])/g, (g) => g[1].toUpperCase())] = document.getElementById(id);
     });
     function clampMinMatch(minMatch, count) {
       return Math.max(0, Math.min(minMatch, count));
     }
-    const pendingRequests = {
-      health: false,
-      auth: false,
-      clearCache: false,
-      abortController: null
+    let apiStatus = {
+      state: "unknown",
+      message: "Ready",
+      elapsed: null,
+      doneTime: null,
+      error: null,
+      startedAt: null
     };
-    function resetPendingRequests() {
-      if (pendingRequests.abortController) {
-        pendingRequests.abortController.abort();
+    let elapsedInterval = null;
+    function setApiStatus(state2, opts = {}) {
+      if (["checking", "filtering"].includes(state2)) {
+        apiStatus = __spreadProps(__spreadValues(__spreadProps(__spreadValues({}, apiStatus), {
+          state: state2
+        }), opts), {
+          startedAt: Date.now(),
+          elapsed: 0
+        });
+        startElapsedTimer();
+      } else if ([
+        "done",
+        "available",
+        "unavailable",
+        "auth-failed",
+        "error",
+        "ready"
+      ].includes(state2)) {
+        if (apiStatus.startedAt) {
+          const elapsed = (Date.now() - apiStatus.startedAt) / 1e3;
+          apiStatus = __spreadProps(__spreadValues(__spreadProps(__spreadValues({}, apiStatus), { state: state2 }), opts), { elapsed, startedAt: null });
+        } else {
+          apiStatus = __spreadProps(__spreadValues(__spreadProps(__spreadValues({}, apiStatus), { state: state2 }), opts), { startedAt: null });
+        }
+        stopElapsedTimer();
+      } else {
+        apiStatus = __spreadValues(__spreadProps(__spreadValues({}, apiStatus), { state: state2 }), opts);
+        stopElapsedTimer();
       }
-      pendingRequests.health = false;
-      pendingRequests.auth = false;
-      pendingRequests.clearCache = false;
-      pendingRequests.abortController = new AbortController();
+      chrome.storage.local.set({ filtergenieApiStatus: apiStatus });
+      renderApiStatusBadge();
+    }
+    function startElapsedTimer() {
+      stopElapsedTimer();
+      elapsedInterval = setInterval(() => {
+        if (apiStatus.startedAt) {
+          apiStatus.elapsed = (Date.now() - apiStatus.startedAt) / 1e3;
+          renderApiStatusBadge();
+        }
+      }, 100);
+    }
+    function stopElapsedTimer() {
+      if (elapsedInterval) {
+        clearInterval(elapsedInterval);
+        elapsedInterval = null;
+      }
+    }
+    function renderApiStatusBadge() {
+      const badge = ui.apiStatus;
+      let status = apiStatus.state;
+      let text = "";
+      let elapsedText = "";
+      if (["filtering", "checking"].includes(status) && typeof apiStatus.elapsed === "number") {
+        elapsedText = ` (${apiStatus.elapsed.toFixed(1)}s)`;
+      } else if (["done", "available"].includes(status) && typeof apiStatus.elapsed === "number") {
+        elapsedText = ` (${apiStatus.elapsed.toFixed(1)}s)`;
+      }
+      switch (status) {
+        case "checking":
+          text = "Checking...";
+          break;
+        case "available":
+          text = "Available";
+          break;
+        case "unavailable":
+          text = "Unavailable";
+          break;
+        case "auth-failed":
+          text = "Auth failed";
+          break;
+        case "filtering":
+          text = "Filtering...";
+          break;
+        case "done":
+          text = "Done";
+          break;
+        case "error":
+          text = apiStatus.error || "API Error";
+          break;
+        default:
+          text = "Ready";
+          status = "ready";
+      }
+      badge.className = `status-badge status-${status}`;
+      badge.textContent = text + elapsedText;
+      if (ui.apiCheckBtn) {
+        const svg = ui.apiCheckBtn.querySelector("svg");
+        if (status === "checking" && svg) {
+          svg.classList.add("animate-spin-slow");
+          ui.apiCheckBtn.disabled = true;
+        } else if (svg) {
+          svg.classList.remove("animate-spin-slow");
+          ui.apiCheckBtn.disabled = false;
+        }
+      }
+    }
+    function restoreApiStatus() {
+      chrome.storage.local.get("filtergenieApiStatus", (res) => {
+        if (res.filtergenieApiStatus) {
+          apiStatus = res.filtergenieApiStatus;
+          if (["filtering", "checking"].includes(apiStatus.state) && apiStatus.startedAt) {
+            startElapsedTimer();
+          }
+          renderApiStatusBadge();
+        }
+      });
+    }
+    async function checkApiStatus() {
+      setApiStatus("checking");
+      const endpoint = state.apiMode === "local" ? DEFAULT_LOCAL_API_ENDPOINT : DEFAULT_REMOTE_API_ENDPOINT;
+      try {
+        const healthResp = await fetch(endpoint.replace(/\/+$/, "") + "/health");
+        if (!healthResp.ok) {
+          setApiStatus("unavailable");
+          return;
+        }
+        if (state.apiMode === "remote") {
+          const authResp = await fetch(
+            endpoint.replace(/\/+$/, "") + "/auth/check",
+            {
+              headers: state.apiKey ? { "X-API-Key": state.apiKey } : {}
+            }
+          );
+          if (!authResp.ok) {
+            setApiStatus("auth-failed");
+            return;
+          }
+        }
+        setApiStatus("available");
+      } catch (e) {
+        setApiStatus("unavailable");
+      }
+    }
+    function resetApiBadgeOnInteraction() {
+      if (["done", "error", "available", "unavailable", "auth-failed"].includes(
+        apiStatus.state
+      )) {
+        setApiStatus("ready");
+      }
     }
     const state = {
       filters: [],
@@ -234,12 +383,14 @@
         this.notify();
       },
       setFilters(filters) {
-        if (JSON.stringify(this.filters) === JSON.stringify(filters)) return;
-        this.set("filters", filters);
+        const sorted = [...filters].sort((a, b) => a.localeCompare(b));
+        if (JSON.stringify(this.filters) === JSON.stringify(sorted)) return;
+        this.set("filters", sorted);
       },
       addFilter(filter) {
         if (!filter || this.filters.includes(filter)) return false;
         this.filters.push(filter);
+        this.filters.sort((a, b) => a.localeCompare(b));
         saveState();
         this.notify();
         return true;
@@ -260,7 +411,6 @@
       },
       setApiMode(mode) {
         if (this.apiMode !== mode) {
-          resetPendingRequests();
           this.apiMode = mode;
           ignoreNextStorageUpdate = true;
           chrome.storage.local.set({ [API_MODE_KEY]: mode });
@@ -300,91 +450,20 @@
         }
       }
     };
-    let lastApiDoneTime = null;
-    let lastApiStatus = "ready";
-    let lastApiError = null;
-    function setApiStatus(status, elapsed = null, doneTime = null, error = null) {
-      lastApiStatus = status;
-      lastApiError = error;
-      if (status === "done") lastApiDoneTime = doneTime;
-      else if (status !== "done") lastApiDoneTime = null;
-      renderApiStatusBadge();
-    }
-    function renderApiStatusBadge() {
-      ui.apiSpinner.innerHTML = "";
-      let badge = document.createElement("span");
-      badge.className = "badge ";
-      if (lastApiStatus === "filtering") {
-        badge.className += "bg-blue-500/20 text-blue-300 badge";
-        badge.textContent = "Filtering...";
-      } else if (lastApiStatus === "done" && lastApiDoneTime != null) {
-        badge.className += "bg-green-500/20 text-green-400 badge";
-        badge.textContent = `Done (${lastApiDoneTime.toFixed(1)}s)`;
-      } else if (lastApiStatus === "error") {
-        badge.className += "bg-red-500/20 text-red-400 badge";
-        badge.textContent = lastApiError || "API Error";
-      } else {
-        badge.className += "bg-primary-600/20 text-primary-300 badge";
-        badge.textContent = "Ready";
-      }
-      ui.apiSpinner.appendChild(badge);
-    }
-    function resetApiBadgeOnInteraction() {
-      if (lastApiStatus === "done" || lastApiStatus === "error") {
-        setApiStatus("ready");
-      }
-    }
-    function loadDefaultsFromHtml() {
-      if (!state.filters.length) {
-        state.filters = Array.from(ui.filtersList.children).map((li) => {
-          var _a;
-          return (_a = li.textContent) == null ? void 0 : _a.replace(/✖$/, "").trim();
-        }).filter(Boolean);
-      }
-      if (!state.minMatch) state.minMatch = Number(ui.minMatch.value);
-      if (!state.maxItems) state.maxItems = Number(ui.maxItems.value);
-      if (!state.apiMode)
-        state.apiMode = ui.apiModeRemote.checked ? "remote" : "local";
-      if (!state.apiKey) state.apiKey = ui.apiKey.value;
-    }
-    function saveState() {
-      ignoreNextStorageUpdate = true;
-      chrome.storage.local.set({
-        popupFilters: state.filters,
-        popupMinMatch: state.minMatch,
-        popupMaxItems: state.maxItems
-      });
-    }
-    function loadState(cb) {
-      chrome.storage.local.get(
-        [
-          "popupFilters",
-          "popupMinMatch",
-          "popupMaxItems",
-          "popupApiMode",
-          "popupApiKey"
-        ],
-        (res) => {
-          loadDefaultsFromHtml();
-          if (Array.isArray(res.popupFilters)) state.filters = res.popupFilters;
-          if (typeof res.popupMinMatch === "number")
-            state.minMatch = res.popupMinMatch;
-          if (typeof res.popupMaxItems === "number")
-            state.maxItems = res.popupMaxItems;
-          if (typeof res.popupApiMode === "string")
-            state.apiMode = res.popupApiMode;
-          if (typeof res.popupApiKey === "string") state.apiKey = res.popupApiKey;
-          renderUI();
-          if (cb) cb();
-        }
-      );
-    }
+    let lastConnectionStatus = null;
+    let lastRenderedFilters = null;
     function renderUI() {
-      ui.filtersList.innerHTML = "";
-      state.filters.forEach((filter, index) => {
-        const badge = createFilterBadge(filter, () => state.removeFilter(index));
-        ui.filtersList.appendChild(badge);
-      });
+      if (!lastRenderedFilters || JSON.stringify(state.filters) !== JSON.stringify(lastRenderedFilters)) {
+        ui.filtersList.innerHTML = "";
+        state.filters.forEach((filter, index) => {
+          const badge = createFilterBadge(
+            filter,
+            () => state.removeFilter(index)
+          );
+          ui.filtersList.appendChild(badge);
+        });
+        lastRenderedFilters = [...state.filters];
+      }
       Object.assign(ui.minMatch, {
         min: 0,
         max: Math.max(0, state.filters.length),
@@ -400,7 +479,6 @@
       ui.apiModeRemote.checked = state.apiMode === "remote";
       ui.apiModeLocal.checked = state.apiMode === "local";
       ui.apiKeyRow.style.display = state.apiMode === "remote" ? "" : "none";
-      ui.apiAuthRow.style.display = state.apiMode === "remote" ? "" : "none";
       ui.apiKey.value = state.apiKey;
       const statusIndicator = ui.connectionStatus.querySelector("span:first-child");
       let statusText = ui.connectionStatus.querySelector("span:last-child");
@@ -412,7 +490,10 @@
       statusIndicator.className = "inline-flex h-4 w-4 rounded-full mr-2 " + (connected ? "bg-green-500" : "bg-red-500");
       statusText.textContent = connected ? "Available" : "Not available";
       statusText.className = connected ? "text-green-400" : "text-red-400";
-      state.showNotification(connected);
+      if (lastConnectionStatus !== connected) {
+        state.showNotification(connected);
+        lastConnectionStatus = connected;
+      }
       ui.apiStatus.innerHTML = "";
       renderApiStatusBadge();
       ui.apiTotalTime.textContent = "";
@@ -420,13 +501,15 @@
     function checkConnection() {
       chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
         if (!(tab == null ? void 0 : tab.id)) {
-          state.setConnection(false);
+          if (state.isConnected !== false) state.setConnection(false);
           return;
         }
         state.currentActiveTab = tab;
         chrome.tabs.sendMessage(tab.id, { type: "PING" }, (response) => {
           const isConnected = !chrome.runtime.lastError && (response == null ? void 0 : response.type) === "PONG";
-          state.setConnection(isConnected);
+          if (state.isConnected !== isConnected) {
+            state.setConnection(isConnected);
+          }
         });
       });
     }
@@ -481,9 +564,9 @@
           if (msg.type === "FILTERS_APPLIED") {
             if (msg.success) {
               const totalTime = (Date.now() - requestStart) / 1e3;
-              setApiStatus("done", null, totalTime);
+              setApiStatus("done", { doneTime: totalTime });
             } else {
-              setApiStatus("error", null, null, msg.error);
+              setApiStatus("error", { error: msg.error });
             }
             ui.applyFilters.disabled = false;
             chrome.runtime.onMessage.removeListener(apiListener);
@@ -521,119 +604,61 @@
       };
     }
     function bindApiEvents() {
-      ui.settingsToggle.onclick = () => {
-        const isHidden = ui.apiSettings.classList.contains("hidden");
-        if (isHidden) {
-          ui.apiSettings.classList.remove("hidden");
-          ui.apiSettings.classList.add("animate-fade-in");
-        } else {
-          ui.apiSettings.classList.add(
-            "opacity-0",
-            "transition-opacity",
-            "duration-300"
-          );
-          setTimeout(() => {
-            ui.apiSettings.classList.add("hidden");
-            ui.apiSettings.classList.remove(
-              "opacity-0",
-              "transition-opacity",
-              "duration-300"
-            );
-          }, 300);
-        }
-      };
+      if (ui.settingsToggle) {
+        ui.settingsToggle.onclick = () => {
+          const settings = ui.apiSettings;
+          const expanded = settings.classList.contains("expanded");
+          if (!expanded) {
+            settings.classList.add("expanded");
+            settings.classList.remove("hidden");
+          } else {
+            settings.classList.remove("expanded");
+            setTimeout(() => settings.classList.add("hidden"), 300);
+          }
+        };
+      }
       [ui.apiModeRemote, ui.apiModeLocal].forEach((el) => {
         el.onchange = () => {
           state.setApiMode(ui.apiModeRemote.checked ? "remote" : "local");
-          ui.healthStatus.textContent = "";
-          ui.authStatus.textContent = "";
-          ui.clearCacheStatus.textContent = "";
+          setApiStatus("ready");
         };
       });
       ui.apiKey.oninput = () => state.setApiKey(ui.apiKey.value.trim());
-      ui.apiHealthBtn.onclick = async () => {
-        if (pendingRequests.health) return;
-        pendingRequests.health = true;
-        resetPendingRequests();
-        ui.healthStatus.textContent = "Checking...";
-        ui.apiHealthBtn.disabled = true;
-        const endpoint = state.apiMode === "remote" ? DEFAULT_REMOTE_API_ENDPOINT : DEFAULT_LOCAL_API_ENDPOINT;
-        try {
-          const resp = await fetch(endpoint.replace(/\/+$/, "") + "/health", {
-            signal: pendingRequests.abortController.signal
-          });
-          if (resp.ok) {
-            ui.healthStatus.innerHTML = '<span class="text-green-400">\u2713 API is healthy</span>';
-          } else {
-            ui.healthStatus.innerHTML = '<span class="text-red-400">\u2717 API is unhealthy</span>';
+      ui.apiCheckBtn.onclick = checkApiStatus;
+      if (ui.apiClearCacheBtn) {
+        ui.apiClearCacheBtn.onclick = async () => {
+          ui.apiClearCacheBtn.disabled = true;
+          ui.apiClearCacheStatus.textContent = "Clearing...";
+          ui.apiClearCacheStatus.className = "text-xs text-primary-300";
+          const endpoint = state.apiMode === "remote" ? DEFAULT_REMOTE_API_ENDPOINT : DEFAULT_LOCAL_API_ENDPOINT;
+          try {
+            const resp = await fetch(
+              endpoint.replace(/\/+$/, "") + "/cache/clear",
+              {
+                method: "POST",
+                headers: state.apiKey && state.apiMode === "remote" ? { "X-API-Key": state.apiKey } : {}
+              }
+            );
+            if (resp.ok) {
+              const data = await resp.json().catch(() => ({}));
+              if (typeof data.entries_cleared === "number") {
+                ui.apiClearCacheStatus.textContent = `Cleared (${data.entries_cleared} entries)`;
+              } else {
+                ui.apiClearCacheStatus.textContent = "Cleared";
+              }
+              ui.apiClearCacheStatus.className = "text-xs text-green-400";
+            } else {
+              ui.apiClearCacheStatus.textContent = "Failed";
+              ui.apiClearCacheStatus.className = "text-xs text-red-400";
+            }
+          } catch (e) {
+            ui.apiClearCacheStatus.textContent = "Error";
+            ui.apiClearCacheStatus.className = "text-xs text-red-400";
+          } finally {
+            ui.apiClearCacheBtn.disabled = false;
           }
-        } catch (error) {
-          if (error.name !== "AbortError") {
-            ui.healthStatus.innerHTML = '<span class="text-red-400">\u2717 Cannot connect to API</span>';
-          }
-        } finally {
-          pendingRequests.health = false;
-          ui.apiHealthBtn.disabled = false;
-        }
-      };
-      ui.apiAuthBtn.onclick = async () => {
-        if (pendingRequests.auth) return;
-        if (state.apiMode === "local") {
-          ui.authStatus.innerHTML = '<span class="text-gray-400">Not required for local API</span>';
-          return;
-        }
-        pendingRequests.auth = true;
-        resetPendingRequests();
-        ui.authStatus.textContent = "Checking...";
-        ui.apiAuthBtn.disabled = true;
-        const endpoint = DEFAULT_REMOTE_API_ENDPOINT.replace(/\/+$/, "");
-        try {
-          const resp = await fetch(endpoint + "/auth/check", {
-            headers: state.apiKey ? { "X-API-Key": state.apiKey } : {},
-            signal: pendingRequests.abortController.signal
-          });
-          if (resp.ok) {
-            ui.authStatus.innerHTML = '<span class="text-green-400">\u2713 Authenticated</span>';
-          } else {
-            ui.authStatus.innerHTML = '<span class="text-red-400">\u2717 Authentication failed</span>';
-          }
-        } catch (error) {
-          if (error.name !== "AbortError") {
-            ui.authStatus.innerHTML = '<span class="text-red-400">\u2717 Cannot connect to API</span>';
-          }
-        } finally {
-          pendingRequests.auth = false;
-          ui.apiAuthBtn.disabled = false;
-        }
-      };
-      ui.apiClearCacheBtn.onclick = async () => {
-        if (pendingRequests.clearCache) return;
-        pendingRequests.clearCache = true;
-        resetPendingRequests();
-        ui.clearCacheStatus.textContent = "Clearing...";
-        ui.apiClearCacheBtn.disabled = true;
-        const endpoint = state.apiMode === "remote" ? DEFAULT_REMOTE_API_ENDPOINT.replace(/\/+$/, "") : DEFAULT_LOCAL_API_ENDPOINT.replace(/\/+$/, "");
-        try {
-          const resp = await fetch(endpoint + "/cache/clear", {
-            method: "POST",
-            headers: state.apiKey ? { "X-API-Key": state.apiKey } : {},
-            signal: pendingRequests.abortController.signal
-          });
-          if (resp.ok) {
-            const data = await resp.json();
-            ui.clearCacheStatus.innerHTML = `<span class="text-green-400">\u2713 Cleared ${data.entries_cleared !== void 0 ? `(${data.entries_cleared} entries)` : ""}</span>`;
-          } else {
-            ui.clearCacheStatus.innerHTML = '<span class="text-red-400">\u2717 Failed to clear cache</span>';
-          }
-        } catch (error) {
-          if (error.name !== "AbortError") {
-            ui.clearCacheStatus.innerHTML = '<span class="text-red-400">\u2717 Error contacting API</span>';
-          }
-        } finally {
-          pendingRequests.clearCache = false;
-          ui.apiClearCacheBtn.disabled = false;
-        }
-      };
+        };
+      }
     }
     function bindApiKeyToggle() {
       if (!ui.apiKeyToggle || !ui.apiKey) return;
@@ -656,10 +681,57 @@
           ignoreNextStorageUpdate = false;
           return;
         }
-        if (changes.popupFilters || changes.popupMinMatch || changes.popupMaxItems || changes.popupApiMode || changes.popupApiKey) {
+        if (changes.popupFilters || changes.popupMinMatch || changes.popupMaxItems || changes.popupApiMode || changes.popupApiKey || changes.filtergenieApiStatus) {
           loadState();
         }
       });
+    }
+    function saveState() {
+      ignoreNextStorageUpdate = true;
+      chrome.storage.local.set({
+        popupFilters: state.filters,
+        popupMinMatch: state.minMatch,
+        popupMaxItems: state.maxItems
+      });
+    }
+    function loadDefaultsFromHtml() {
+      if (!state.filters.length) {
+        state.filters = Array.from(ui.filtersList.children).map((li) => {
+          var _a;
+          return (_a = li.textContent) == null ? void 0 : _a.replace(/✖$/, "").trim();
+        }).filter(Boolean);
+      }
+      if (!state.minMatch) state.minMatch = Number(ui.minMatch.value);
+      if (!state.maxItems) state.maxItems = Number(ui.maxItems.value);
+      if (!state.apiMode)
+        state.apiMode = ui.apiModeRemote.checked ? "remote" : "local";
+      if (!state.apiKey) state.apiKey = ui.apiKey.value;
+    }
+    function loadState(cb) {
+      chrome.storage.local.get(
+        [
+          "popupFilters",
+          "popupMinMatch",
+          "popupMaxItems",
+          "popupApiMode",
+          "popupApiKey",
+          "filtergenieApiStatus"
+        ],
+        (res) => {
+          loadDefaultsFromHtml();
+          if (Array.isArray(res.popupFilters)) state.filters = res.popupFilters;
+          if (typeof res.popupMinMatch === "number")
+            state.minMatch = res.popupMinMatch;
+          if (typeof res.popupMaxItems === "number")
+            state.maxItems = res.popupMaxItems;
+          if (typeof res.popupApiMode === "string")
+            state.apiMode = res.popupApiMode;
+          if (typeof res.popupApiKey === "string") state.apiKey = res.popupApiKey;
+          if (res.filtergenieApiStatus) apiStatus = res.filtergenieApiStatus;
+          renderUI();
+          if (cb) cb();
+        }
+      );
     }
     function setupEvents(sendToContent2) {
       bindFilterEvents(sendToContent2);
@@ -670,6 +742,7 @@
       state.subscribe(renderUI);
       checkConnection();
       setInterval(checkConnection, 1e4);
+      restoreApiStatus();
     }
     loadState(() => {
       setupEvents(sendToContent);

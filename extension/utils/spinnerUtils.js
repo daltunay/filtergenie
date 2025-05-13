@@ -1,25 +1,78 @@
-import { createSpinner } from "../popup/components/ui-components.js";
+const SPINNER_FRAMES = [
+  "⠋",
+  "⠙",
+  "⠚",
+  "⠞",
+  "⠖",
+  "⠦",
+  "⠴",
+  "⠲",
+  "⠳",
+  "⠓",
+  "⠋",
+  "⠙",
+  "⠚",
+  "⠞",
+  "⠖",
+  "⠦",
+  "⠴",
+  "⠲",
+  "⠳",
+  "⠓",
+];
+let itemSpinnerIntervals = new WeakMap();
+let itemElapsedIntervals = new WeakMap();
 
 export function showItemSpinner(targets) {
   targets.forEach((el) => {
     if (!el) return;
-    const prev = el.querySelector(".filtergenie-spinner-container");
-    if (prev) prev.remove();
-    const spinner = document.createElement("span");
-    spinner.className =
-      "filtergenie-spinner-container inline-flex items-center animate-fade-in";
-    spinner.appendChild(createSpinner("sm"));
-    el.appendChild(spinner);
+    let statusDiv = el.querySelector(".filtergenie-status");
+    if (!statusDiv) {
+      statusDiv = document.createElement("div");
+      statusDiv.className = "filtergenie-status";
+      // Insert as first child for consistent placement
+      el.insertBefore(statusDiv, el.firstChild);
+    }
+    statusDiv.style.display = "";
+    statusDiv.textContent = "";
+    if (itemSpinnerIntervals.has(statusDiv)) {
+      clearInterval(itemSpinnerIntervals.get(statusDiv));
+    }
+    if (itemElapsedIntervals.has(statusDiv)) {
+      clearInterval(itemElapsedIntervals.get(statusDiv));
+    }
+    let frame = 0;
+    const start = Date.now();
+    let elapsed = 0;
+    function updateFrame() {
+      statusDiv.textContent = `${SPINNER_FRAMES[frame]} (${elapsed.toFixed(1)}s)`;
+      frame = (frame + 1) % SPINNER_FRAMES.length;
+    }
+    function updateElapsed() {
+      elapsed = (Date.now() - start) / 1000;
+    }
+    updateElapsed();
+    updateFrame();
+    const interval = setInterval(updateFrame, 350);
+    const elapsedInterval = setInterval(updateElapsed, 30); // much faster refresh for elapsed time
+    itemSpinnerIntervals.set(statusDiv, interval);
+    itemElapsedIntervals.set(statusDiv, elapsedInterval);
   });
 }
 
 export function removeItemSpinner(targets) {
   targets.forEach((el) => {
     if (!el) return;
-    const spinner = el.querySelector(".filtergenie-spinner-container");
-    if (spinner) spinner.remove();
-    const statusContent = el.querySelector(".filtergenie-status");
-    if (statusContent) statusContent.style.display = "";
+    const statusDiv = el.querySelector(".filtergenie-status");
+    if (statusDiv && itemSpinnerIntervals.has(statusDiv)) {
+      clearInterval(itemSpinnerIntervals.get(statusDiv));
+      itemSpinnerIntervals.delete(statusDiv);
+    }
+    if (statusDiv && itemElapsedIntervals.has(statusDiv)) {
+      clearInterval(itemElapsedIntervals.get(statusDiv));
+      itemElapsedIntervals.delete(statusDiv);
+    }
+    // Do not clear statusDiv here, let the API response update it
   });
 }
 
@@ -32,7 +85,6 @@ export function showApiSpinner(container, message = "Filtering...") {
   const spinnerWrap = document.createElement("span");
   spinnerWrap.className =
     "filtergenie-api-spinner inline-flex items-center space-x-2";
-  spinnerWrap.appendChild(createSpinner("sm"));
   const msg = document.createElement("span");
   msg.className = "text-primary-300 text-xs";
   msg.textContent = message;

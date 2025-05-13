@@ -22,7 +22,7 @@ export function createSpinner(size = "sm") {
 export function createFilterBadge(text, onRemove) {
   const badge = document.createElement("li");
   badge.className =
-    "inline-flex items-center rounded-full bg-primary-600/30 px-3 py-1 text-sm font-medium text-primary-200 ring-1 ring-inset ring-primary-700/30 mr-2 mb-2 animate-fade-in";
+    "inline-flex items-center rounded-full bg-yellow-400/20 px-3 py-1 text-sm font-medium text-yellow-200 ring-1 ring-inset ring-yellow-300/30 mr-2 mb-2 animate-fade-in";
 
   const span = document.createElement("span");
   span.textContent = text;
@@ -32,7 +32,7 @@ export function createFilterBadge(text, onRemove) {
     const button = document.createElement("button");
     button.type = "button";
     button.className =
-      "ml-1 inline-flex items-center justify-center rounded-full h-5 w-5 transition ease-in-out duration-150 focus:outline-none";
+      "ml-1 inline-flex items-center justify-center rounded-full h-5 w-5 transition ease-in-out duration-150 focus:outline-none filtergenie-badge-remove";
     button.innerHTML = `<svg class="h-3 w-3" stroke="currentColor" fill="none" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
     </svg>`;

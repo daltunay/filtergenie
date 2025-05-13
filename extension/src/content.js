@@ -38,22 +38,60 @@ async function callApiAnalyze(items, filters, apiEndpoint, apiKey) {
 }
 
 function updateItemStatus(items, filtersData, minMatch) {
+  if (!document.getElementById("filtergenie-status-style")) {
+    const style = document.createElement("style");
+    style.id = "filtergenie-status-style";
+    style.textContent = `
+      .filtergenie-status {
+        display: flex !important;
+        width: 100% !important;
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        background: none !important;
+        border: none !important;
+        z-index: 10;
+        overflow: visible !important;
+        position: relative;
+        min-height: 0;
+      }
+      .filtergenie-status .filtergenie-status-block {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: flex-start;
+        width: 100%;
+        row-gap: 6px;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  const platform = getPlatform();
+
   items.forEach((item, idx) => {
     const filterResults = filtersData[idx] || {};
     const matchCount = Object.values(filterResults).filter(Boolean).length;
-
-    let statusDiv = item.querySelector(".filtergenie-status");
+    const container = platform ? platform.getItemContainer(item) : item;
+    let statusDiv = container.querySelector(".filtergenie-status");
     if (!statusDiv) {
       statusDiv = document.createElement("div");
       statusDiv.className = "filtergenie-status";
-      item.appendChild(statusDiv);
+      container.appendChild(statusDiv);
     }
-
-    statusDiv.style.display = "";
-    statusDiv.innerHTML = Object.entries(filterResults)
-      .map(([desc, matched]) => `${matched ? "✅" : "❌"} ${desc}`)
-      .join("<br>");
-
+    // Alphabetically order filter results for display
+    const ordered = Object.entries(filterResults).sort(([a], [b]) =>
+      a.localeCompare(b),
+    );
+    statusDiv.innerHTML =
+      '<div class="filtergenie-status-block">' +
+      ordered
+        .map(
+          ([desc, matched]) =>
+            `<span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:8px;font-size:13px;${matched ? "background:rgba(34,197,94,0.13);color:#4ade80;" : "background:rgba(239,68,68,0.13);color:#f87171;"}margin-bottom:2px;max-width:100%;word-break:break-word;">${matched ? "✅" : "❌"} <span style='margin-left:5px;'>${desc}</span></span>`,
+        )
+        .join("") +
+      "</div>";
     item.style.display = matchCount >= minMatch ? "" : "none";
   });
 }
@@ -86,9 +124,11 @@ async function analyzeItems(
 
   try {
     const itemSources = await fetchItemSources(platform, items);
+    // Sort filters alphabetically before sending to API
+    const sortedFilters = [...filters].sort((a, b) => a.localeCompare(b));
     const data = await callApiAnalyze(
       itemSources,
-      filters,
+      sortedFilters,
       apiEndpoint,
       apiKey,
     );

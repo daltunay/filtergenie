@@ -191,12 +191,35 @@
           </button>
         </div>
 
-        <div id="api-progress-section" class="p-4 space-y-2">
-          <div class="flex items-center space-x-3">
-            <div id="api-spinner"></div>
-            <div id="api-status" class="text-sm text-primary-300 min-w-[100px]">
-              Ready
+        <div class="p-4 space-y-3">
+          <div
+            class="flex items-center justify-between bg-dark-800/60 rounded-lg px-2 py-1"
+          >
+            <div id="api-status-badge" class="flex items-center gap-1">
+              <span id="api-spinner"></span>
+              <span id="api-status" class="status-badge"></span>
             </div>
+            <button
+              id="api-check-btn"
+              class="icon-btn ml-2"
+              title="Check API"
+              aria-label="Check API"
+            >
+              <svg
+                class="h-5 w-5"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 4v5h.582M20 20v-5h-.581M5 9A7 7 0 0119 15.5M19 15.5A7 7 0 015 9"
+                />
+              </svg>
+            </button>
           </div>
           <div class="text-xs text-gray-400 flex justify-between">
             <div id="api-elapsed"></div>
@@ -206,7 +229,7 @@
 
         <div
           id="api-settings"
-          class="hidden border-t border-primary-800/30 p-4 space-y-4 bg-dark-900/50 rounded-b-xl"
+          class="border-t border-primary-800/30 p-4 space-y-4 bg-dark-900/50 rounded-b-xl"
         >
           <div class="flex flex-col space-y-1">
             <label class="text-sm font-medium text-primary-200">API Mode</label>
@@ -233,7 +256,6 @@
               </label>
             </div>
           </div>
-
           <div id="api-key-row" class="mb-3 flex flex-col">
             <label for="api-key" class="text-sm font-medium text-primary-200"
               >API Key</label
@@ -276,47 +298,16 @@
               </button>
             </div>
           </div>
-
-          <div class="flex flex-col gap-2">
-            <div
-              id="api-health-row"
-              class="flex items-center justify-between bg-dark-800/50 p-3 rounded-lg"
-            >
-              <button
-                type="button"
-                id="api-health-btn"
-                class="btn btn-outline text-xs"
-              >
-                Check Health
-              </button>
-              <div id="health-status" class="text-xs"></div>
-            </div>
-            <div
-              id="api-auth-row"
-              class="flex items-center justify-between bg-dark-800/50 p-3 rounded-lg"
-            >
-              <button
-                type="button"
-                id="api-auth-btn"
-                class="btn btn-outline text-xs"
-              >
-                Check Auth
-              </button>
-              <div id="auth-status" class="text-xs"></div>
-            </div>
-            <div
-              id="api-clear-cache-row"
-              class="flex items-center justify-between bg-dark-800/50 p-3 rounded-lg"
-            >
-              <button
-                type="button"
-                id="api-clear-cache-btn"
-                class="btn btn-outline text-xs"
-              >
-                Clear Cache
-              </button>
-              <div id="clear-cache-status" class="text-xs"></div>
-            </div>
+          <div
+            class="flex items-center gap-2 pt-2 border-t border-primary-800/30 mt-2"
+          >
+            <button id="api-clear-cache-btn" class="btn btn-outline text-xs">
+              Clear Cache
+            </button>
+            <span
+              id="api-clear-cache-status"
+              class="text-xs text-primary-300"
+            ></span>
           </div>
         </div>
       </section>
