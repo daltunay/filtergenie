@@ -11,13 +11,6 @@
 
 </div>
 
-<!-- Chrome Extension badge -->
-<div align="center">
-
-[![Chrome Extension](https://img.shields.io/badge/-Chrome_Extension-4285F4?logo=google-chrome&logoColor=ffffff)](https://chromewebstore.google.com/category/extensions)
-
-</div>
-
 <!-- Tech stack badges -->
 <div align="center">
 
