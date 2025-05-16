@@ -52,5 +52,5 @@ repos:
     rev: v9.26.0
     hooks:
       - id: eslint
-        args: [--fix]
+        args: [--fix, --config, extension/eslint.config.js]
         additional_dependencies: [eslint]

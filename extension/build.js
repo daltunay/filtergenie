@@ -5,21 +5,21 @@ const isWatchMode = process.argv.includes("--watch");
 
 const buildOptions = {
   entryPoints: {
-    "content.bundle": "extension/src/content.js",
-    "popup.bundle": "extension/popup/popup.js",
+    "content.bundle": "src/content.js",
+    "popup.bundle": "popup/popup.js",
   },
   bundle: true,
   format: "iife",
   sourcemap: isWatchMode,
   target: ["chrome58"],
-  outdir: "extension/dist",
+  outdir: "dist",
   entryNames: "[name]",
 };
 
 async function processTailwind(watch = false) {
   console.log("Processing Tailwind CSS...");
   try {
-    const command = `npx postcss extension/popup/styles/tailwind.css -o extension/dist/popup.css${watch ? " --watch" : ""}`;
+    const command = `npx postcss popup/styles/tailwind.css -o dist/popup.css${watch ? " --watch" : ""}`;
     if (watch) {
       require("child_process").spawn("sh", ["-c", command], {
         stdio: "inherit",

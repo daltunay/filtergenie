@@ -1,5 +1,5 @@
 (() => {
-  // extension/utils/platformRegistry.js
+  // utils/platformRegistry.js
   function parseUrl(url) {
     try {
       return new URL(url);
@@ -18,7 +18,10 @@
     }
     isSearchPage(url) {
       const parsed = parseUrl(url);
-      return parsed && this._config.searchPathPatterns.some((pat) => pat.test(parsed.pathname));
+      return (
+        parsed &&
+        this._config.searchPathPatterns.some((pat) => pat.test(parsed.pathname))
+      );
     }
     isItemPage(url) {
       const parsed = parseUrl(url);
@@ -53,7 +56,8 @@
       this._platforms = [];
     }
     registerPlatform(config) {
-      if (config == null ? void 0 : config.name) this._platforms.push(new Platform(config));
+      if (config == null ? void 0 : config.name)
+        this._platforms.push(new Platform(config));
     }
     getCurrentPlatform(url) {
       if (!url) return null;
@@ -69,7 +73,7 @@
   };
   var platformRegistry = new PlatformRegistry();
 
-  // extension/platforms/leboncoin.js
+  // platforms/leboncoin.js
   var leboncoinConfig = {
     name: "leboncoin",
     hostPattern: /leboncoin\.fr$/,
@@ -82,32 +86,38 @@
       const link = item.querySelector('a.absolute.inset-0[href^="/ad/"]');
       const href = link == null ? void 0 : link.getAttribute("href");
       if (!href) return null;
-      return href.startsWith("http") ? href : `${this.baseUrl}${href.startsWith("/") ? href : `/${href}`}`;
-    }
+      return href.startsWith("http")
+        ? href
+        : `${this.baseUrl}${href.startsWith("/") ? href : `/${href}`}`;
+    },
   };
   platformRegistry.registerPlatform(leboncoinConfig);
 
-  // extension/platforms/vinted.js
+  // platforms/vinted.js
   var vintedConfig = {
     name: "vinted",
     hostPattern: /vinted\.fr$/,
     searchPathPatterns: [/^\/catalog/, /^\/c\//],
     itemPathPattern: /^\/items\//,
-    itemSelector: 'div.new-item-box__container[data-testid^="product-item-id-"]',
-    itemLinkSelector: 'a.new-item-box__overlay[data-testid$="--overlay-link"][href^="https://www.vinted.fr/items/"]',
+    itemSelector:
+      'div.new-item-box__container[data-testid^="product-item-id-"]',
+    itemLinkSelector:
+      'a.new-item-box__overlay[data-testid$="--overlay-link"][href^="https://www.vinted.fr/items/"]',
     baseUrl: "https://www.vinted.fr",
     getItemUrl(item) {
       const link = item.querySelector(
-        'a.new-item-box__overlay[data-testid$="--overlay-link"][href^="https://www.vinted.fr/items/"]'
+        'a.new-item-box__overlay[data-testid$="--overlay-link"][href^="https://www.vinted.fr/items/"]',
       );
       const href = link == null ? void 0 : link.getAttribute("href");
       if (!href) return null;
-      return href.startsWith("http") ? href : `${this.baseUrl}${href.startsWith("/") ? href : `/${href}`}`;
-    }
+      return href.startsWith("http")
+        ? href
+        : `${this.baseUrl}${href.startsWith("/") ? href : `/${href}`}`;
+    },
   };
   platformRegistry.registerPlatform(vintedConfig);
 
-  // extension/utils/spinnerUtils.js
+  // utils/spinnerUtils.js
   var SPINNER_FRAMES = [
     "\u280B",
     "\u2819",
@@ -128,7 +138,7 @@
     "\u2834",
     "\u2832",
     "\u2833",
-    "\u2813"
+    "\u2813",
   ];
   var itemIntervals = /* @__PURE__ */ new WeakMap();
   function showItemSpinner(targets) {
@@ -179,12 +189,13 @@
     });
   }
 
-  // extension/src/content.js
+  // src/content.js
   function getPlatform() {
     var _a;
     const reg = platformRegistry;
     const url = window.location.href;
-    if (!reg || !((_a = reg._platforms) == null ? void 0 : _a.length)) return null;
+    if (!reg || !((_a = reg._platforms) == null ? void 0 : _a.length))
+      return null;
     return reg.getCurrentPlatform(url);
   }
   async function fetchItemSources(platform, items, maxImagesPerItem) {
@@ -194,9 +205,10 @@
         let images = [];
         try {
           const doc = new DOMParser().parseFromString(html, "text/html");
-          images = Array.from(doc.querySelectorAll("img")).map((img) => img.src).filter(Boolean);
-        } catch (e) {
-        }
+          images = Array.from(doc.querySelectorAll("img"))
+            .map((img) => img.src)
+            .filter(Boolean);
+        } catch (e) {}
         if (images.length > maxImagesPerItem) {
           images = images.slice(0, maxImagesPerItem);
         }
@@ -204,9 +216,9 @@
           platform: platform.name,
           url: platform.getItemUrl(item),
           html,
-          images
+          images,
         };
-      })
+      }),
     );
   }
   async function callApiAnalyze(items, filters, apiEndpoint, apiKey) {
@@ -217,7 +229,7 @@
       const resp = await fetch(`${apiEndpoint}/items/analyze`, {
         method: "POST",
         headers,
-        body: JSON.stringify({ items, filters })
+        body: JSON.stringify({ items, filters }),
       });
       return resp.json();
     } catch (e) {
@@ -264,16 +276,31 @@
         statusDiv.className = "filtergenie-status";
         container.appendChild(statusDiv);
       }
-      const ordered = Object.entries(filterResults).sort(
-        ([a], [b]) => a.localeCompare(b)
+      const ordered = Object.entries(filterResults).sort(([a], [b]) =>
+        a.localeCompare(b),
       );
-      statusDiv.innerHTML = '<div class="filtergenie-status-block">' + ordered.map(
-        ([desc, matched]) => `<span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:8px;font-size:13px;${matched ? "background:rgba(34,197,94,0.13);color:#4ade80;" : "background:rgba(239,68,68,0.13);color:#f87171;"}margin-bottom:2px;max-width:100%;word-break:break-word;">${matched ? "\u2705" : "\u274C"} <span style='margin-left:5px;'>${desc}</span></span>`
-      ).join("") + "</div>";
+      statusDiv.innerHTML =
+        '<div class="filtergenie-status-block">' +
+        ordered
+          .map(
+            ([desc, matched]) =>
+              `<span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:8px;font-size:13px;${matched ? "background:rgba(34,197,94,0.13);color:#4ade80;" : "background:rgba(239,68,68,0.13);color:#f87171;"}margin-bottom:2px;max-width:100%;word-break:break-word;">${matched ? "\u2705" : "\u274C"} <span style='margin-left:5px;'>${desc}</span></span>`,
+          )
+          .join("") +
+        "</div>";
       item.style.display = matchCount >= minMatch ? "" : "none";
     });
   }
-  async function analyzeItems(filters, minMatch, platform, maxItems, sendResponse, apiEndpoint, apiKey, maxImagesPerItem) {
+  async function analyzeItems(
+    filters,
+    minMatch,
+    platform,
+    maxItems,
+    sendResponse,
+    apiEndpoint,
+    apiKey,
+    maxImagesPerItem,
+  ) {
     if (!platform) return;
     const items = Array.from(platform.getItemElements()).slice(0, maxItems);
     if (!items.length) return;
@@ -291,7 +318,7 @@
       const itemSources = await fetchItemSources(
         platform,
         items,
-        maxImagesPerItem
+        maxImagesPerItem,
       );
       itemSources.forEach((item) => {
         if (Array.isArray(item.images)) {
@@ -303,7 +330,7 @@
         itemSources,
         sortedFilters,
         apiEndpoint,
-        apiKey
+        apiKey,
       );
       removeItemSpinner(items);
       if (data.filters) {
@@ -313,8 +340,8 @@
             filtersData: data.filters,
             minMatch,
             maxItems,
-            timestamp: Date.now()
-          }
+            timestamp: Date.now(),
+          },
         });
         chrome.runtime.sendMessage({ type: "FILTERS_APPLIED", success: true });
         sendResponse == null ? void 0 : sendResponse({ apiResponse: data });
@@ -322,9 +349,11 @@
         chrome.runtime.sendMessage({
           type: "FILTERS_APPLIED",
           success: false,
-          error: "Invalid response format"
+          error: "Invalid response format",
         });
-        sendResponse == null ? void 0 : sendResponse({ apiResponse: "Invalid response format" });
+        sendResponse == null
+          ? void 0
+          : sendResponse({ apiResponse: "Invalid response format" });
       }
     } catch (error) {
       console.error("FilterGenie analysis error:", error);
@@ -332,9 +361,11 @@
       chrome.runtime.sendMessage({
         type: "FILTERS_APPLIED",
         success: false,
-        error: "API error"
+        error: "API error",
       });
-      sendResponse == null ? void 0 : sendResponse({ apiResponse: "API error" });
+      sendResponse == null
+        ? void 0
+        : sendResponse({ apiResponse: "API error" });
     }
   }
   function updateItemVisibility(minMatch, maxItems) {
@@ -343,7 +374,9 @@
     const items = Array.from(platform.getItemElements()).slice(0, maxItems);
     items.forEach((item) => {
       const statusDiv = item.querySelector(".filtergenie-status");
-      const matchCount = ((statusDiv == null ? void 0 : statusDiv.textContent.match(/✅/g)) || []).length;
+      const matchCount = (
+        (statusDiv == null ? void 0 : statusDiv.textContent.match(/✅/g)) || []
+      ).length;
       item.style.display = matchCount >= minMatch ? "" : "none";
     });
   }
@@ -362,17 +395,19 @@
           sendResponse,
           msg.apiEndpoint,
           msg.apiKey,
-          msg.maxImagesPerItem
+          msg.maxImagesPerItem,
         );
         return true;
       case "UPDATE_MIN_MATCH":
         updateItemVisibility(
           msg.minMatch,
-          typeof msg.maxItems === "number" ? msg.maxItems : 10
+          typeof msg.maxItems === "number" ? msg.maxItems : 10,
         );
         return false;
       case "RESET_FILTERS_ON_PAGE":
-        document.querySelectorAll(".filtergenie-status").forEach((el) => el.remove());
+        document
+          .querySelectorAll(".filtergenie-status")
+          .forEach((el) => el.remove());
         return false;
     }
     return false;
@@ -391,7 +426,7 @@
       });
       chrome.storage.local.set({ popupAppliedFilters: [] });
       console.log(
-        "FilterGenie: Content script initialized successfully on supported website"
+        "FilterGenie: Content script initialized successfully on supported website",
       );
     }
   }

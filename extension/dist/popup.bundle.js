@@ -5,21 +5,27 @@
   var __getOwnPropSymbols = Object.getOwnPropertySymbols;
   var __hasOwnProp = Object.prototype.hasOwnProperty;
   var __propIsEnum = Object.prototype.propertyIsEnumerable;
-  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+  var __defNormalProp = (obj, key, value) =>
+    key in obj
+      ? __defProp(obj, key, {
+          enumerable: true,
+          configurable: true,
+          writable: true,
+          value,
+        })
+      : (obj[key] = value);
   var __spreadValues = (a, b) => {
     for (var prop in b || (b = {}))
-      if (__hasOwnProp.call(b, prop))
-        __defNormalProp(a, prop, b[prop]);
+      if (__hasOwnProp.call(b, prop)) __defNormalProp(a, prop, b[prop]);
     if (__getOwnPropSymbols)
       for (var prop of __getOwnPropSymbols(b)) {
-        if (__propIsEnum.call(b, prop))
-          __defNormalProp(a, prop, b[prop]);
+        if (__propIsEnum.call(b, prop)) __defNormalProp(a, prop, b[prop]);
       }
     return a;
   };
   var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 
-  // extension/utils/platformRegistry.js
+  // utils/platformRegistry.js
   function parseUrl(url) {
     try {
       return new URL(url);
@@ -38,7 +44,10 @@
     }
     isSearchPage(url) {
       const parsed = parseUrl(url);
-      return parsed && this._config.searchPathPatterns.some((pat) => pat.test(parsed.pathname));
+      return (
+        parsed &&
+        this._config.searchPathPatterns.some((pat) => pat.test(parsed.pathname))
+      );
     }
     isItemPage(url) {
       const parsed = parseUrl(url);
@@ -73,7 +82,8 @@
       this._platforms = [];
     }
     registerPlatform(config) {
-      if (config == null ? void 0 : config.name) this._platforms.push(new Platform(config));
+      if (config == null ? void 0 : config.name)
+        this._platforms.push(new Platform(config));
     }
     getCurrentPlatform(url) {
       if (!url) return null;
@@ -89,7 +99,7 @@
   };
   var platformRegistry = new PlatformRegistry();
 
-  // extension/platforms/leboncoin.js
+  // platforms/leboncoin.js
   var leboncoinConfig = {
     name: "leboncoin",
     hostPattern: /leboncoin\.fr$/,
@@ -102,42 +112,50 @@
       const link = item.querySelector('a.absolute.inset-0[href^="/ad/"]');
       const href = link == null ? void 0 : link.getAttribute("href");
       if (!href) return null;
-      return href.startsWith("http") ? href : `${this.baseUrl}${href.startsWith("/") ? href : `/${href}`}`;
-    }
+      return href.startsWith("http")
+        ? href
+        : `${this.baseUrl}${href.startsWith("/") ? href : `/${href}`}`;
+    },
   };
   platformRegistry.registerPlatform(leboncoinConfig);
 
-  // extension/platforms/vinted.js
+  // platforms/vinted.js
   var vintedConfig = {
     name: "vinted",
     hostPattern: /vinted\.fr$/,
     searchPathPatterns: [/^\/catalog/, /^\/c\//],
     itemPathPattern: /^\/items\//,
-    itemSelector: 'div.new-item-box__container[data-testid^="product-item-id-"]',
-    itemLinkSelector: 'a.new-item-box__overlay[data-testid$="--overlay-link"][href^="https://www.vinted.fr/items/"]',
+    itemSelector:
+      'div.new-item-box__container[data-testid^="product-item-id-"]',
+    itemLinkSelector:
+      'a.new-item-box__overlay[data-testid$="--overlay-link"][href^="https://www.vinted.fr/items/"]',
     baseUrl: "https://www.vinted.fr",
     getItemUrl(item) {
       const link = item.querySelector(
-        'a.new-item-box__overlay[data-testid$="--overlay-link"][href^="https://www.vinted.fr/items/"]'
+        'a.new-item-box__overlay[data-testid$="--overlay-link"][href^="https://www.vinted.fr/items/"]',
       );
       const href = link == null ? void 0 : link.getAttribute("href");
       if (!href) return null;
-      return href.startsWith("http") ? href : `${this.baseUrl}${href.startsWith("/") ? href : `/${href}`}`;
-    }
+      return href.startsWith("http")
+        ? href
+        : `${this.baseUrl}${href.startsWith("/") ? href : `/${href}`}`;
+    },
   };
   platformRegistry.registerPlatform(vintedConfig);
 
-  // extension/popup/components/ui-components.js
+  // popup/components/ui-components.js
   function createFilterBadge(text, onRemove) {
     const badge = document.createElement("li");
-    badge.className = "inline-flex items-center rounded-full bg-yellow-400/20 px-3 py-1 text-sm font-medium text-yellow-200 ring-1 ring-inset ring-yellow-300/30 mr-2 mb-2 animate-fade-in";
+    badge.className =
+      "inline-flex items-center rounded-full bg-yellow-400/20 px-3 py-1 text-sm font-medium text-yellow-200 ring-1 ring-inset ring-yellow-300/30 mr-2 mb-2 animate-fade-in";
     const span = document.createElement("span");
     span.textContent = text;
     badge.appendChild(span);
     if (onRemove) {
       const button = document.createElement("button");
       button.type = "button";
-      button.className = "ml-1 inline-flex items-center justify-center rounded-full h-5 w-5 transition ease-in-out duration-150 focus:outline-none filtergenie-badge-remove";
+      button.className =
+        "ml-1 inline-flex items-center justify-center rounded-full h-5 w-5 transition ease-in-out duration-150 focus:outline-none filtergenie-badge-remove";
       button.innerHTML = `<svg class="h-3 w-3" stroke="currentColor" fill="none" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
     </svg>`;
@@ -147,11 +165,11 @@
     return badge;
   }
 
-  // extension/utils/apiSettings.js
+  // utils/apiSettings.js
   var DEFAULT_REMOTE_API_ENDPOINT = "https://filtergenie-api.onrender.com";
   var DEFAULT_LOCAL_API_ENDPOINT = "http://localhost:8000";
 
-  // extension/popup/popup.js
+  // popup/popup.js
   function debounce(fn, delay) {
     let timeout;
     return (...args) => {
@@ -195,9 +213,10 @@
       "api-settings",
       "api-progress-section",
       "api-clear-cache-btn",
-      "api-clear-cache-status"
+      "api-clear-cache-status",
     ].forEach((id) => {
-      ui[id.replace(/-([a-z])/g, (g) => g[1].toUpperCase())] = document.getElementById(id);
+      ui[id.replace(/-([a-z])/g, (g) => g[1].toUpperCase())] =
+        document.getElementById(id);
     });
     function clampMinMatch(minMatch, count) {
       return Math.max(0, Math.min(minMatch, count));
@@ -208,35 +227,58 @@
       elapsed: null,
       doneTime: null,
       error: null,
-      startedAt: null
+      startedAt: null,
     };
     let elapsedInterval = null;
     function setApiStatus(state2, opts = {}) {
       if (["checking", "filtering"].includes(state2)) {
-        apiStatus = __spreadProps(__spreadValues(__spreadProps(__spreadValues({}, apiStatus), {
-          state: state2
-        }), opts), {
-          startedAt: Date.now(),
-          elapsed: 0
-        });
+        apiStatus = __spreadProps(
+          __spreadValues(
+            __spreadProps(__spreadValues({}, apiStatus), {
+              state: state2,
+            }),
+            opts,
+          ),
+          {
+            startedAt: Date.now(),
+            elapsed: 0,
+          },
+        );
         startElapsedTimer();
-      } else if ([
-        "done",
-        "available",
-        "unavailable",
-        "auth-failed",
-        "error",
-        "ready"
-      ].includes(state2)) {
+      } else if (
+        [
+          "done",
+          "available",
+          "unavailable",
+          "auth-failed",
+          "error",
+          "ready",
+        ].includes(state2)
+      ) {
         if (apiStatus.startedAt) {
           const elapsed = (Date.now() - apiStatus.startedAt) / 1e3;
-          apiStatus = __spreadProps(__spreadValues(__spreadProps(__spreadValues({}, apiStatus), { state: state2 }), opts), { elapsed, startedAt: null });
+          apiStatus = __spreadProps(
+            __spreadValues(
+              __spreadProps(__spreadValues({}, apiStatus), { state: state2 }),
+              opts,
+            ),
+            { elapsed, startedAt: null },
+          );
         } else {
-          apiStatus = __spreadProps(__spreadValues(__spreadProps(__spreadValues({}, apiStatus), { state: state2 }), opts), { startedAt: null });
+          apiStatus = __spreadProps(
+            __spreadValues(
+              __spreadProps(__spreadValues({}, apiStatus), { state: state2 }),
+              opts,
+            ),
+            { startedAt: null },
+          );
         }
         stopElapsedTimer();
       } else {
-        apiStatus = __spreadValues(__spreadProps(__spreadValues({}, apiStatus), { state: state2 }), opts);
+        apiStatus = __spreadValues(
+          __spreadProps(__spreadValues({}, apiStatus), { state: state2 }),
+          opts,
+        );
         stopElapsedTimer();
       }
       chrome.storage.local.set({ filtergenieApiStatus: apiStatus });
@@ -262,9 +304,15 @@
       let status = apiStatus.state;
       let text = "";
       let elapsedText = "";
-      if (["filtering", "checking"].includes(status) && typeof apiStatus.elapsed === "number") {
+      if (
+        ["filtering", "checking"].includes(status) &&
+        typeof apiStatus.elapsed === "number"
+      ) {
         elapsedText = ` (${apiStatus.elapsed.toFixed(1)}s)`;
-      } else if (["done", "available"].includes(status) && typeof apiStatus.elapsed === "number") {
+      } else if (
+        ["done", "available"].includes(status) &&
+        typeof apiStatus.elapsed === "number"
+      ) {
         elapsedText = ` (${apiStatus.elapsed.toFixed(1)}s)`;
       }
       switch (status) {
@@ -310,7 +358,10 @@
       chrome.storage.local.get("filtergenieApiStatus", (res) => {
         if (res.filtergenieApiStatus) {
           apiStatus = res.filtergenieApiStatus;
-          if (["filtering", "checking"].includes(apiStatus.state) && apiStatus.startedAt) {
+          if (
+            ["filtering", "checking"].includes(apiStatus.state) &&
+            apiStatus.startedAt
+          ) {
             startElapsedTimer();
           }
           renderApiStatusBadge();
@@ -319,9 +370,14 @@
     }
     async function checkApiStatus() {
       setApiStatus("checking");
-      const endpoint = state.apiMode === "local" ? DEFAULT_LOCAL_API_ENDPOINT : DEFAULT_REMOTE_API_ENDPOINT;
+      const endpoint =
+        state.apiMode === "local"
+          ? DEFAULT_LOCAL_API_ENDPOINT
+          : DEFAULT_REMOTE_API_ENDPOINT;
       try {
-        const healthResp = await fetch(endpoint.replace(/\/+$/, "") + "/health");
+        const healthResp = await fetch(
+          endpoint.replace(/\/+$/, "") + "/health",
+        );
         if (!healthResp.ok) {
           setApiStatus("unavailable");
           return;
@@ -330,8 +386,8 @@
           const authResp = await fetch(
             endpoint.replace(/\/+$/, "") + "/auth/check",
             {
-              headers: state.apiKey ? { "X-API-Key": state.apiKey } : {}
-            }
+              headers: state.apiKey ? { "X-API-Key": state.apiKey } : {},
+            },
           );
           if (!authResp.ok) {
             setApiStatus("auth-failed");
@@ -344,9 +400,11 @@
       }
     }
     function resetApiBadgeOnInteraction() {
-      if (["done", "error", "available", "unavailable", "auth-failed"].includes(
-        apiStatus.state
-      )) {
+      if (
+        ["done", "error", "available", "unavailable", "auth-failed"].includes(
+          apiStatus.state,
+        )
+      ) {
         setApiStatus("ready");
       }
     }
@@ -364,7 +422,9 @@
       subscribe(fn) {
         this._listeners.push(fn);
         return () => {
-          this._listeners = this._listeners.filter((listener) => listener !== fn);
+          this._listeners = this._listeners.filter(
+            (listener) => listener !== fn,
+          );
         };
       },
       notify() {
@@ -379,7 +439,9 @@
       set(key, value) {
         if (this[key] === value) return;
         this[key] = value;
-        if (["filters", "minMatch", "maxItems", "maxImagesPerItem"].includes(key)) {
+        if (
+          ["filters", "minMatch", "maxItems", "maxImagesPerItem"].includes(key)
+        ) {
           saveState();
         }
         this.notify();
@@ -436,7 +498,8 @@
         ui.notificationArea.innerHTML = "";
         if (!isConnected) {
           const notification = document.createElement("div");
-          notification.className = "bg-amber-500/20 text-amber-300 rounded-md px-4 py-3 text-sm animate-fade-in";
+          notification.className =
+            "bg-amber-500/20 text-amber-300 rounded-md px-4 py-3 text-sm animate-fade-in";
           notification.innerHTML = `
           <div class="flex items-start">
             <div class="flex-shrink-0">
@@ -453,17 +516,19 @@
         `;
           ui.notificationArea.appendChild(notification);
         }
-      }
+      },
     };
     let lastConnectionStatus = null;
     let lastRenderedFilters = null;
     function renderUI() {
-      if (!lastRenderedFilters || JSON.stringify(state.filters) !== JSON.stringify(lastRenderedFilters)) {
+      if (
+        !lastRenderedFilters ||
+        JSON.stringify(state.filters) !== JSON.stringify(lastRenderedFilters)
+      ) {
         ui.filtersList.innerHTML = "";
         state.filters.forEach((filter, index) => {
-          const badge = createFilterBadge(
-            filter,
-            () => state.removeFilter(index)
+          const badge = createFilterBadge(filter, () =>
+            state.removeFilter(index),
           );
           ui.filtersList.appendChild(badge);
         });
@@ -473,7 +538,7 @@
         min: 0,
         max: Math.max(0, state.filters.length),
         value: clampMinMatch(state.minMatch, state.filters.length),
-        disabled: !state.filters.length
+        disabled: !state.filters.length,
       });
       ui.minMatchValue.textContent = ui.minMatch.value;
       ui.maxItems.value = state.maxItems;
@@ -486,14 +551,17 @@
       ui.apiModeLocal.checked = state.apiMode === "local";
       ui.apiKeyRow.style.display = state.apiMode === "remote" ? "" : "none";
       ui.apiKey.value = state.apiKey;
-      const statusIndicator = ui.connectionStatus.querySelector("span:first-child");
+      const statusIndicator =
+        ui.connectionStatus.querySelector("span:first-child");
       let statusText = ui.connectionStatus.querySelector("span:last-child");
       if (!statusText) {
         statusText = document.createElement("span");
         ui.connectionStatus.appendChild(statusText);
       }
       const connected = state.isConnected;
-      statusIndicator.className = "inline-flex h-4 w-4 rounded-full mr-2 " + (connected ? "bg-green-500" : "bg-red-500");
+      statusIndicator.className =
+        "inline-flex h-4 w-4 rounded-full mr-2 " +
+        (connected ? "bg-green-500" : "bg-red-500");
       statusText.textContent = connected ? "Available" : "Not available";
       statusText.className = connected ? "text-green-400" : "text-red-400";
       if (lastConnectionStatus !== connected) {
@@ -512,7 +580,9 @@
         }
         state.currentActiveTab = tab;
         chrome.tabs.sendMessage(tab.id, { type: "PING" }, (response) => {
-          const isConnected = !chrome.runtime.lastError && (response == null ? void 0 : response.type) === "PONG";
+          const isConnected =
+            !chrome.runtime.lastError &&
+            (response == null ? void 0 : response.type) === "PONG";
           if (state.isConnected !== isConnected) {
             state.setConnection(isConnected);
           }
@@ -557,7 +627,10 @@
         ui.applyFilters.disabled = true;
         setApiStatus("filtering");
         const requestStart = Date.now();
-        const apiEndpoint = state.apiMode === "local" ? DEFAULT_LOCAL_API_ENDPOINT : DEFAULT_REMOTE_API_ENDPOINT;
+        const apiEndpoint =
+          state.apiMode === "local"
+            ? DEFAULT_LOCAL_API_ENDPOINT
+            : DEFAULT_REMOTE_API_ENDPOINT;
         const apiKey = state.apiKey;
         sendToContent2({
           type: "APPLY_FILTERS",
@@ -566,7 +639,7 @@
           maxItems: state.maxItems,
           maxImagesPerItem: state.maxImagesPerItem,
           apiEndpoint,
-          apiKey
+          apiKey,
         });
         function apiListener(msg) {
           if (msg.type === "FILTERS_APPLIED") {
@@ -590,7 +663,7 @@
         sendToContent2({
           type: "UPDATE_MIN_MATCH",
           minMatch: state.minMatch,
-          maxItems: state.maxItems
+          maxItems: state.maxItems,
         });
       }, 300);
       const debouncedMaxItemsHandler = debounce((value) => {
@@ -598,7 +671,7 @@
         sendToContent2({
           type: "UPDATE_MIN_MATCH",
           minMatch: state.minMatch,
-          maxItems: state.maxItems
+          maxItems: state.maxItems,
         });
       }, 300);
       const debouncedMaxImagesHandler = debounce((value) => {
@@ -645,14 +718,20 @@
           ui.apiClearCacheBtn.disabled = true;
           ui.apiClearCacheStatus.textContent = "Clearing...";
           ui.apiClearCacheStatus.className = "text-xs text-primary-300";
-          const endpoint = state.apiMode === "remote" ? DEFAULT_REMOTE_API_ENDPOINT : DEFAULT_LOCAL_API_ENDPOINT;
+          const endpoint =
+            state.apiMode === "remote"
+              ? DEFAULT_REMOTE_API_ENDPOINT
+              : DEFAULT_LOCAL_API_ENDPOINT;
           try {
             const resp = await fetch(
               endpoint.replace(/\/+$/, "") + "/cache/clear",
               {
                 method: "POST",
-                headers: state.apiKey && state.apiMode === "remote" ? { "X-API-Key": state.apiKey } : {}
-              }
+                headers:
+                  state.apiKey && state.apiMode === "remote"
+                    ? { "X-API-Key": state.apiKey }
+                    : {},
+              },
             );
             if (resp.ok) {
               const data = await resp.json().catch(() => ({}));
@@ -681,10 +760,12 @@
       ui.apiKeyToggle.onclick = () => {
         visible = !visible;
         ui.apiKey.type = visible ? "text" : "password";
-        ui.apiKeyToggle.innerHTML = visible ? `<svg id="api-key-eye" class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        ui.apiKeyToggle.innerHTML = visible
+          ? `<svg id="api-key-eye" class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.956 9.956 0 012.042-3.338m1.528-1.712A9.956 9.956 0 0112 5c4.477 0 8.268 2.943 9.542 7a9.956 9.956 0 01-4.293 5.411M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18" />
-          </svg>` : `<svg id="api-key-eye" class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          </svg>`
+          : `<svg id="api-key-eye" class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
           </svg>`;
@@ -696,7 +777,15 @@
           ignoreNextStorageUpdate = false;
           return;
         }
-        if (changes.popupFilters || changes.popupMinMatch || changes.popupMaxItems || changes.popupMaxImagesPerItem || changes.popupApiMode || changes.popupApiKey || changes.filtergenieApiStatus) {
+        if (
+          changes.popupFilters ||
+          changes.popupMinMatch ||
+          changes.popupMaxItems ||
+          changes.popupMaxImagesPerItem ||
+          changes.popupApiMode ||
+          changes.popupApiKey ||
+          changes.filtergenieApiStatus
+        ) {
           loadState();
         }
       });
@@ -707,15 +796,19 @@
         popupFilters: state.filters,
         popupMinMatch: state.minMatch,
         popupMaxItems: state.maxItems,
-        popupMaxImagesPerItem: state.maxImagesPerItem
+        popupMaxImagesPerItem: state.maxImagesPerItem,
       });
     }
     function loadDefaultsFromHtml() {
       if (!state.filters.length) {
-        state.filters = Array.from(ui.filtersList.children).map((li) => {
-          var _a;
-          return (_a = li.textContent) == null ? void 0 : _a.replace(/✖$/, "").trim();
-        }).filter(Boolean);
+        state.filters = Array.from(ui.filtersList.children)
+          .map((li) => {
+            var _a;
+            return (_a = li.textContent) == null
+              ? void 0
+              : _a.replace(/✖$/, "").trim();
+          })
+          .filter(Boolean);
       }
       if (!state.minMatch) state.minMatch = Number(ui.minMatch.value);
       if (!state.maxItems) state.maxItems = Number(ui.maxItems.value);
@@ -734,7 +827,7 @@
           "popupMaxImagesPerItem",
           "popupApiMode",
           "popupApiKey",
-          "filtergenieApiStatus"
+          "filtergenieApiStatus",
         ],
         (res) => {
           loadDefaultsFromHtml();
@@ -747,11 +840,12 @@
             state.maxImagesPerItem = res.popupMaxImagesPerItem;
           if (typeof res.popupApiMode === "string")
             state.apiMode = res.popupApiMode;
-          if (typeof res.popupApiKey === "string") state.apiKey = res.popupApiKey;
+          if (typeof res.popupApiKey === "string")
+            state.apiKey = res.popupApiKey;
           if (res.filtergenieApiStatus) apiStatus = res.filtergenieApiStatus;
           renderUI();
           if (cb) cb();
-        }
+        },
       );
     }
     function setupEvents(sendToContent2) {
