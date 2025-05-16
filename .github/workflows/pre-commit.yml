@@ -32,6 +32,7 @@ jobs:
 
       - name: Install Node.js dependencies
         run: npm install
+        working-directory: extension
 
       - name: Run pre-commit
         uses: pre-commit/action@v3.0.1
