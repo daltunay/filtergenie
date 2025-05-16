@@ -29,7 +29,7 @@ def setup_logging() -> None:
             structlog.processors.StackInfoRenderer(),
             structlog.dev.ConsoleRenderer(colors=True),
         ],
-        wrapper_class=structlog.stdlib.BoundLogger,
+        wrapper_class=structlog.stdlib.BoundLogger,  # ty: ignore[invalid-argument-type]
         logger_factory=structlog.stdlib.LoggerFactory(),
         cache_logger_on_first_use=True,
     )
