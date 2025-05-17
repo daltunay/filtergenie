@@ -1,6 +1,7 @@
 name: resize-icons
 permissions:
   contents: write
+  actions: read
 
 on:
   push:
@@ -11,19 +12,19 @@ on:
 
 jobs:
   resize-icons:
+    name: Resize Icons
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Install ImageMagick
         run: sudo apt-get update && sudo apt-get install -y imagemagick
 
-      - name: Run resize_icon.sh
+      - name: Run resize_icons.sh
         run: bash scripts/resize_icons.sh
 
       - name: Check for changes
-        id: git_diff
         run: |
           git diff --quiet extension/assets/icons || echo "changed=true" >> "$GITHUB_OUTPUT"
 

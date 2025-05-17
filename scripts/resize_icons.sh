@@ -1,10 +1,11 @@
 #!/bin/bash
 
-cd extension/assets/icons
+set -e
+cd "$(dirname "$0")/../../extension/assets/icons"
 
-convert icon.png -resize 16x16 icon16.png
-convert icon.png -resize 32x32 icon32.png
-convert icon.png -resize 48x48 icon48.png
-convert icon.png -resize 128x128 icon128.png
+sizes=(16 32 48 128)
+for size in "${sizes[@]}"; do
+  convert icon.png -resize ${size}x${size} icon${size}.png
+done
 
 echo "Icons resized successfully!"

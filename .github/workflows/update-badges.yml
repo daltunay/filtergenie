@@ -1,6 +1,7 @@
 name: update-badges
 permissions:
   contents: write
+  actions: read
 
 on:
   deployment_status:
@@ -9,52 +10,19 @@ on:
     - cron: "*/5 * * * *"
 
 jobs:
-  update-deployment-badge:
+  update-badges:
+    name: Update Badges
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Badge URL
-        id: deployment_badge
+      - name: Get deployment badge URL
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: echo "url=$(bash scripts/deployment_badge.sh)" >> "$GITHUB_OUTPUT"
 
-      - name: Pull latest changes
-        run: git pull --rebase origin master
-
-      - name: Update README
-        id: update_readme
-        run: |
-          deployment_url="${{ steps.deployment_badge.outputs.url }}"
-          escaped_url=$(printf '%s\n' "$deployment_url" | sed -e 's/[&/\]/\\&/g')
-          sed -i "s|\(\[!\[Deployment Status\](\)[^)]*\()\](https://github.com/daltunay/filtergenie/deployments)\)|\1${escaped_url}\2|g" README.md
-          diff=$(git diff README.md)
-          echo "$diff"
-          if [ -n "$diff" ]; then
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Commit and push if changed
-        if: steps.update_readme.outputs.changed == 'true'
-        run: |
-          git config --global user.email "actions@github.com"
-          git config --global user.name "github-actions"
-          git commit -am "[skip render] update deployment badge"
-          git push
-
-  update-render-badge:
-    needs: update-deployment-badge
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Badge URL
-        id: render_badge
+      - name: Get render badge URL
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
           RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
@@ -63,12 +31,14 @@ jobs:
       - name: Pull latest changes
         run: git pull --rebase origin master
 
-      - name: Update README
-        id: update_readme
+      - name: Update README badges
         run: |
-          render_url="${{ steps.render_badge.outputs.url }}"
-          escaped_url=$(printf '%s\n' "$render_url" | sed -e 's/[&/\]/\\&/g')
-          sed -i "s|\(\[!\[Render Status\](\)[^)]*\()\](https://filtergenie-api.onrender.com/)\)|\1${escaped_url}\2|g" README.md
+          deployment_url="${{ steps.get_deployment_badge.outputs.url }}"
+          render_url="${{ steps.get_render_badge.outputs.url }}"
+          escaped_deployment_url=$(printf '%s\n' "$deployment_url" | sed -e 's/[&/\\]/\\&/g')
+          escaped_render_url=$(printf '%s\n' "$render_url" | sed -e 's/[&/\\]/\\&/g')
+          sed -i "s|\(\[!\[Deployment Status\](\)[^)]*\()\](https://github.com/daltunay/filtergenie/deployments)\)|\1${escaped_deployment_url}\2|g" README.md
+          sed -i "s|\(\[!\[Render Status\](\)[^)]*\()\](https://filtergenie-api.onrender.com/)\)|\1${escaped_render_url}\2|g" README.md
           diff=$(git diff README.md)
           echo "$diff"
           if [ -n "$diff" ]; then
@@ -82,5 +52,5 @@ jobs:
         run: |
           git config --global user.email "actions@github.com"
           git config --global user.name "github-actions"
-          git commit -am "[skip render] update render badge"
+          git commit -am "[skip render] update badges"
           git push
