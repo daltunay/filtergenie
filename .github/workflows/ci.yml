@@ -14,6 +14,6 @@ jobs:
   run-tests:
     needs: pre-commit
     uses: ./.github/workflows/run-tests.yml
-  npm-build:
+  build-extension:
     needs: run-tests
-    uses: ./.github/workflows/npm-build.yml
+    uses: ./.github/workflows/build-extension.yml

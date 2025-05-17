@@ -16,6 +16,5 @@ wheels/
 *.db
 TODO.txt
 node_modules/
-# extension/dist/
-!extension/dist/
+extension/dist/
 .coverage
