@@ -101,87 +101,71 @@ graph TD
 
 ### Browser Extension
 
-You can use the FilterGenie extension with:
+Use with a **local API** (`http://localhost:8000`) or the **hosted API** (`https://filtergenie-api.onrender.com`).
 
-- A **locally deployed API** (running on your own machine, e.g. `http://localhost:8000`)
-- The **hosted API** at [`https://filtergenie-api.onrender.com`](https://filtergenie-api.onrender.com)
-
-**To configure the extension:**
+To install:
 
 1. Clone the repo:
-
-   ```bash
-   git clone https://github.com/daltunay/filtergenie.git
-   ```
-
+   `git clone https://github.com/daltunay/filtergenie.git`
 2. In your browser, open the extensions page (e.g. `chrome://extensions` for Chrome)
-3. Enable "Developer mode" (top right corner toggle)
+3. Enable "Developer mode"
 4. Click "Load unpacked" and select the `extension` folder
-5. **Choose your API mode (Local or Remote) and enter your API key if needed.**
-   - For local API: `http://localhost:8000`
-   - For hosted API: `https://filtergenie-api.onrender.com`
-   - If you need an API key for the hosted API, please ask me directly.
+5. Choose API mode (Local/Remote) and enter your API key if needed.
 
 ### Local API
 
-#### Prerequisites
+#### Requirements
 
-- Install [**uv**](https://docs.astral.sh/uv/) (Python package manager):
+- [uv](https://docs.astral.sh/uv/) (Python package manager):
+  `curl -LsSf https://astral.sh/uv/install.sh | sh`
 
-  ```bash
-  curl -LsSf https://astral.sh/uv/install.sh | sh
-  ```
-
-1. Create and activate a virtual environment:
-
-   ```bash
-   uv venv .venv
-   source .venv/bin/activate
-   ```
-
-2. Install dependencies:
-
-   ```bash
-   uv sync
-   ```
-
-3. Run the API server:
-
-   ```bash
-   fastapi dev backend/app.py
-   ```
-
-Or use Docker:
+#### Setup
 
 ```bash
-# Build the image
-docker build -t filtergenie .
-
-# Run the container
-docker run --rm \
-  -p 8000:8000 \
-  -v ./data:/app/data \
-  filtergenie
+uv venv .venv
+source .venv/bin/activate
+uv sync
 ```
 
-> **Note:** Mount the `data` folder to persist the SQLite database outside the container.
+#### Configuration
 
-## Configuration
+Set your Groq API key as an environment variable before running the API:
 
-**Tip:** You can also create a `.env` file in the project root to set these environment variables. The application will automatically load variables from `.env` if present.
+```bash
+export GROQ_API_KEY="your_groq_api_key"
+```
 
-### Model Provider
+You can get a Groq API key at: [console.groq.com](https://console.groq.com/keys)
 
-FilterGenie uses [Groq](https://groq.com/) as the model provider.
+Optionally, set the model:
 
-Example `.env`:
+```bash
+export GROQ_MODEL_NAME="meta-llama/llama-4-scout-17b-16e-instruct"  # default
+```
+
+You can also use a `.env` file in the project root:
 
 ```env
 GROQ_API_KEY="your_groq_api_key"
 GROQ_MODEL_NAME="meta-llama/llama-4-scout-17b-16e-instruct"
 ```
 
-| Variable        | Description     | Example/Default                             |
-| --------------- | --------------- | ------------------------------------------- |
-| GROQ_API_KEY    | Groq API key    | _(your Groq API key)_                       |
-| GROQ_MODEL_NAME | Groq model name | `meta-llama/llama-4-scout-17b-16e-instruct` |
+#### Run the API
+
+```bash
+fastapi dev backend/app.py
+```
+
+Or with Docker:
+
+```bash
+docker build -t filtergenie .
+docker run --rm \
+  -e GROQ_API_KEY="your_groq_api_key" \
+  -e GROQ_MODEL_NAME="meta-llama/llama-4-scout-17b-16e-instruct" \
+  -p 8000:8000 \
+  -v ./data:/app/data \
+  filtergenie
+```
+
+> **Note:** Mount the `data` folder to persist the SQLite database outside the container.
