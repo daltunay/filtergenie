@@ -89,7 +89,7 @@ async def _analyze_single_item(
         raise
 
     try:
-        filter_models = [FilterModel(desc=desc) for desc in filters]
+        filter_models = [FilterModel(desc=desc) for desc in sorted(filters)]
         analyzed_filters = await cached_analyze_item(
             session, analyzer, item, filter_models, max_images_per_item=max_images_per_item
         )

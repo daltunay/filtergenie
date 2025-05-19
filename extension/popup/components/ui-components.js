@@ -19,27 +19,62 @@ export function createSpinner(size = "sm") {
   return spinner;
 }
 
-export function createFilterBadge(text, onRemove) {
+export function createFilterBadge(text, onRemove, onEdit) {
   const badge = document.createElement("li");
-  badge.className =
-    "inline-flex items-center rounded-full bg-yellow-400/20 px-3 py-1 text-sm font-medium text-yellow-200 ring-1 ring-inset ring-yellow-300/30 mr-2 mb-2 animate-fade-in";
+  badge.style.display = "inline-flex";
+  badge.style.alignItems = "center";
+  badge.style.background = "rgba(250, 204, 21, 0.13)";
+  badge.style.color = "#fde68a";
+  badge.style.borderRadius = "999px";
+  badge.style.padding = "2px 10px";
+  badge.style.margin = "2px 6px 2px 0";
+  badge.style.fontSize = "13px";
 
   const span = document.createElement("span");
   span.textContent = text;
+  if (onEdit) {
+    span.style.cursor = "pointer";
+    span.title = "Click to edit";
+    span.onclick = (e) => {
+      e.stopPropagation();
+      const input = document.createElement("input");
+      input.type = "text";
+      input.value = text;
+      input.style.fontSize = "13px";
+      input.style.borderRadius = "6px";
+      input.style.padding = "1px 6px";
+      input.style.width = Math.max(60, text.length * 8) + "px";
+      badge.replaceChild(input, span);
+      input.focus();
+      input.select();
+      input.onkeydown = (ev) => {
+        if (ev.key === "Enter") finishEdit(true);
+        else if (ev.key === "Escape") finishEdit(false);
+      };
+      input.onblur = () => finishEdit(true);
+      function finishEdit(apply) {
+        if (apply) {
+          const newValue = input.value.trim();
+          if (newValue && newValue !== text) onEdit(newValue);
+        }
+        badge.replaceChild(span, input);
+      }
+    };
+  }
   badge.appendChild(span);
 
   if (onRemove) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className =
-      "ml-1 inline-flex items-center justify-center rounded-full h-5 w-5 transition ease-in-out duration-150 focus:outline-none filtergenie-badge-remove";
-    button.innerHTML = `<svg class="h-3 w-3" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-    </svg>`;
-    button.addEventListener("click", onRemove);
-    badge.appendChild(button);
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = "✖";
+    btn.style.marginLeft = "6px";
+    btn.style.background = "none";
+    btn.style.border = "none";
+    btn.style.color = "#fde68a";
+    btn.style.cursor = "pointer";
+    btn.onclick = onRemove;
+    badge.appendChild(btn);
   }
-
   return badge;
 }
 

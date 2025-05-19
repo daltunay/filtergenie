@@ -56,6 +56,7 @@
            focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-dark-900
            disabled:opacity-50 disabled:cursor-not-allowed text-sm;
     @apply hover:brightness-110 hover:scale-[1.03];
+    width: auto;
   }
 
   .btn-primary {
@@ -174,5 +175,9 @@
     background: rgba(59, 130, 246, 0.12);
     color: #2563eb;
     box-shadow: 0 1px 4px 0 rgba(59, 130, 246, 0.08);
+  }
+
+  .w-1\/2 {
+    width: 50%;
   }
 }

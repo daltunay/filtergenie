@@ -216,27 +216,6 @@
               <span id="api-spinner"></span>
               <span id="api-status" class="status-badge"></span>
             </div>
-            <button
-              id="api-check-btn"
-              class="icon-btn ml-2"
-              title="Check API"
-              aria-label="Check API"
-            >
-              <svg
-                class="h-5 w-5"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M4 4v5h.582M20 20v-5h-.581M5 9A7 7 0 0119 15.5M19 15.5A7 7 0 015 9"
-                />
-              </svg>
-            </button>
           </div>
           <div class="text-xs text-gray-400 flex justify-between">
             <div id="api-elapsed"></div>
@@ -318,7 +297,13 @@
           <div
             class="flex items-center gap-2 pt-2 border-t border-primary-800/30 mt-2"
           >
-            <button id="api-clear-cache-btn" class="btn btn-outline text-xs">
+            <button id="api-check-btn" class="btn btn-outline text-xs w-1/2">
+              Check Connection
+            </button>
+            <button
+              id="api-clear-cache-btn"
+              class="btn btn-outline text-xs w-1/2"
+            >
               Clear Cache
             </button>
             <span
