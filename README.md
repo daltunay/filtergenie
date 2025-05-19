@@ -105,12 +105,12 @@ Use with a **local API** (`http://localhost:8000`) or the **hosted API** (`https
 
 To install:
 
-1. Clone the repo:
-   `git clone https://github.com/daltunay/filtergenie.git`
-2. In your browser, open the extensions page (e.g. `chrome://extensions` for Chrome)
-3. Enable "Developer mode"
-4. Click "Load unpacked" and select the `extension` folder
-5. Choose API mode (Local/Remote) and enter your API key if needed.
+1. Download the latest `extension.zip` from the [releases page](https://github.com/daltunay/filtergenie/releases).
+2. Unzip the file to extract the `extension` folder.
+3. In your browser, open the extensions page (e.g. `chrome://extensions` for Chrome)
+4. Enable "Developer mode" (top right corner)
+5. Click "Load unpacked" and select the extracted `extension` folder
+6. Choose API mode (Local/Remote) and enter your API key if needed.
 
 ### Local API
 
