@@ -4,7 +4,12 @@
   "version": "0.1.0",
   "description": "FilterGenie: AI-powered filtering",
   "permissions": ["activeTab", "scripting", "storage"],
-  "host_permissions": ["<all_urls>"],
+  "host_permissions": [
+    "https://*.leboncoin.fr/*",
+    "https://*.vinted.fr/*",
+    "https://leboncoin.fr/*",
+    "https://vinted.fr/*"
+  ],
   "background": {},
   "action": {
     "default_popup": "popup/popup.html",
