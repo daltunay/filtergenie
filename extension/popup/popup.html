@@ -98,12 +98,12 @@
             <div class="space-y-3">
               <div class="flex flex-row gap-3">
                 <div class="flex flex-col flex-1">
-                  <div class="flex items-center justify-between">
+                  <div class="flex items-center">
                     <label for="max-items" class="text-xs text-primary-300">
                       Max. items:
                     </label>
                     <span
-                      class="relative group cursor-pointer flex-shrink-0 ml-2"
+                      class="relative group cursor-pointer ml-2 flex items-center"
                     >
                       <span
                         class="inline-flex items-center justify-center rounded-full border border-primary-400 text-primary-400 bg-transparent"
@@ -137,12 +137,12 @@
                   </div>
                 </div>
                 <div class="flex flex-col flex-1">
-                  <div class="flex items-center justify-between">
+                  <div class="flex items-center">
                     <label for="max-images" class="text-xs text-primary-300">
                       Images per item:
                     </label>
                     <span
-                      class="relative group cursor-pointer flex-shrink-0 ml-2"
+                      class="relative group cursor-pointer ml-2 flex items-center"
                     >
                       <span
                         class="inline-flex items-center justify-center rounded-full border border-primary-400 text-primary-400 bg-transparent"
@@ -179,12 +179,12 @@
                 </div>
               </div>
               <div class="flex flex-col">
-                <div class="flex items-center justify-between">
+                <div class="flex items-center">
                   <label for="min-match" class="text-[11px] text-primary-300">
                     Min. matches:
                   </label>
                   <span
-                    class="relative group cursor-pointer flex-shrink-0 ml-2"
+                    class="relative group cursor-pointer ml-2 flex items-center"
                   >
                     <span
                       class="inline-flex items-center justify-center rounded-full border border-primary-400 text-primary-400 bg-transparent"
@@ -205,20 +205,49 @@
                   </span>
                 </div>
                 <div class="flex flex-col items-center mt-1">
-                  <div class="flex items-center justify-center w-full">
+                  <div
+                    class="flex items-center justify-center w-full relative"
+                    style="width: 100%"
+                  >
                     <input
                       type="range"
                       id="min-match"
                       min="0"
                       max="0"
                       class="accent-primary-500"
-                      style="width: 70%; min-width: 120px; max-width: 220px"
+                      style="
+                        width: 70%;
+                        min-width: 120px;
+                        max-width: 220px;
+                        z-index: 2;
+                        background: transparent;
+                      "
                     />
                     <span
                       id="min-match-value"
                       class="ml-2 text-xs font-medium px-2 py-1 bg-primary-800/80 rounded-md min-w-[24px] text-center"
                       >0</span
                     >
+                    <!-- Slider ticks -->
+                    <div
+                      id="min-match-ticks"
+                      style="
+                        position: absolute;
+                        left: 0;
+                        top: 60%;
+                        height: 12px;
+                        width: 70%;
+                        min-width: 120px;
+                        max-width: 220px;
+                        margin: 0 auto;
+                        pointer-events: none;
+                        z-index: 1;
+                        display: flex;
+                        justify-content: space-between;
+                      "
+                    >
+                      <!-- JS will fill ticks -->
+                    </div>
                   </div>
                   <div
                     class="flex flex-row justify-between mt-1 px-1 gap-2 w-full"
@@ -319,8 +348,143 @@
           id="api-settings"
           class="border-t border-primary-800/30 p-4 space-y-4 bg-dark-900/50 rounded-b-xl"
         >
+          <div id="api-key-row" class="mb-3 flex flex-col">
+            <label
+              for="api-key"
+              class="text-xs font-medium text-primary-200 flex items-center"
+            >
+              <span>API Key</span>
+              <span
+                class="relative group cursor-pointer ml-2 flex items-center"
+              >
+                <svg
+                  class="h-4 w-4 text-primary-400 align-middle"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  style="vertical-align: middle"
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    fill="none"
+                  />
+                  <text
+                    x="12"
+                    y="16"
+                    text-anchor="middle"
+                    font-size="12"
+                    fill="currentColor"
+                    font-family="Arial"
+                    dy="0"
+                    font-weight="bold"
+                  >
+                    i
+                  </text>
+                </svg>
+                <span
+                  class="fixed left-auto z-[9999] mt-2 min-w-[220px] max-w-xs bg-dark-800 text-xs text-primary-100 rounded shadow-lg px-3 py-2 opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-150"
+                  style="top: auto; left: 50%; transform: translateX(-50%)"
+                >
+                  Need an API key? Please ask Daniel Altunay directly:<br />
+                  <a
+                    href="mailto:daniel.altunay@gmail.com"
+                    class="underline text-primary-200 hover:text-primary-100"
+                    >daniel.altunay@gmail.com</a
+                  >
+                </span>
+              </span>
+            </label>
+            <div class="flex items-center mt-1">
+              <input
+                type="password"
+                id="api-key"
+                class="input flex-grow text-xs"
+                autocomplete="off"
+              />
+              <button
+                type="button"
+                id="api-key-toggle"
+                class="ml-2 p-1 rounded-full text-primary-400 hover:text-primary-300 hover:bg-primary-800/50 focus:outline-none flex items-center"
+                aria-label="Show API Key"
+                tabindex="0"
+                style="height: 1.5rem; display: flex; align-items: center"
+              >
+                <svg
+                  id="api-key-eye"
+                  class="h-5 w-5 align-middle"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  style="vertical-align: middle"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
           <div class="flex flex-col space-y-1">
-            <label class="text-xs font-medium text-primary-200">API Mode</label>
+            <label
+              class="text-xs font-medium text-primary-200 flex items-center"
+            >
+              <span>API Mode</span>
+              <span
+                class="relative group cursor-pointer ml-2 flex items-center"
+              >
+                <svg
+                  class="h-4 w-4 text-primary-400 align-middle"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  style="vertical-align: middle"
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    fill="none"
+                  />
+                  <text
+                    x="12"
+                    y="16"
+                    text-anchor="middle"
+                    font-size="12"
+                    fill="currentColor"
+                    font-family="Arial"
+                    dy="0"
+                    font-weight="bold"
+                  >
+                    i
+                  </text>
+                </svg>
+                <span
+                  class="fixed left-auto z-[9999] mt-2 min-w-[220px] max-w-xs bg-dark-800 text-xs text-primary-100 rounded shadow-lg px-3 py-2 opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-150"
+                  style="top: auto; left: 50%; transform: translateX(-50%)"
+                >
+                  <b>Remote:</b> Use the FilterGenie cloud API (recommended for
+                  most users).<br />
+                  <b>Local:</b> Use your own local API server (for advanced
+                  users).
+                </span>
+              </span>
+            </label>
             <div class="flex space-x-4 mt-1">
               <label class="flex items-center space-x-2 text-xs">
                 <input
@@ -342,48 +506,6 @@
                 />
                 <span class="text-xs">Local</span>
               </label>
-            </div>
-          </div>
-          <div id="api-key-row" class="mb-3 flex flex-col">
-            <label for="api-key" class="text-xs font-medium text-primary-200"
-              >API Key</label
-            >
-            <div class="flex items-center mt-1">
-              <input
-                type="password"
-                id="api-key"
-                class="input flex-grow text-xs"
-                autocomplete="off"
-              />
-              <button
-                type="button"
-                id="api-key-toggle"
-                class="ml-2 p-1 rounded-full text-primary-400 hover:text-primary-300 hover:bg-primary-800/50 focus:outline-none"
-                aria-label="Show API Key"
-                tabindex="0"
-              >
-                <svg
-                  id="api-key-eye"
-                  class="h-5 w-5"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                  />
-                </svg>
-              </button>
             </div>
           </div>
           <div
