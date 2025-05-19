@@ -58,6 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ui[id.replace(/-([a-z])/g, (g) => g[1].toUpperCase())] =
       document.getElementById(id);
   });
+  ui.filtersSection = document.querySelector("section.card.p-4");
 
   let apiStatus = {
     state: "unknown",
@@ -244,13 +245,19 @@ document.addEventListener("DOMContentLoaded", () => {
       this.notify();
     },
     setMinMatch(val) {
-      this.set("minMatch", Math.max(0, Math.min(val, this.filters.length)));
+      this.minMatch = Math.max(0, Math.min(val, this.filters.length));
+      saveState();
+      this.notify();
     },
     setMaxItems(val) {
-      this.set("maxItems", Math.max(1, val));
+      this.maxItems = Math.max(1, val);
+      saveState();
+      this.notify();
     },
     setMaxImagesPerItem(val) {
-      this.set("maxImagesPerItem", Math.max(0, Math.min(10, val)));
+      this.maxImagesPerItem = Math.max(0, Math.min(10, val));
+      saveState();
+      this.notify();
     },
     setApiMode(mode) {
       if (this.apiMode !== mode) {
@@ -299,6 +306,18 @@ document.addEventListener("DOMContentLoaded", () => {
   let lastRenderedFilters = null;
 
   function renderUI() {
+    if (ui.filtersSection) {
+      ui.filtersSection.style.display = state.isConnected ? "" : "none";
+    }
+
+    if (!state.isConnected) {
+      document.body.style.minHeight = "0";
+      document.body.style.height = "auto";
+    } else {
+      document.body.style.minHeight = "";
+      document.body.style.height = "";
+    }
+
     ui.filtersList.innerHTML = "";
     state.filters.forEach((filter, index) => {
       const badge = createFilterBadge(
