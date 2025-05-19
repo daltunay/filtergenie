@@ -51,7 +51,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="FilterGenie API",
         description="API for validating items against filters using AI",
-        version="1.0.0",
+        version="0.1.0",
         lifespan=lifespan,
     )
 
