@@ -60,6 +60,7 @@ async def _analyze_single_item(
     filters: list[str],
     analyzer: Analyzer,
     session: Session,
+    max_images_per_item: int,
 ) -> tuple[int, list[FilterModel]]:
     """Process and analyze a single item and return its results with index."""
     platform = item_request.platform
@@ -67,6 +68,7 @@ async def _analyze_single_item(
     log.debug(f"Processing item {idx + 1}", platform=platform, url=url)
     try:
         item = await cached_scrape_item(session, platform=platform, url=url, html=item_request.html)
+        item.images = item.images[:max_images_per_item]
         log.debug(
             f"ItemModel {idx + 1} scraped successfully", platform=platform, url=url, item=item
         )
@@ -120,7 +122,9 @@ async def analyze_items(
     try:
         start_time = time.perf_counter()
         tasks = [
-            _analyze_single_item(i, item, request.filters, analyzer, session)
+            _analyze_single_item(
+                i, item, request.filters, analyzer, session, request.max_images_per_item
+            )
             for i, item in enumerate(request.items)
         ]
         results = await asyncio.gather(*tasks)

@@ -10,7 +10,7 @@ function getPlatform() {
   return reg.getCurrentPlatform(url);
 }
 
-async function fetchItemSources(platform, items, maxImagesPerItem) {
+async function fetchItemSources(platform, items) {
   return Promise.all(
     items.map(async (item) => {
       const html = await platform.getItemHtml(item);
@@ -21,9 +21,6 @@ async function fetchItemSources(platform, items, maxImagesPerItem) {
           .map((img) => img.src)
           .filter(Boolean);
       } catch {}
-      if (images.length > maxImagesPerItem) {
-        images = images.slice(0, maxImagesPerItem);
-      }
       return {
         platform: platform.name,
         url: platform.getItemUrl(item),
@@ -34,7 +31,13 @@ async function fetchItemSources(platform, items, maxImagesPerItem) {
   );
 }
 
-async function callApiAnalyze(items, filters, apiEndpoint, apiKey) {
+async function callApiAnalyze(
+  items,
+  filters,
+  apiEndpoint,
+  apiKey,
+  maxImagesPerItem,
+) {
   const headers = { "Content-Type": "application/json" };
   if (apiKey) headers["X-API-Key"] = apiKey;
   apiEndpoint = apiEndpoint.replace(/\/+$/, "");
@@ -43,7 +46,11 @@ async function callApiAnalyze(items, filters, apiEndpoint, apiKey) {
     const resp = await fetch(`${apiEndpoint}/items/analyze`, {
       method: "POST",
       headers,
-      body: JSON.stringify({ items, filters }),
+      body: JSON.stringify({
+        items,
+        filters,
+        max_images_per_item: maxImagesPerItem,
+      }),
     });
     return resp.json();
   } catch (e) {
@@ -137,22 +144,14 @@ async function analyzeItems(
   showItemSpinner(items);
 
   try {
-    const itemSources = await fetchItemSources(
-      platform,
-      items,
-      maxImagesPerItem,
-    );
-    itemSources.forEach((item) => {
-      if (Array.isArray(item.images)) {
-        item.images = item.images.slice(0, maxImagesPerItem);
-      }
-    });
+    const itemSources = await fetchItemSources(platform, items);
     const sortedFilters = [...filters].sort((a, b) => a.localeCompare(b));
     const data = await callApiAnalyze(
       itemSources,
       sortedFilters,
       apiEndpoint,
       apiKey,
+      maxImagesPerItem,
     );
 
     removeItemSpinner(items);

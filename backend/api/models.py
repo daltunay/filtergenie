@@ -14,6 +14,7 @@ class AnalysisRequest(BaseModel):
 
     items: list[ItemSource]
     filters: list[str]
+    max_images_per_item: int
 
 
 class AnalysisResponse(BaseModel):
