@@ -168,3 +168,45 @@ docker run --rm \
 ```
 
 > **Note:** Mount the `data` folder to persist the SQLite database outside the container.
+
+## Privacy Policy
+
+FilterGenie is designed with user privacy in mind. We are committed to protecting your data and being transparent about how information is handled.
+
+### What data does FilterGenie collect?
+
+- **Website Content Only:**
+  FilterGenie processes the content of web pages you visit on supported e-commerce sites (such as product titles, descriptions, and images) to provide its filtering functionality.
+  **No other data is collected.**
+
+### What data does FilterGenie NOT collect?
+
+- We do **not** collect, store, or transmit any of the following:
+  - Personally identifiable information (PII) such as your name, address, email, age, or identification numbers
+  - Health information
+  - Financial or payment information
+  - Authentication information (passwords, credentials, secret questions, or codes)
+  - Personal communications (emails, SMS, chat messages)
+  - Location data (IP address, GPS, or nearby points of interest)
+  - Web browsing history (list of pages visited, titles, or timestamps)
+  - User activity (network monitoring, clicks, mouse position, scroll or keystroke logging)
+
+### How is your data used?
+
+- The extension only analyzes the visible content of e-commerce listings to provide filtering results.
+- No user data is sold or transferred to third parties.
+- No user data is used for purposes unrelated to the core filtering functionality.
+- No user data is used for creditworthiness or lending purposes.
+
+### Data storage and transfer
+
+- All processing is performed locally in your browser or sent to the FilterGenie API (cloud or local, as configured by you) for analysis.
+- No personal or sensitive data is ever collected, stored, or transferred by FilterGenie.
+
+### Certification
+
+- We do **not** sell or transfer user data to third parties except as required for the core functionality.
+- We do **not** use or transfer user data for unrelated purposes.
+- We do **not** use or transfer user data for creditworthiness or lending.
+
+For any questions about privacy, please contact the developer at [daniel.altunay@gmail.com](mailto:daniel.altunay@gmail.com).

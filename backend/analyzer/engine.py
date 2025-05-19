@@ -36,7 +36,7 @@ class Analyzer:
         """Create an AsyncGroq model with instructor patch."""
         log.debug("Creating AsyncGroq model")
         groq_client = AsyncGroq(api_key=api_key)
-        return instructor.from_groq(groq_client)
+        return instructor.from_groq(groq_client, mode=instructor.Mode.JSON)
 
     async def predict(
         self,

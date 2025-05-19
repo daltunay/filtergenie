@@ -3,7 +3,7 @@
   "name": "FilterGenie",
   "version": "0.1.0",
   "description": "FilterGenie: AI-powered filtering",
-  "permissions": ["activeTab", "scripting", "storage", "webRequest"],
+  "permissions": ["activeTab", "scripting", "storage"],
   "host_permissions": ["<all_urls>"],
   "background": {},
   "action": {
