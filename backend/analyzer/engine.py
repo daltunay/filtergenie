@@ -69,7 +69,10 @@ class Analyzer:
         return create_model(
             "DynamicSchema",
             **{
-                f.name: (bool, Field(title=f"FilterModel {i}", desc=f.desc))
+                f.name: (
+                    bool,
+                    Field(title=f"FilterModel {i}", json_schema_extra={"desc": f.desc}),
+                )
                 for i, f in enumerate(filters, start=1)
             },
         )
