@@ -129,10 +129,7 @@ document.addEventListener("DOMContentLoaded", () => {
       typeof apiStatus.elapsed === "number"
     ) {
       elapsedText = ` (${apiStatus.elapsed.toFixed(1)}s)`;
-    } else if (
-      ["done", "available"].includes(status) &&
-      typeof apiStatus.elapsed === "number"
-    ) {
+    } else if (status === "done" && typeof apiStatus.elapsed === "number") {
       elapsedText = ` (${apiStatus.elapsed.toFixed(1)}s)`;
     }
     switch (status) {
