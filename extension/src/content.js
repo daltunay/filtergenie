@@ -3,13 +3,6 @@ import "../platforms/leboncoin.js";
 import "../platforms/vinted.js";
 import { showItemSpinner, removeItemSpinner } from "../utils/spinnerUtils.js";
 
-function getPlatform() {
-  const reg = platformRegistry;
-  const url = window.location.href;
-  if (!reg || !reg._platforms?.length) return null;
-  return reg.getCurrentPlatform(url);
-}
-
 async function fetchItemSources(platform, items) {
   return Promise.all(
     items.map(async (item) => {
@@ -88,7 +81,10 @@ function updateItemStatus(items, filtersData, minMatch) {
     document.head.appendChild(style);
   }
 
-  const platform = getPlatform();
+  const reg = platformRegistry;
+  const url = window.location.href;
+  const platform =
+    reg && reg._platforms?.length ? reg.getCurrentPlatform(url) : null;
 
   items.forEach((item, idx) => {
     const filterResults = filtersData[idx] || {};
@@ -189,7 +185,10 @@ async function analyzeItems(
 }
 
 function updateItemVisibility(minMatch, maxItems) {
-  const platform = getPlatform();
+  const reg = platformRegistry;
+  const url = window.location.href;
+  const platform =
+    reg && reg._platforms?.length ? reg.getCurrentPlatform(url) : null;
   if (!platform) return;
 
   const items = Array.from(platform.getItemElements()).slice(0, maxItems);
@@ -211,7 +210,13 @@ function handleMessage(msg, sender, sendResponse) {
       analyzeItems(
         msg.activeFilters,
         msg.minMatch,
-        getPlatform(),
+        (() => {
+          const reg = platformRegistry;
+          const url = window.location.href;
+          return reg && reg._platforms?.length
+            ? reg.getCurrentPlatform(url)
+            : null;
+        })(),
         msg.maxItems,
         sendResponse,
         msg.apiEndpoint,
@@ -240,7 +245,10 @@ function handleMessage(msg, sender, sendResponse) {
 function initializeContentScript() {
   chrome.runtime.onMessage.addListener(handleMessage);
 
-  const platform = getPlatform();
+  const reg = platformRegistry;
+  const url = window.location.href;
+  const platform =
+    reg && reg._platforms?.length ? reg.getCurrentPlatform(url) : null;
   if (platform && platform.isSearchPage(window.location.href)) {
     chrome.storage.local.get("filtergenieLastAnalyzed", (res) => {
       const last = res.filtergenieLastAnalyzed;

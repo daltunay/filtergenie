@@ -59,10 +59,6 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById(id);
   });
 
-  function clampMinMatch(minMatch, count) {
-    return Math.max(0, Math.min(minMatch, count));
-  }
-
   let apiStatus = {
     state: "unknown",
     message: "",
@@ -248,7 +244,7 @@ document.addEventListener("DOMContentLoaded", () => {
       this.notify();
     },
     setMinMatch(val) {
-      this.set("minMatch", clampMinMatch(val, this.filters.length));
+      this.set("minMatch", Math.max(0, Math.min(val, this.filters.length)));
     },
     setMaxItems(val) {
       this.set("maxItems", Math.max(1, val));
@@ -633,10 +629,6 @@ document.addEventListener("DOMContentLoaded", () => {
     );
   }
 
-  function restoreApiStatus() {
-    renderApiStatusBadge();
-  }
-
   function setupEvents(sendToContent) {
     bindFilterEvents(sendToContent);
     bindMatchEvents(sendToContent);
@@ -648,10 +640,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     checkConnection();
     setInterval(checkConnection, 10000);
-    restoreApiStatus();
+    renderApiStatusBadge();
   }
 
   loadState(() => {
+    checkApiStatus();
     setupEvents(sendToContent);
   });
 });

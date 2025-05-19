@@ -29,6 +29,17 @@ export function createFilterBadge(text, onRemove, onEdit) {
   badge.style.padding = "2px 10px";
   badge.style.margin = "2px 6px 2px 0";
   badge.style.fontSize = "13px";
+  badge.style.transition = "background 0.15s, color 0.15s";
+  badge.style.cursor = onEdit ? "pointer" : "default";
+
+  badge.onmouseenter = () => {
+    badge.style.background = "rgba(250, 204, 21, 0.22)";
+    badge.style.color = "#fffbe8";
+  };
+  badge.onmouseleave = () => {
+    badge.style.background = "rgba(250, 204, 21, 0.13)";
+    badge.style.color = "#fde68a";
+  };
 
   const span = document.createElement("span");
   span.textContent = text;
@@ -44,7 +55,9 @@ export function createFilterBadge(text, onRemove, onEdit) {
       input.style.borderRadius = "6px";
       input.style.padding = "1px 6px";
       input.style.width = Math.max(60, text.length * 8) + "px";
-      badge.replaceChild(input, span);
+      if (span.parentNode === badge) {
+        badge.replaceChild(input, span);
+      }
       input.focus();
       input.select();
       input.onkeydown = (ev) => {
@@ -57,7 +70,9 @@ export function createFilterBadge(text, onRemove, onEdit) {
           const newValue = input.value.trim();
           if (newValue && newValue !== text) onEdit(newValue);
         }
-        badge.replaceChild(span, input);
+        if (input.parentNode === badge) {
+          badge.replaceChild(span, input);
+        }
       }
     };
   }
@@ -66,12 +81,33 @@ export function createFilterBadge(text, onRemove, onEdit) {
   if (onRemove) {
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.textContent = "✖";
-    btn.style.marginLeft = "6px";
+    btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 22 22" fill="none" style="display:block" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="11" cy="11" r="9" fill="rgba(250,204,21,0.18)" />
+      <path d="M8 8l6 6M14 8l-6 6" stroke="#fde68a" stroke-width="2" stroke-linecap="round"/>
+    </svg>`;
+    btn.style.marginLeft = "8px";
     btn.style.background = "none";
     btn.style.border = "none";
-    btn.style.color = "#fde68a";
+    btn.style.padding = "3px";
+    btn.style.borderRadius = "50%";
     btn.style.cursor = "pointer";
+    btn.style.display = "flex";
+    btn.style.alignItems = "center";
+    btn.style.transition = "background 0.15s, box-shadow 0.15s";
+    btn.onmouseenter = () => {
+      btn.style.background = "rgba(250,204,21,0.32)";
+      btn.firstChild
+        .querySelector("circle")
+        .setAttribute("fill", "rgba(250,204,21,0.32)");
+      btn.firstChild.querySelector("path").setAttribute("stroke", "#fffbe8");
+    };
+    btn.onmouseleave = () => {
+      btn.style.background = "none";
+      btn.firstChild
+        .querySelector("circle")
+        .setAttribute("fill", "rgba(250,204,21,0.18)");
+      btn.firstChild.querySelector("path").setAttribute("stroke", "#fde68a");
+    };
     btn.onclick = onRemove;
     badge.appendChild(btn);
   }
