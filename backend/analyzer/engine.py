@@ -1,20 +1,13 @@
-import typing as tp
 from textwrap import dedent
 
+import instructor
+from groq import AsyncGroq
 from pydantic import BaseModel, Field, create_model
 
 from backend.common.logging import log
-from backend.config import LocalModelConfig, RemoteModelConfig
+from backend.config import settings
 
 from .models import FilterModel, ImageModel, ItemModel
-
-if tp.TYPE_CHECKING:
-    from openai import AsyncOpenAI
-
-    try:
-        from outlines.models import TransformersVision
-    except ImportError:
-        pass
 
 
 class Analyzer:
@@ -33,68 +26,27 @@ class Analyzer:
         """
     )
 
-    def __init__(
+    def __init__(self):
+        """Initialize the analyzer with Groq."""
+        self.config = settings.groq
+        log.info("Initializing Groq model", name=self.config.model_name)
+        self.client = self._create_groq_client(api_key=self.config.api_key)
+
+    def _create_groq_client(self, api_key: str) -> instructor.AsyncInstructor:
+        """Create an AsyncGroq model with instructor patch."""
+        log.debug("Creating AsyncGroq model")
+        groq_client = AsyncGroq(api_key=api_key)
+        return instructor.from_groq(groq_client)
+
+    async def predict(
         self,
-        use_local: bool = False,
-        local_config: LocalModelConfig | None = None,
-        remote_config: RemoteModelConfig | None = None,
-    ):
-        """Initialize the analyzer with either a local VLM model or AsyncOpenAI."""
-        if use_local:
-            self.local_config = local_config or LocalModelConfig()
-            log.info("Initializing local model", name=self.local_config.name)
-            self.model = self._create_local_model()
-            self.predict = self._predict_local
-        else:
-            self.remote_config = remote_config or RemoteModelConfig()
-            log.info("Initializing remote model", name=self.remote_config.name)
-            self.model = self._create_openai_model()
-            self.predict = self._predict_openai
-
-    def _create_local_model(self) -> "TransformersVision":
-        """Create a local VLM."""
-        import torch
-        from outlines import models
-        from transformers import AutoModelForImageTextToText
-
-        log.debug(
-            "Loading local model",
-            dtype=self.local_config.dtype,
-            device=self.local_config.device,
-        )
-        return models.transformers_vision(
-            model_name=self.local_config.name,
-            model_class=AutoModelForImageTextToText,
-            model_kwargs={"torch_dtype": getattr(torch, self.local_config.dtype)},
-            device=self.local_config.device,
-        )
-
-    async def _predict_local(
-        self, prompt: str, images: list[ImageModel], schema: type[BaseModel]
-    ) -> BaseModel:
-        """Run prediction using local model asynchronously."""
-        from outlines import generate
-
-        generator = generate.json(self.model, schema)
-        pil_images = [image.pil for image in images]
-        return generator(prompt, pil_images)
-
-    def _create_openai_model(self) -> "AsyncOpenAI":
-        """Create an AsyncOpenAI model with async client."""
-        from openai import AsyncOpenAI
-
-        log.debug("Creating AsyncOpenAI model", base_url=self.remote_config.base_url)
-        return AsyncOpenAI(
-            base_url=self.remote_config.base_url,
-            api_key=self.remote_config.api_key,
-        )
-
-    async def _predict_openai(
-        self, prompt: str, images: list[ImageModel], schema: type[BaseModel]
-    ) -> BaseModel:
-        """Run prediction using AsyncOpenAI/Gemini API asynchronously."""
-        response = await self.model.beta.chat.completions.parse(
-            model=self.remote_config.name,
+        model: str,
+        prompt: str,
+        images: list[ImageModel],
+        schema: type[BaseModel],
+    ) -> "BaseModel":
+        response = await self.client.chat.completions.create(
+            model=model,
             messages=[
                 {
                     "role": "user",
@@ -107,9 +59,9 @@ class Analyzer:
                     ],
                 }
             ],
-            response_format=schema,
+            response_model=schema,
         )
-        return response.choices[0].message.parsed
+        return response
 
     @staticmethod
     def _create_filter_schema(filters: list[FilterModel]) -> type[BaseModel]:
@@ -149,7 +101,12 @@ class Analyzer:
         DynamicSchema = self._create_filter_schema(filters)
 
         try:
-            response = await self.predict(prompt=prompt, images=item.images, schema=DynamicSchema)
+            response = await self.predict(
+                model=self.config.model_name,
+                prompt=prompt,
+                images=item.images,
+                schema=DynamicSchema,
+            )
 
             matched_filters = 0
             for f in filters:
@@ -166,4 +123,4 @@ class Analyzer:
             return filters
         except Exception as e:
             log.error("Error analyzing item", title=item.title, error=str(e), exc_info=e)
-            raise
+            raise e

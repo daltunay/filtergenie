@@ -15,21 +15,16 @@ ENV UV_COMPILE_BYTECODE=1 \
     UV_NO_INSTALLER_METADATA=1 \
     VIRTUAL_ENV=/app/.venv
 
-ARG LOCAL=false
-
 RUN --mount=type=cache,target=/root/.cache/uv \
-    if [ "$LOCAL" = "true" ]; then EXTRA_ARGS="--extra local"; fi; \
-    uv sync --no-install-project --no-dev $EXTRA_ARGS
+    uv sync --no-install-project --no-dev
 
 ENV PATH="/app/.venv/bin:$PATH"
 
 COPY backend/ ./backend
 
 ENV PYTHONUNBUFFERED=1
-ENV LOCAL=${LOCAL}
 
 EXPOSE 8000
 HEALTHCHECK CMD curl --fail http://localhost:8000/health || exit 1
 
-ENV MODEL__USE_LOCAL=${LOCAL}
 CMD ["fastapi", "run", "backend/app.py", "--host", "0.0.0.0", "--port", "8000"]

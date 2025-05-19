@@ -3,12 +3,11 @@ from pydantic import BaseModel
 
 from backend.analyzer.engine import Analyzer
 from backend.analyzer.models import FilterModel, ImageModel, ItemModel
-from backend.config import RemoteModelConfig
 
 
 class DummyModel:
     async def predict(
-        self, prompt: str, images: list[ImageModel], schema: type[BaseModel]
+        self, model: str, prompt: str, images: list[ImageModel], schema: type[BaseModel]
     ) -> object:
         class Response:
             pass
@@ -21,7 +20,7 @@ class DummyModel:
 
 class DummyRemoteModel:
     async def predict(
-        self, prompt: str, images: list[ImageModel], schema: type[BaseModel]
+        self, model: str, prompt: str, images: list[ImageModel], schema: type[BaseModel]
     ) -> object:
         class Response:
             pass
@@ -32,30 +31,16 @@ class DummyRemoteModel:
         return resp
 
 
-@pytest.fixture
-def local_analyzer():
-    analyzer = Analyzer(use_local=True)
-    analyzer.predict = DummyModel().predict
-    return analyzer
-
-
-@pytest.fixture
-def remote_analyzer():
-    remote_config = RemoteModelConfig(api_key="dummy-key")
-    analyzer = Analyzer(use_local=False, remote_config=remote_config)
-    analyzer.predict = DummyRemoteModel().predict
-    return analyzer
-
-
 @pytest.mark.parametrize(
-    "analyzer_fixture,expected",
+    "predict_class,expected",
     [
-        ("local_analyzer", True),
-        ("remote_analyzer", False),
+        (DummyModel, True),
+        (DummyRemoteModel, False),
     ],
 )
-def test_analyze_item_all_filters(analyzer_fixture, expected, request):
-    analyzer = request.getfixturevalue(analyzer_fixture)
+def test_analyze_item_all_filters(predict_class, expected):
+    analyzer = Analyzer()
+    analyzer.predict = predict_class().predict  # type: ignore[attr-defined]
     item = ItemModel(platform="test", title="Test Item", images=[], url="http://example.com/item")
     filters = [
         FilterModel(desc="Red color"),
@@ -68,14 +53,15 @@ def test_analyze_item_all_filters(analyzer_fixture, expected, request):
 
 
 @pytest.mark.parametrize(
-    "analyzer_fixture,expected",
+    "predict_class,expected",
     [
-        ("local_analyzer", True),
-        ("remote_analyzer", False),
+        (DummyModel, True),
+        (DummyRemoteModel, False),
     ],
 )
-def test_analyze_item_with_images(analyzer_fixture, expected, request):
-    analyzer = request.getfixturevalue(analyzer_fixture)
+def test_analyze_item_with_images(predict_class, expected):
+    analyzer = Analyzer()
+    analyzer.predict = predict_class().predict  # type: ignore[attr-defined]
     image = ImageModel(url="http://example.com/image.jpg")
     item = ItemModel(
         platform="test",

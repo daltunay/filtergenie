@@ -8,22 +8,13 @@ dependencies = [
     "asgi-correlation-id>=4.3.4",
     "beautifulsoup4>=4.13.3",
     "fastapi[standard]>=0.115.12",
-    "openai>=1.73.0",
+    "groq>=0.25.0",
+    "instructor>=1.8.2",
     "pillow>=11.1.0",
     "pydantic-settings>=2.8.1",
     "requests>=2.32.3",
     "sqlalchemy>=2.0.40",
     "structlog>=25.3.0",
-]
-
-[project.optional-dependencies]
-local = [
-    "accelerate>=1.6.0",
-    "datasets>=3.5.0",
-    "hf-xet>=1.1.0",
-    "outlines>=0.2.3",
-    "sentencepiece>=0.2.0",
-    "transformers>=4.51.2",
 ]
 
 [dependency-groups]

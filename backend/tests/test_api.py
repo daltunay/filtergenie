@@ -20,7 +20,7 @@ def test_health_check():
 
 
 def test_auth_check_requires_api_key(monkeypatch):
-    os.environ["API__KEY"] = "testkey"
+    os.environ["API_KEY"] = "testkey"
     from backend.config import settings
 
     settings.api.key = "testkey"
@@ -34,7 +34,7 @@ def test_auth_check_requires_api_key(monkeypatch):
 
 
 def test_cache_clear_requires_api_key(monkeypatch):
-    os.environ["API__KEY"] = "testkey"
+    os.environ["API_KEY"] = "testkey"
     from backend.config import settings
 
     settings.api.key = "testkey"
@@ -47,7 +47,7 @@ def test_cache_clear_requires_api_key(monkeypatch):
 
 
 def test_items_analyze_requires_api_key(monkeypatch):
-    os.environ["API__KEY"] = "testkey"
+    os.environ["API_KEY"] = "testkey"
     from backend.config import settings
 
     settings.api.key = "testkey"

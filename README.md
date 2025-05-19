@@ -101,7 +101,7 @@ graph TD
 
 ### Browser Extension
 
-You can use the FilterGenie extension with **either**:
+You can use the FilterGenie extension with:
 
 - A **locally deployed API** (running on your own machine, e.g. `http://localhost:8000`)
 - The **hosted API** at [`https://filtergenie-api.onrender.com`](https://filtergenie-api.onrender.com)
@@ -145,20 +145,10 @@ You can use the FilterGenie extension with **either**:
    uv sync
    ```
 
-   For offline/local VLM support, add `--extra local`.
-
 3. Run the API server:
 
    ```bash
-   # For remote VLM
-   MODEL__REMOTE__API_KEY=your_gemini_api_key fastapi dev backend/app.py
-   ```
-
-   or
-
-   ```bash
-   # For local VLM
-   MODEL__USE_LOCAL=true fastapi dev backend/app.py
+   fastapi dev backend/app.py
    ```
 
 Or use Docker:
@@ -171,41 +161,27 @@ docker build -t filtergenie .
 docker run --rm \
   -p 8000:8000 \
   -v ./data:/app/data \
-  -e MODEL__REMOTE__API_KEY=your_gemini_api_key \
   filtergenie
 ```
 
 > **Note:** Mount the `data` folder to persist the SQLite database outside the container.
 
-For local VLM:
-
-```bash
-# Build the image
-docker build --build-arg LOCAL=true -t filtergenie:local .
-
-# Run the container
-docker run --rm \
-  -p 8000:8000 \
-  -v ./data:/app/data \
-  -v ~/.cache/huggingface:/root/.cache/huggingface \
-  filtergenie:local
-```
-
-> **Note:** Mount the `~/.cache/huggingface` folder to persist the Hugging Face model cache outside the container.
-
 ## Configuration
 
 **Tip:** You can also create a `.env` file in the project root to set these environment variables. The application will automatically load variables from `.env` if present.
 
-| Variable                  | Description                                      | Default / Example                                          |
-| ------------------------- | ------------------------------------------------ | ---------------------------------------------------------- |
-| `API__KEY`                | API authentication key                           | `None` (no auth)                                           |
-| `MODEL__USE_LOCAL`        | Use local model (`true`/`false`)                 | `false`                                                    |
-| `MODEL__REMOTE__API_KEY`  | Remote model API key (required for remote usage) | (your remote model API key)                                |
-| `MODEL__REMOTE__BASE_URL` | Remote model API base URL                        | `https://generativelanguage.googleapis.com/v1beta/openai/` |
-| `MODEL__REMOTE__NAME`     | Remote model name                                | `gemini-2.0-flash-lite`                                    |
-| `MODEL__LOCAL__NAME`      | Local model name/path                            | `HuggingFaceTB/SmolVLM-Instruct`                           |
-| `MODEL__LOCAL__DTYPE`     | Local model data type                            | `bfloat16`                                                 |
-| `MODEL__LOCAL__DEVICE`    | Device for local inference                       | `auto`                                                     |
+### Model Provider
 
-> **Note:** You can use any OpenAI-compatible API for the remote model by setting `MODEL__REMOTE__BASE_URL` and `MODEL__REMOTE__NAME` accordingly. By default, the configuration uses Gemini via the Google API.
+FilterGenie uses [Groq](https://groq.com/) as the model provider.
+
+Example `.env`:
+
+```env
+GROQ_API_KEY="your_groq_api_key"
+GROQ_MODEL_NAME="meta-llama/llama-4-scout-17b-16e-instruct"
+```
+
+| Variable        | Description     | Example/Default                             |
+| --------------- | --------------- | ------------------------------------------- |
+| GROQ_API_KEY    | Groq API key    | _(your Groq API key)_                       |
+| GROQ_MODEL_NAME | Groq model name | `meta-llama/llama-4-scout-17b-16e-instruct` |

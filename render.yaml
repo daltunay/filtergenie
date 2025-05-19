@@ -15,9 +15,11 @@ services:
 
     # Environment variables
     envVars:
-      - key: MODEL__REMOTE__API_KEY
+      - key: GROQ_API_KEY
         sync: false
-      - key: API__KEY
+      - key: GROQ_MODEL_NAME
+        value: meta-llama/llama-4-scout-17b-16e-instruct
+      - key: API_KEY
         generateValue: true
 
     # Build configuration

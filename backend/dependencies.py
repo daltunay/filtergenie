@@ -5,13 +5,7 @@ from sqlalchemy.orm import Session
 from backend.analyzer import Analyzer
 from backend.common.db import SessionLocal
 
-from .config import settings
-
-_analyzer = Analyzer(
-    use_local=settings.model.use_local,
-    local_config=settings.model.local,
-    remote_config=settings.model.remote,
-)
+_analyzer = Analyzer()
 
 
 def get_analyzer() -> Analyzer:
