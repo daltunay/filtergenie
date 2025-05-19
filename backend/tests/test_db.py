@@ -17,13 +17,23 @@ class DummyAnalyzer:
 
 
 @scrape_cache(scrape_item)
-async def cached_scrape_item(session: Session, platform: str, url: str, html: str) -> ItemModel:
+async def cached_scrape_item(
+    session: Session,
+    platform: str,
+    url: str,
+    html: str,
+    max_images_per_item: int = 1,
+) -> ItemModel:
     return ItemModel(platform=platform, url=url, title="Test", images=[])
 
 
 @analyze_cache
 async def cached_analyze_item(
-    session: Session, analyzer: Analyzer, item: ItemModel, filters: list[FilterModel]
+    session: Session,
+    analyzer: Analyzer,
+    item: ItemModel,
+    filters: list[FilterModel],
+    max_images_per_item: int = 1,
 ) -> list[FilterModel]:
     return await analyzer.analyze_item(item, filters)
 
@@ -42,20 +52,28 @@ def test_db_and_cache(tmp_path):
     init_db()
     with get_session_context() as session:
         item1 = asyncio.run(
-            cached_scrape_item(session, "vinted", "http://item1", "<html>foo</html>")
+            cached_scrape_item(
+                session, "vinted", "http://item1", "<html>foo</html>", max_images_per_item=1
+            )
         )
         assert item1.platform == "vinted"
         item2 = asyncio.run(
-            cached_scrape_item(session, "vinted", "http://item1", "<html>bar</html>")
+            cached_scrape_item(
+                session, "vinted", "http://item1", "<html>bar</html>", max_images_per_item=1
+            )
         )
         assert item2.platform == "vinted"
         assert session.query(ScrapedItem).count() == 1
 
         analyzer = DummyAnalyzer()
         filters = [FilterModel(desc="Red"), FilterModel(desc="Large")]
-        result1 = asyncio.run(cached_analyze_item(session, analyzer, item1, filters))
+        result1 = asyncio.run(
+            cached_analyze_item(session, analyzer, item1, filters, max_images_per_item=1)
+        )
         assert all(f.value for f in result1)
-        result2 = asyncio.run(cached_analyze_item(session, analyzer, item1, filters))
+        result2 = asyncio.run(
+            cached_analyze_item(session, analyzer, item1, filters, max_images_per_item=1)
+        )
         assert all(f.value for f in result2)
         assert session.query(AnalysisResult).count() == 1
 
@@ -77,8 +95,16 @@ def test_duplicate_scraped_item(tmp_path):
     db.Base.metadata.create_all(db.engine)
     init_db()
     with get_session_context() as session:
-        _ = asyncio.run(cached_scrape_item(session, "vinted", "http://item1", "<html>foo</html>"))
-        _ = asyncio.run(cached_scrape_item(session, "vinted", "http://item1", "<html>bar</html>"))
+        _ = asyncio.run(
+            cached_scrape_item(
+                session, "vinted", "http://item1", "<html>foo</html>", max_images_per_item=1
+            )
+        )
+        _ = asyncio.run(
+            cached_scrape_item(
+                session, "vinted", "http://item1", "<html>bar</html>", max_images_per_item=1
+            )
+        )
         assert session.query(ScrapedItem).count() == 1
 
 
@@ -95,12 +121,18 @@ def test_duplicate_analysis_result(tmp_path):
     init_db()
     with get_session_context() as session:
         item = asyncio.run(
-            cached_scrape_item(session, "vinted", "http://item2", "<html>foo</html>")
+            cached_scrape_item(
+                session, "vinted", "http://item2", "<html>foo</html>", max_images_per_item=1
+            )
         )
         analyzer = DummyAnalyzer()
         filters = [FilterModel(desc="Red"), FilterModel(desc="Large")]
-        _ = asyncio.run(cached_analyze_item(session, analyzer, item, filters))
-        _ = asyncio.run(cached_analyze_item(session, analyzer, item, filters))
+        _ = asyncio.run(
+            cached_analyze_item(session, analyzer, item, filters, max_images_per_item=1)
+        )
+        _ = asyncio.run(
+            cached_analyze_item(session, analyzer, item, filters, max_images_per_item=1)
+        )
         assert session.query(AnalysisResult).count() == 1
 
 
@@ -117,13 +149,15 @@ def test_analysis_result_different_filters(tmp_path):
     init_db()
     with get_session_context() as session:
         item = asyncio.run(
-            cached_scrape_item(session, "vinted", "http://item3", "<html>foo</html>")
+            cached_scrape_item(
+                session, "vinted", "http://item3", "<html>foo</html>", max_images_per_item=1
+            )
         )
         analyzer = DummyAnalyzer()
         filters1 = [FilterModel(desc="Red")]
         filters2 = [FilterModel(desc="Large")]
-        asyncio.run(cached_analyze_item(session, analyzer, item, filters1))
-        asyncio.run(cached_analyze_item(session, analyzer, item, filters2))
+        asyncio.run(cached_analyze_item(session, analyzer, item, filters1, max_images_per_item=1))
+        asyncio.run(cached_analyze_item(session, analyzer, item, filters2, max_images_per_item=1))
         assert session.query(AnalysisResult).count() == 2
 
 
@@ -161,11 +195,13 @@ def test_cache_persists_across_sessions(tmp_path):
     init_db()
     with get_session_context() as session:
         item = asyncio.run(
-            cached_scrape_item(session, "vinted", "http://item5", "<html>foo</html>")
+            cached_scrape_item(
+                session, "vinted", "http://item5", "<html>foo</html>", max_images_per_item=1
+            )
         )
         analyzer = DummyAnalyzer()
         filters = [FilterModel(desc="Red")]
-        asyncio.run(cached_analyze_item(session, analyzer, item, filters))
+        asyncio.run(cached_analyze_item(session, analyzer, item, filters, max_images_per_item=1))
     with get_session_context() as session:
         assert session.query(ScrapedItem).count() == 1
         assert session.query(AnalysisResult).count() == 1
