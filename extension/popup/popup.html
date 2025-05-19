@@ -98,9 +98,34 @@
             <div class="space-y-3">
               <div class="flex flex-row gap-3">
                 <div class="flex flex-col flex-1">
-                  <label for="max-items" class="text-xs mr-2 text-primary-300">
-                    Max. items:
-                  </label>
+                  <div class="flex items-center justify-between">
+                    <label for="max-items" class="text-xs text-primary-300">
+                      Max. items:
+                    </label>
+                    <span
+                      class="relative group cursor-pointer flex-shrink-0 ml-2"
+                    >
+                      <span
+                        class="inline-flex items-center justify-center rounded-full border border-primary-400 text-primary-400 bg-transparent"
+                        style="
+                          width: 15px;
+                          height: 15px;
+                          font-size: 10px;
+                          font-weight: 600;
+                        "
+                        >i</span
+                      >
+                      <span
+                        class="fixed left-auto z-[9999] mt-2 min-w-[180px] max-w-xs bg-dark-800 text-xs text-primary-100 rounded shadow-lg px-3 py-2 opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-150"
+                        style="
+                          top: auto;
+                          left: 50%;
+                          transform: translateX(-50%);
+                        "
+                        >Maximum number of items to analyze on the page.</span
+                      >
+                    </span>
+                  </div>
                   <div class="flex items-center mt-1">
                     <input
                       type="number"
@@ -112,9 +137,35 @@
                   </div>
                 </div>
                 <div class="flex flex-col flex-1">
-                  <label for="max-images" class="text-xs mr-2 text-primary-300">
-                    Max. images per item:
-                  </label>
+                  <div class="flex items-center justify-between">
+                    <label for="max-images" class="text-xs text-primary-300">
+                      Images per item:
+                    </label>
+                    <span
+                      class="relative group cursor-pointer flex-shrink-0 ml-2"
+                    >
+                      <span
+                        class="inline-flex items-center justify-center rounded-full border border-primary-400 text-primary-400 bg-transparent"
+                        style="
+                          width: 15px;
+                          height: 15px;
+                          font-size: 10px;
+                          font-weight: 600;
+                        "
+                        >i</span
+                      >
+                      <span
+                        class="fixed left-auto z-[9999] mt-2 min-w-[200px] max-w-xs bg-dark-800 text-xs text-primary-100 rounded shadow-lg px-3 py-2 opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-150"
+                        style="
+                          top: auto;
+                          left: 50%;
+                          transform: translateX(-50%);
+                        "
+                        >Maximum number of images per item to send to the AI for
+                        analysis.</span
+                      >
+                    </span>
+                  </div>
                   <div class="flex items-center mt-1">
                     <input
                       type="number"
@@ -128,22 +179,63 @@
                 </div>
               </div>
               <div class="flex flex-col">
-                <label for="min-match" class="text-xs mr-2 text-primary-300">
-                  Min. matches:
-                </label>
-                <div class="flex items-center mt-1">
-                  <input
-                    type="range"
-                    id="min-match"
-                    min="0"
-                    max="0"
-                    class="w-full accent-primary-500"
-                  />
+                <div class="flex items-center justify-between">
+                  <label for="min-match" class="text-[11px] text-primary-300">
+                    Min. matches:
+                  </label>
                   <span
-                    id="min-match-value"
-                    class="ml-2 text-xs font-medium px-2 py-1 bg-primary-800/80 rounded-md min-w-[24px] text-center"
-                    >0</span
+                    class="relative group cursor-pointer flex-shrink-0 ml-2"
                   >
+                    <span
+                      class="inline-flex items-center justify-center rounded-full border border-primary-400 text-primary-400 bg-transparent"
+                      style="
+                        width: 15px;
+                        height: 15px;
+                        font-size: 10px;
+                        font-weight: 600;
+                      "
+                      >i</span
+                    >
+                    <span
+                      class="fixed left-auto z-[9999] mt-2 min-w-[200px] max-w-xs bg-dark-800 text-xs text-primary-100 rounded shadow-lg px-3 py-2 opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-150"
+                      style="top: auto; left: 50%; transform: translateX(-50%)"
+                      >Minimum number of filters an item must match to be
+                      shown.</span
+                    >
+                  </span>
+                </div>
+                <div class="flex flex-col items-center mt-1">
+                  <div class="flex items-center justify-center w-full">
+                    <input
+                      type="range"
+                      id="min-match"
+                      min="0"
+                      max="0"
+                      class="accent-primary-500"
+                      style="width: 70%; min-width: 120px; max-width: 220px"
+                    />
+                    <span
+                      id="min-match-value"
+                      class="ml-2 text-xs font-medium px-2 py-1 bg-primary-800/80 rounded-md min-w-[24px] text-center"
+                      >0</span
+                    >
+                  </div>
+                  <div
+                    class="flex flex-row justify-between mt-1 px-1 gap-2 w-full"
+                  >
+                    <span
+                      class="text-[10px] text-primary-500/60 bg-dark-800/60 rounded px-2 py-0.5"
+                      style="max-width: 60%"
+                    >
+                      Show all items (no filter required)
+                    </span>
+                    <span
+                      class="text-[10px] text-primary-500/60 bg-dark-800/60 rounded px-2 py-0.5 text-right"
+                      style="max-width: 60%"
+                    >
+                      Show only items matching every filter
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

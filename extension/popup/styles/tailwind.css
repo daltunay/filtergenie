@@ -180,4 +180,22 @@
   .w-1\/2 {
     width: 50%;
   }
+
+  .group {
+    position: relative;
+    display: inline-block;
+  }
+
+  .tooltip {
+    @apply absolute z-10 hidden whitespace-nowrap rounded-md bg-dark-900 p-2 text-sm font-medium text-white shadow-lg;
+  }
+
+  .group-hover\:tooltip {
+    @apply group-hover:block;
+  }
+
+  .group:hover .group-hover\:opacity-100 {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
 }
