@@ -16,14 +16,45 @@ def scrape_cache(scrape_func):
 
     def decorator(func: t.FunctionType) -> t.FunctionType:
         @functools.wraps(func)
-        async def wrapper(session: Session, platform: str, url: str, html: str, *args, **kwargs):
-            item = session.query(ScrapedItem).filter_by(platform=platform, url=url).first()
+        async def wrapper(
+            session: Session,
+            platform: str,
+            url: str,
+            html: str,
+            max_images_per_item: int,
+            *args,
+            **kwargs,
+        ):
+            item = (
+                session.query(ScrapedItem)
+                .filter(
+                    ScrapedItem.platform == platform,
+                    ScrapedItem.url == url,
+                    ScrapedItem.max_images_per_item >= max_images_per_item,
+                )
+                .order_by(ScrapedItem.max_images_per_item.asc())
+                .first()
+            )
             if item:
-                log.debug("Scrape cache hit", platform=platform, url=url)
+                log.debug(
+                    "Scrape cache hit",
+                    platform=platform,
+                    url=url,
+                    max_images_per_item=max_images_per_item,
+                )
                 return scrape_func(platform=platform, url=url, html=item.html)
-            log.debug("Scrape cache miss", platform=platform, url=url)
-            result = await func(session, platform, url, html, *args, **kwargs)
-            session.add(ScrapedItem(platform=platform, url=url, html=html))
+            log.debug(
+                "Scrape cache miss",
+                platform=platform,
+                url=url,
+                max_images_per_item=max_images_per_item,
+            )
+            result = await func(session, platform, url, html, max_images_per_item, *args, **kwargs)
+            session.add(
+                ScrapedItem(
+                    platform=platform, url=url, html=html, max_images_per_item=max_images_per_item
+                )
+            )
             session.commit()
             return result
 
@@ -41,6 +72,7 @@ def analyze_cache(func: t.FunctionType) -> t.FunctionType:
         analyzer: Analyzer,
         item: ItemModel,
         filters: list[FilterModel],
+        max_images_per_item: int,
         *args,
         **kwargs,
     ) -> list[FilterModel]:
@@ -50,14 +82,30 @@ def analyze_cache(func: t.FunctionType) -> t.FunctionType:
         filters_hash = hashlib.sha256(filters_json.encode("utf-8")).hexdigest()
         analysis = (
             session.query(AnalysisResult)
-            .filter_by(platform=platform, url=url, filters_hash=filters_hash)
+            .filter(
+                AnalysisResult.platform == platform,
+                AnalysisResult.url == url,
+                AnalysisResult.filters_hash == filters_hash,
+                AnalysisResult.max_images_per_item >= max_images_per_item,
+            )
+            .order_by(AnalysisResult.max_images_per_item.asc())
             .first()
         )
         if analysis:
-            log.debug("Analysis cache hit", platform=platform, url=url)
+            log.debug(
+                "Analysis cache hit",
+                platform=platform,
+                url=url,
+                max_images_per_item=max_images_per_item,
+            )
             return [FilterModel(**f) for f in analysis.filters]
-        log.debug("Analysis cache miss", platform=platform, url=url)
-        result = await func(session, analyzer, item, filters, *args, **kwargs)
+        log.debug(
+            "Analysis cache miss",
+            platform=platform,
+            url=url,
+            max_images_per_item=max_images_per_item,
+        )
+        result = await func(session, analyzer, item, filters, max_images_per_item, *args, **kwargs)
         session.add(
             AnalysisResult(
                 platform=platform,
@@ -65,6 +113,7 @@ def analyze_cache(func: t.FunctionType) -> t.FunctionType:
                 item=item.model_dump(),
                 filters=[f.model_dump() for f in result],
                 filters_hash=filters_hash,
+                max_images_per_item=max_images_per_item,
             )
         )
         session.commit()

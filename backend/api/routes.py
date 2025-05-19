@@ -67,7 +67,13 @@ async def _analyze_single_item(
     url = item_request.url
     log.debug(f"Processing item {idx + 1}", platform=platform, url=url)
     try:
-        item = await cached_scrape_item(session, platform=platform, url=url, html=item_request.html)
+        item = await cached_scrape_item(
+            session,
+            platform=platform,
+            url=url,
+            html=item_request.html,
+            max_images_per_item=max_images_per_item,
+        )
         item.images = item.images[:max_images_per_item]
         log.debug(
             f"ItemModel {idx + 1} scraped successfully", platform=platform, url=url, item=item
@@ -84,7 +90,9 @@ async def _analyze_single_item(
 
     try:
         filter_models = [FilterModel(desc=desc) for desc in filters]
-        analyzed_filters = await cached_analyze_item(session, analyzer, item, filter_models)
+        analyzed_filters = await cached_analyze_item(
+            session, analyzer, item, filter_models, max_images_per_item=max_images_per_item
+        )
         matched_count = sum(1 for f in analyzed_filters if f.value)
         log.debug(
             f"ItemModel {idx + 1} analyzed successfully",
