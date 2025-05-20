@@ -30,6 +30,8 @@ class DatabaseSessionManager:
                 "check_same_thread": False,
                 "timeout": 10,
             },
+            pool_size=50,
+            max_overflow=50,
         )
 
         async def set_wal():
