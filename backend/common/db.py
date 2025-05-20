@@ -1,3 +1,4 @@
+import asyncio
 import contextlib
 from datetime import datetime, timezone
 
@@ -8,6 +9,7 @@ from sqlalchemy import (
     Integer,
     String,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
@@ -24,8 +26,17 @@ class DatabaseSessionManager:
     def __init__(self, db_url: str):
         self._engine = create_async_engine(
             db_url,
-            connect_args={"check_same_thread": False},
+            connect_args={
+                "check_same_thread": False,
+                "timeout": 10,
+            },
         )
+
+        async def set_wal():
+            async with self._engine.begin() as conn:
+                await conn.execute(text("PRAGMA journal_mode=WAL"))
+
+        asyncio.get_event_loop().run_until_complete(set_wal())
         self._sessionmaker = async_sessionmaker(
             autocommit=False, bind=self._engine
         )  # ty: ignore[no-matching-overload]
