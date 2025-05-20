@@ -465,18 +465,15 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 300);
 
     ui.minMatch.oninput = (e) => {
-      resetApiBadgeOnInteraction();
       ui.minMatchValue.textContent = e.target.value;
       debouncedMinMatchHandler(e.target.value);
     };
 
     ui.maxItems.oninput = (e) => {
-      resetApiBadgeOnInteraction();
       debouncedMaxItemsHandler(e.target.value);
     };
 
     ui.maxImages.oninput = (e) => {
-      resetApiBadgeOnInteraction();
       debouncedMaxImagesHandler(e.target.value);
     };
   }
