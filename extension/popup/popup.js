@@ -22,7 +22,7 @@ import {
 
 document.addEventListener("DOMContentLoaded", () => {
   const API_MODE_KEY = "popupApiMode";
-  const API_KEY_KEY = "popupApiKey";
+  const API_KEY_KEY = "popupApiKey"; // pragma: allowlist secret
 
   let ignoreNextStorageUpdate = false;
 
@@ -634,7 +634,7 @@ document.addEventListener("DOMContentLoaded", () => {
           state.maxImagesPerItem = res.popupMaxImagesPerItem;
         if (typeof res.popupApiMode === "string")
           state.apiMode = res.popupApiMode;
-        if (typeof res.popupApiKey === "string") state.apiKey = res.popupApiKey;
+        if (typeof res.popupApiKey === "string") state.apiKey = res.popupApiKey; // pragma: allowlist secret
         if (res.filtergenieApiStatus) apiStatus = res.filtergenieApiStatus;
         renderUI();
         if (cb) cb();

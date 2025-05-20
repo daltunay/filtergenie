@@ -65,8 +65,6 @@ jobs:
 
       - name: Run pytest
         run: uv run pytest --cov=backend
-        env:
-          MODEL__REMOTE__API_KEY: dummy-key
 
   build-extension:
     name: Build Extension
