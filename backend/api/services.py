@@ -12,7 +12,7 @@ async def cached_scrape_item(
     platform: str,
     url: str,
     html: str,
-    max_images_per_item: int = 1,
+    max_images: int = 1,
 ) -> ItemModel:
     return scrape_item(platform=platform, url=url, html=html)
 
@@ -23,6 +23,6 @@ async def cached_analyze_item(
     analyzer: Analyzer,
     item: ItemModel,
     filters: list[FilterModel],
-    max_images_per_item: int = 1,
+    max_images: int = 1,
 ) -> list[FilterModel]:
     return await analyzer.analyze_item(item=item, filters=filters)

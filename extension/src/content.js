@@ -37,7 +37,7 @@ async function callApiAnalyzeSingle(
       body: JSON.stringify({
         item: itemSource,
         filters,
-        max_images_per_item: maxImagesPerItem,
+        max_images: maxImagesPerItem,
       }),
     });
     return resp.json();

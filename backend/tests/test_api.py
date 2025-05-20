@@ -54,7 +54,7 @@ def test_items_analyze_requires_api_key(monkeypatch):
     payload = {
         "item": {"platform": "vinted", "url": "http://foo", "html": "<html></html>"},
         "filters": ["Red"],
-        "max_images_per_item": 1,
+        "max_images": 1,
     }
     response = client.post("/item/analyze", json=payload)
     assert response.status_code == 401 or response.status_code == 403

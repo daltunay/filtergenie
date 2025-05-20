@@ -31,10 +31,10 @@ class ScrapedItem(Base):
     platform = Column(String, nullable=False)
     url = Column(String, nullable=False)
     html = Column(Text, nullable=False)
-    max_images_per_item = Column(Integer, nullable=False, default=1)
+    max_images = Column(Integer, nullable=False, default=1)
     created = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     __table_args__ = (
-        UniqueConstraint("platform", "url", "max_images_per_item", name="_platform_url_images_uc"),
+        UniqueConstraint("platform", "url", "max_images", name="_platform_url_images_uc"),
     )
 
 
@@ -46,14 +46,14 @@ class AnalysisResult(Base):
     item = Column(JSON, nullable=False)
     filters = Column(JSON, nullable=False)
     filters_hash = Column(String, nullable=False)
-    max_images_per_item = Column(Integer, nullable=False, default=1)
+    max_images = Column(Integer, nullable=False, default=1)
     created = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     __table_args__ = (
         UniqueConstraint(
             "platform",
             "url",
             "filters_hash",
-            "max_images_per_item",
+            "max_images",
             name="_platform_url_filters_images_uc",
         ),
     )

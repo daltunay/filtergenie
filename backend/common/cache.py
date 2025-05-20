@@ -21,7 +21,7 @@ def scrape_cache(scrape_func):
             platform: str,
             url: str,
             html: str,
-            max_images_per_item: int,
+            max_images: int,
             *args,
             **kwargs,
         ):
@@ -30,9 +30,9 @@ def scrape_cache(scrape_func):
                 .filter(
                     ScrapedItem.platform == platform,
                     ScrapedItem.url == url,
-                    ScrapedItem.max_images_per_item >= max_images_per_item,
+                    ScrapedItem.max_images >= max_images,
                 )
-                .order_by(ScrapedItem.max_images_per_item.asc())
+                .order_by(ScrapedItem.max_images.asc())
                 .first()
             )
             if item:
@@ -40,21 +40,17 @@ def scrape_cache(scrape_func):
                     "Scrape cache hit",
                     platform=platform,
                     url=url,
-                    max_images_per_item=max_images_per_item,
+                    max_images=max_images,
                 )
                 return scrape_func(platform=platform, url=url, html=item.html)
             log.debug(
                 "Scrape cache miss",
                 platform=platform,
                 url=url,
-                max_images_per_item=max_images_per_item,
+                max_images=max_images,
             )
-            result = await func(session, platform, url, html, max_images_per_item, *args, **kwargs)
-            session.add(
-                ScrapedItem(
-                    platform=platform, url=url, html=html, max_images_per_item=max_images_per_item
-                )
-            )
+            result = await func(session, platform, url, html, max_images, *args, **kwargs)
+            session.add(ScrapedItem(platform=platform, url=url, html=html, max_images=max_images))
             session.commit()
             return result
 
@@ -72,7 +68,7 @@ def analyze_cache(func: t.FunctionType) -> t.FunctionType:
         analyzer: Analyzer,
         item: ItemModel,
         filters: list[FilterModel],
-        max_images_per_item: int,
+        max_images: int,
         *args,
         **kwargs,
     ) -> list[FilterModel]:
@@ -86,9 +82,9 @@ def analyze_cache(func: t.FunctionType) -> t.FunctionType:
                 AnalysisResult.platform == platform,
                 AnalysisResult.url == url,
                 AnalysisResult.filters_hash == filters_hash,
-                AnalysisResult.max_images_per_item >= max_images_per_item,
+                AnalysisResult.max_images >= max_images,
             )
-            .order_by(AnalysisResult.max_images_per_item.asc())
+            .order_by(AnalysisResult.max_images.asc())
             .first()
         )
         if analysis:
@@ -96,16 +92,16 @@ def analyze_cache(func: t.FunctionType) -> t.FunctionType:
                 "Analysis cache hit",
                 platform=platform,
                 url=url,
-                max_images_per_item=max_images_per_item,
+                max_images=max_images,
             )
             return [FilterModel(**f) for f in analysis.filters]
         log.debug(
             "Analysis cache miss",
             platform=platform,
             url=url,
-            max_images_per_item=max_images_per_item,
+            max_images=max_images,
         )
-        result = await func(session, analyzer, item, filters, max_images_per_item, *args, **kwargs)
+        result = await func(session, analyzer, item, filters, max_images, *args, **kwargs)
         session.add(
             AnalysisResult(
                 platform=platform,
@@ -113,7 +109,7 @@ def analyze_cache(func: t.FunctionType) -> t.FunctionType:
                 item=item.model_dump(),
                 filters=[f.model_dump() for f in result],
                 filters_hash=filters_hash,
-                max_images_per_item=max_images_per_item,
+                max_images=max_images,
             )
         )
         session.commit()

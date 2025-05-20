@@ -59,7 +59,7 @@ async def _analyze_single_item(
     filters: list[str],
     analyzer: Analyzer,
     session: Session,
-    max_images_per_item: int,
+    max_images: int,
 ) -> tuple[int, list[FilterModel]]:
     """Process and analyze a single item and return its results with index."""
     platform = item_request.platform
@@ -71,9 +71,9 @@ async def _analyze_single_item(
             platform=platform,
             url=url,
             html=item_request.html,
-            max_images_per_item=max_images_per_item,
+            max_images=max_images,
         )
-        item.images = item.images[:max_images_per_item]
+        item.images = item.images[:max_images]
         log.debug(
             f"ItemModel {idx + 1} scraped successfully", platform=platform, url=url, item=item
         )
@@ -90,7 +90,7 @@ async def _analyze_single_item(
     try:
         filter_models = [FilterModel(desc=desc) for desc in sorted(filters)]
         analyzed_filters = await cached_analyze_item(
-            session, analyzer, item, filter_models, max_images_per_item=max_images_per_item
+            session, analyzer, item, filter_models, max_images=max_images
         )
         matched_count = sum(1 for f in analyzed_filters if f.value)
         log.debug(
@@ -132,12 +132,12 @@ async def analyze_item(
             platform=request.item.platform,
             url=request.item.url,
             html=request.item.html,
-            max_images_per_item=request.max_images_per_item,
+            max_images=request.max_images,
         )
-        item.images = item.images[: request.max_images_per_item]
+        item.images = item.images[: request.max_images]
         filter_models = [FilterModel(desc=desc) for desc in sorted(request.filters)]
         analyzed_filters = await cached_analyze_item(
-            session, analyzer, item, filter_models, max_images_per_item=request.max_images_per_item
+            session, analyzer, item, filter_models, max_images=request.max_images
         )
         duration = time.perf_counter() - start_time
         matched_count = sum(1 for f in analyzed_filters if f.value)
