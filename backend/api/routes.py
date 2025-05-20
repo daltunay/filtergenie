@@ -1,4 +1,3 @@
-import asyncio
 import time
 import traceback
 
@@ -115,44 +114,40 @@ async def _analyze_single_item(
         raise
 
 
-@authenticated_router.post("/items/analyze", response_model=AnalysisResponse)
-async def analyze_items(
+@authenticated_router.post("/item/analyze", response_model=AnalysisResponse)
+async def analyze_item(
     request: AnalysisRequest,
     analyzer: Analyzer = Depends(get_analyzer),
     session: Session = Depends(get_db_session),
 ):
-    """RESTful endpoint to analyze multiple items based on HTML content."""
+    """RESTful endpoint to analyze a single item based on HTML content."""
     log.info(
         "Received analysis request",
-        items_count=len(request.items),
         filters_count=len(request.filters),
     )
     try:
         start_time = time.perf_counter()
-        tasks = [
-            _analyze_single_item(
-                i, item, request.filters, analyzer, session, request.max_images_per_item
-            )
-            for i, item in enumerate(request.items)
-        ]
-        results = await asyncio.gather(*tasks)
+        item = await cached_scrape_item(
+            session,
+            platform=request.item.platform,
+            url=request.item.url,
+            html=request.item.html,
+            max_images_per_item=request.max_images_per_item,
+        )
+        item.images = item.images[: request.max_images_per_item]
+        filter_models = [FilterModel(desc=desc) for desc in sorted(request.filters)]
+        analyzed_filters = await cached_analyze_item(
+            session, analyzer, item, filter_models, max_images_per_item=request.max_images_per_item
+        )
         duration = time.perf_counter() - start_time
-        avg_duration = duration / len(request.items) if request.items else 0.0
-        analyzed_results = [r[1] for r in sorted(results, key=lambda x: x[0])]
-
+        matched_count = sum(1 for f in analyzed_filters if f.value)
         log.info(
             "Analysis completed successfully",
-            items_count=len(request.items),
-            filters_processed=len(request.filters) * len(request.items),
+            matched_filters=matched_count,
+            total_filters=len(filter_models),
             duration=f"{duration:.2f}s",
-            avg_per_item=f"{avg_duration:.2f}s",
         )
-
-        return AnalysisResponse(
-            filters=[
-                {f.desc: f.value for f in analyzed_filters} for analyzed_filters in analyzed_results
-            ]
-        )
+        return AnalysisResponse(filters={f.desc: f.value for f in analyzed_filters})
     except Exception as e:
         error_traceback = traceback.format_exc()
         log.error(

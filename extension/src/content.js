@@ -3,29 +3,25 @@ import "../platforms/leboncoin.js";
 import "../platforms/vinted.js";
 import { showItemSpinner, removeItemSpinner } from "../utils/spinnerUtils.js";
 
-async function fetchItemSources(platform, items) {
-  return Promise.all(
-    items.map(async (item) => {
-      const html = await platform.getItemHtml(item);
-      let images = [];
-      try {
-        const doc = new DOMParser().parseFromString(html, "text/html");
-        images = Array.from(doc.querySelectorAll("img"))
-          .map((img) => img.src)
-          .filter(Boolean);
-      } catch {}
-      return {
-        platform: platform.name,
-        url: platform.getItemUrl(item),
-        html,
-        images,
-      };
-    }),
-  );
+async function fetchItemSource(platform, item) {
+  const html = await platform.getItemHtml(item);
+  let images = [];
+  try {
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    images = Array.from(doc.querySelectorAll("img"))
+      .map((img) => img.src)
+      .filter(Boolean);
+  } catch {}
+  return {
+    platform: platform.name,
+    url: platform.getItemUrl(item),
+    html,
+    images,
+  };
 }
 
-async function callApiAnalyze(
-  items,
+async function callApiAnalyzeSingle(
+  itemSource,
   filters,
   apiEndpoint,
   apiKey,
@@ -34,13 +30,12 @@ async function callApiAnalyze(
   const headers = { "Content-Type": "application/json" };
   if (apiKey) headers["X-API-Key"] = apiKey;
   apiEndpoint = apiEndpoint.replace(/\/+$/, "");
-
   try {
-    const resp = await fetch(`${apiEndpoint}/items/analyze`, {
+    const resp = await fetch(`${apiEndpoint}/item/analyze`, {
       method: "POST",
       headers,
       body: JSON.stringify({
-        items,
+        item: itemSource,
         filters,
         max_images_per_item: maxImagesPerItem,
       }),
@@ -139,42 +134,65 @@ async function analyzeItems(
 
   showItemSpinner(items);
 
+  const filtersData = [];
+  const sortedFilters = [...filters].sort();
+  let finished = 0;
+
+  // Helper to update API status in popup
+  function setApiStatus(state, opts = {}) {
+    chrome.runtime.sendMessage({ type: "API_STATUS", state, ...opts });
+  }
+
+  setApiStatus("filtering");
+
   try {
-    const itemSources = await fetchItemSources(platform, items);
-    const sortedFilters = [...filters].sort((a, b) => a.localeCompare(b));
-    const data = await callApiAnalyze(
-      itemSources,
-      sortedFilters,
-      apiEndpoint,
-      apiKey,
-      maxImagesPerItem,
+    // Fetch all item sources concurrently
+    const itemSources = await Promise.all(
+      items.map((item) => fetchItemSource(platform, item)),
     );
 
-    removeItemSpinner(items);
-
-    if (data.filters) {
-      updateItemStatus(items, data.filters, minMatch);
-      chrome.storage.local.set({
-        filtergenieLastAnalyzed: {
-          filtersData: data.filters,
-          minMatch,
-          maxItems,
-          timestamp: Date.now(),
-        },
-      });
-      chrome.runtime.sendMessage({ type: "FILTERS_APPLIED", success: true });
-      sendResponse?.({ apiResponse: data });
-    } else {
-      chrome.runtime.sendMessage({
-        type: "FILTERS_APPLIED",
-        success: false,
-        error: "Invalid response format",
-      });
-      sendResponse?.({ apiResponse: "Invalid response format" });
-    }
+    // For each item, send API call and update UI as soon as it's done
+    await Promise.all(
+      itemSources.map(async (itemSource, idx) => {
+        let result = {};
+        try {
+          const data = await callApiAnalyzeSingle(
+            itemSource,
+            sortedFilters,
+            apiEndpoint,
+            apiKey,
+            maxImagesPerItem,
+          );
+          if (data && data.filters) result = data.filters;
+        } catch {}
+        filtersData[idx] = result;
+        removeItemSpinner([items[idx]]);
+        updateItemStatus([items[idx]], [result], minMatch);
+        finished++;
+        // When all items are done, update API status and remove all spinners
+        if (finished === items.length) {
+          removeItemSpinner(items);
+          setApiStatus("done");
+          chrome.storage.local.set({
+            filtergenieLastAnalyzed: {
+              filtersData,
+              minMatch,
+              maxItems,
+              timestamp: Date.now(),
+            },
+          });
+          chrome.runtime.sendMessage({
+            type: "FILTERS_APPLIED",
+            success: true,
+          });
+          sendResponse?.({ apiResponse: { filters: filtersData } });
+        }
+      }),
+    );
   } catch (error) {
     console.error("FilterGenie analysis error:", error);
     removeItemSpinner(items);
+    setApiStatus("error", { error: "API error" });
     chrome.runtime.sendMessage({
       type: "FILTERS_APPLIED",
       success: false,

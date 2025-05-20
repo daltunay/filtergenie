@@ -52,12 +52,13 @@ def test_items_analyze_requires_api_key(monkeypatch):
 
     settings.api.key = "testkey"
     payload = {
-        "items": [{"platform": "vinted", "url": "http://foo", "html": "<html></html>"}],
+        "item": {"platform": "vinted", "url": "http://foo", "html": "<html></html>"},
         "filters": ["Red"],
+        "max_images_per_item": 1,
     }
-    response = client.post("/items/analyze", json=payload)
+    response = client.post("/item/analyze", json=payload)
     assert response.status_code == 401 or response.status_code == 403
-    response = client.post("/items/analyze", json=payload, headers={"X-API-Key": "wrong"})
+    response = client.post("/item/analyze", json=payload, headers={"X-API-Key": "wrong"})
     assert response.status_code == 403
-    response = client.post("/items/analyze", json=payload, headers={"X-API-Key": "testkey"})
+    response = client.post("/item/analyze", json=payload, headers={"X-API-Key": "testkey"})
     assert response.status_code not in (401, 403)

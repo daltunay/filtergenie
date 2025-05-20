@@ -10,9 +10,9 @@ class ItemSource(BaseModel):
 
 
 class AnalysisRequest(BaseModel):
-    """Request model for analyzing multiple items against filters"""
+    """Request model for analyzing a single item against filters"""
 
-    items: list[ItemSource]
+    item: ItemSource
     filters: list[str]
     max_images_per_item: int
 
@@ -20,4 +20,4 @@ class AnalysisRequest(BaseModel):
 class AnalysisResponse(BaseModel):
     """Response model for the analyzer endpoint"""
 
-    filters: list[dict[str, bool]]
+    filters: dict[str, bool]
