@@ -34,6 +34,3 @@ packages = ["backend"]
 
 [tool.ruff]
 line-length = 100
-
-[tool.ty.rules]
-unresolved-import = "warn"
