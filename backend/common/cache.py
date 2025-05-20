@@ -115,7 +115,6 @@ def analyze_cache(func: t.FunctionType) -> t.FunctionType:
             AnalysisResult(
                 platform=platform,
                 url=url,
-                item=item.model_dump(),
                 filters=[f.model_dump() for f in result_filters],
                 filters_hash=filters_hash,
                 max_images=max_images,

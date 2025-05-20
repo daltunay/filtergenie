@@ -44,7 +44,6 @@ class AnalysisResult(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     platform = Column(String, nullable=False)
     url = Column(String, nullable=False)
-    item = Column(JSON, nullable=False)
     filters = Column(JSON, nullable=False)
     filters_hash = Column(String, nullable=False)
     max_images = Column(Integer, nullable=False, default=1)

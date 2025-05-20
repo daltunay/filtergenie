@@ -39,7 +39,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 async def lifespan(app: FastAPI):
     """Application startup and shutdown event handler."""
     log.info("Application starting up - initializing database")
-    init_db()
+    await init_db()
     yield
     log.info("Application shutting down")
 
