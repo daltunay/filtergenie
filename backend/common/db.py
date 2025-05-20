@@ -58,6 +58,12 @@ class DatabaseSessionManager:
         finally:
             await session.close()
 
+    def get_session(self):
+        """Return a new async session. Each concurrent task should use its own session."""
+        if self._sessionmaker is None:
+            raise Exception("DatabaseSessionManager is not initialized")
+        return self._sessionmaker()
+
 
 sessionmanager = DatabaseSessionManager(DB_URL)
 
