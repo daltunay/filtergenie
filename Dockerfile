@@ -22,6 +22,8 @@ ENV PATH="/app/.venv/bin:$PATH"
 
 COPY backend/ ./backend
 
+RUN mkdir -p /app/data
+
 ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8000
