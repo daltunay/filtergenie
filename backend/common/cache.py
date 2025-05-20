@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.analyzer import Analyzer
 from backend.analyzer.models import FilterModel, ItemModel
-from backend.common.db import AnalysisResult, ScrapedItem
+from backend.common.db import AnalysisResult, ScrapedItem, sessionmanager
 from backend.common.logging import log
 
 
@@ -54,12 +54,13 @@ def scrape_cache(scrape_func):
                 max_images=max_images,
             )
             result = await func(session, platform, url, html, max_images, *args, **kwargs)
-            session.add(
-                ScrapedItem(
-                    platform=platform, url=url, max_images=max_images, item=result.model_dump()
+            async with sessionmanager.write_lock:
+                session.add(
+                    ScrapedItem(
+                        platform=platform, url=url, max_images=max_images, item=result.model_dump()
+                    )
                 )
-            )
-            await session.commit()
+                await session.commit()
             return result
 
         return wrapper
@@ -111,16 +112,17 @@ def analyze_cache(func: t.FunctionType) -> t.FunctionType:
             max_images=max_images,
         )
         result_filters = await func(session, analyzer, item, filters, max_images, *args, **kwargs)
-        session.add(
-            AnalysisResult(
-                platform=platform,
-                url=url,
-                filters=[f.model_dump() for f in result_filters],
-                filters_hash=filters_hash,
-                max_images=max_images,
+        async with sessionmanager.write_lock:
+            session.add(
+                AnalysisResult(
+                    platform=platform,
+                    url=url,
+                    filters=[f.model_dump() for f in result_filters],
+                    filters_hash=filters_hash,
+                    max_images=max_images,
+                )
             )
-        )
-        await session.commit()
+            await session.commit()
         return result_filters
 
     return wrapper

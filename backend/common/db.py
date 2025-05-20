@@ -30,8 +30,8 @@ class DatabaseSessionManager:
                 "check_same_thread": False,
                 "timeout": 10,
             },
-            pool_size=50,
-            max_overflow=50,
+            pool_size=5,
+            max_overflow=10,
         )
 
         async def set_wal():
@@ -42,6 +42,7 @@ class DatabaseSessionManager:
         self._sessionmaker = async_sessionmaker(
             autocommit=False, bind=self._engine
         )  # ty: ignore[no-matching-overload]
+        self.write_lock = asyncio.Lock()
 
     async def close(self):
         if self._engine is not None:
