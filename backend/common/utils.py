@@ -20,7 +20,7 @@ def resize_img(img: Image.Image, max_size=(256, 256)) -> Image.Image:
 
 def url_to_pil(url: str) -> Image.Image:
     """Load an image from a URL and resize it."""
-    response = requests.get(url, stream=True)
+    response = requests.get(url, stream=True, timeout=5)
     response.raise_for_status()
     img = Image.open(io.BytesIO(response.content))
     img = resize_img(img)
