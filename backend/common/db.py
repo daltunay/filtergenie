@@ -17,8 +17,7 @@ from sqlalchemy.orm import declarative_base
 
 from backend.common.logging import log
 
-DB_PATH = "data/cache.db"
-DB_URL = f"sqlite+aiosqlite:///{DB_PATH}"
+DB_URL = "sqlite+aiosqlite:///data/cache.db"
 
 
 class DatabaseSessionManager:

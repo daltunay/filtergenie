@@ -24,6 +24,8 @@ asgi-correlation-id==4.3.4
     # via filtergenie
 asttokens==3.0.0
     # via stack-data
+asyncpg==0.30.0
+    # via filtergenie
 attrs==25.3.0
     # via aiohttp
 beautifulsoup4==4.13.4
