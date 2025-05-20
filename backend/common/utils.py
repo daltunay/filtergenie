@@ -19,15 +19,18 @@ def resize_img(img: Image.Image, max_size=(256, 256)) -> Image.Image:
 
 
 def url_to_pil(url: str) -> Image.Image:
-    """Load an image from a URL."""
-    response = requests.get(url)
+    """Load an image from a URL and resize it."""
+    response = requests.get(url, stream=True)
     response.raise_for_status()
     img = Image.open(io.BytesIO(response.content))
-    return resize_img(img)
+    img = resize_img(img)
+    return img
 
 
 def pil_to_base64(img: Image.Image) -> str:
-    """Convert an image to base64 encoding."""
+    """Convert an image to base64 encoding with lower quality to save RAM."""
     buffer = io.BytesIO()
-    img.save(buffer, format="JPEG")
-    return f"data:image/jpeg;base64,{base64.b64encode(buffer.getvalue()).decode('utf-8')}"
+    img.save(buffer, format="JPEG", quality=85, optimize=True)
+    base64_str = f"data:image/jpeg;base64,{base64.b64encode(buffer.getvalue()).decode('utf-8')}"
+    buffer.close()
+    return base64_str
