@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from .api.routes import authenticated_router, public_router
-from .common.db import init_db
+from .common.db import init_db, sessionmanager
 from .common.logging import log, setup_logging
 
 
@@ -42,6 +42,7 @@ async def lifespan(app: FastAPI):
     await init_db()
     yield
     log.info("Application shutting down")
+    await sessionmanager.close()
 
 
 def create_app() -> FastAPI:

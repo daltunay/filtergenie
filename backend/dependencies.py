@@ -1,7 +1,5 @@
-import typing as tp
-
 from backend.analyzer import Analyzer
-from backend.common.db import get_async_session_context
+from backend.common.db import sessionmanager
 
 _analyzer = Analyzer()
 
@@ -11,7 +9,6 @@ def get_analyzer() -> Analyzer:
     return _analyzer
 
 
-async def get_db_session() -> tp.AsyncGenerator:
-    """Async dependency that provides a DB session."""
-    async with get_async_session_context() as session:
+async def get_db_session():
+    async with sessionmanager.session() as session:
         yield session

@@ -47,6 +47,9 @@ class Settings(BaseSettings):
 
     api: ApiConfig = Field(default_factory=ApiConfig)
     groq: GroqConfig = Field(default_factory=GroqConfig, validation_alias="GROQ")
+    database_url: str = Field(
+        default="sqlite+aiosqlite:///data/cache.db", validation_alias="DATABASE_URL"
+    )
 
 
 settings = Settings()
