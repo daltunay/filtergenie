@@ -27,5 +27,7 @@ services:
       paths:
         - backend/**
         - render.yaml
+        - Dockerfile
+        - .dockerignore
       ignoredPaths:
         - backend/tests/**
