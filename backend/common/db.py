@@ -22,7 +22,10 @@ DB_URL = "sqlite+aiosqlite:///data/cache.db"
 
 class DatabaseSessionManager:
     def __init__(self, db_url: str):
-        self._engine = create_async_engine(db_url)
+        self._engine = create_async_engine(
+            db_url,
+            connect_args={"check_same_thread": False},
+        )
         self._sessionmaker = async_sessionmaker(
             autocommit=False, bind=self._engine
         )  # ty: ignore[no-matching-overload]
