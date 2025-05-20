@@ -14,6 +14,7 @@ async def cached_scrape_item(
     html: str,
     max_images: int = 1,
 ) -> ItemModel:
+    """Scrape item details from the web page."""
     return scrape_item(platform=platform, url=url, html=html)
 
 
@@ -25,4 +26,5 @@ async def cached_analyze_item(
     filters: list[FilterModel],
     max_images: int = 1,
 ) -> list[FilterModel]:
+    """Analyze the scraped item details against the filters."""
     return await analyzer.analyze_item(item=item, filters=filters)

@@ -1,9 +1,7 @@
 import typing as tp
 
-from sqlalchemy.orm import Session
-
 from backend.analyzer import Analyzer
-from backend.common.db import SessionLocal
+from backend.common.db import get_async_session_context
 
 _analyzer = Analyzer()
 
@@ -13,10 +11,7 @@ def get_analyzer() -> Analyzer:
     return _analyzer
 
 
-def get_db_session() -> tp.Generator[Session, None, None]:
-    """Dependency that provides a DB session."""
-    session = SessionLocal()
-    try:
+async def get_db_session() -> tp.AsyncGenerator:
+    """Async dependency that provides a DB session."""
+    async with get_async_session_context() as session:
         yield session
-    finally:
-        session.close()

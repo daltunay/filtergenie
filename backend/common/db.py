@@ -1,5 +1,5 @@
 import os
-from contextlib import contextmanager
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -9,19 +9,20 @@ from sqlalchemy import (
     DateTime,
     Integer,
     String,
-    Text,
     UniqueConstraint,
-    create_engine,
 )
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 from backend.common.logging import log
 
 DB_PATH = "data/cache.db"
-DB_URL = f"sqlite:///{DB_PATH}"
+ASYNC_DB_URL = f"sqlite+aiosqlite:///{DB_PATH}"
 
-engine = create_engine(DB_URL, connect_args={"check_same_thread": False}, echo=False)
-SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)  # ty: ignore[no-matching-overload]
+async_engine = create_async_engine(
+    ASYNC_DB_URL, connect_args={"check_same_thread": False}, echo=False
+)
+AsyncSessionLocal = sessionmaker(bind=async_engine, class_=AsyncSession, expire_on_commit=False)
 Base = declarative_base()
 
 
@@ -30,8 +31,8 @@ class ScrapedItem(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     platform = Column(String, nullable=False)
     url = Column(String, nullable=False)
-    html = Column(Text, nullable=False)
     max_images = Column(Integer, nullable=False, default=1)
+    item = Column(JSON, nullable=False)
     created = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     __table_args__ = (
         UniqueConstraint("platform", "url", "max_images", name="_platform_url_images_uc"),
@@ -59,21 +60,23 @@ class AnalysisResult(Base):
     )
 
 
-def init_db() -> None:
+async def init_db() -> None:
     db_dir = os.path.dirname(DB_PATH)
     if db_dir:
         Path(db_dir).mkdir(parents=True, exist_ok=True)
-    Base.metadata.create_all(engine)
+    async with async_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     log.info("Database initialized", db_path=DB_PATH)
 
 
-@contextmanager
-def get_session_context():
-    session = SessionLocal()
+@asynccontextmanager
+async def get_async_session_context():
+    session = AsyncSessionLocal()
     try:
         yield session
+        await session.commit()
     except Exception:
-        session.rollback()
+        await session.rollback()
         raise
     finally:
-        session.close()
+        await session.close()

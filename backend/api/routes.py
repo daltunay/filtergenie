@@ -2,7 +2,7 @@ import time
 import traceback
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.analyzer import Analyzer
 from backend.analyzer.models import FilterModel
@@ -37,7 +37,7 @@ async def check_api_auth():
 
 
 @authenticated_router.post("/cache/clear")
-async def clear_cache_endpoint(session: Session = Depends(get_db_session)):
+async def clear_cache_endpoint(session: AsyncSession = Depends(get_db_session)):
     """Clear cache entries."""
     try:
         log.info("Clearing cache entries")
@@ -58,7 +58,7 @@ async def _analyze_single_item(
     item_request: ItemSource,
     filters: list[str],
     analyzer: Analyzer,
-    session: Session,
+    session: AsyncSession,
     max_images: int,
 ) -> tuple[int, list[FilterModel]]:
     """Process and analyze a single item and return its results with index."""
@@ -118,7 +118,7 @@ async def _analyze_single_item(
 async def analyze_item(
     request: AnalysisRequest,
     analyzer: Analyzer = Depends(get_analyzer),
-    session: Session = Depends(get_db_session),
+    session: AsyncSession = Depends(get_db_session),
 ):
     """RESTful endpoint to analyze a single item based on HTML content."""
     log.info(

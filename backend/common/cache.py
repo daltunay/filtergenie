@@ -3,7 +3,8 @@ import hashlib
 import json
 import types as t
 
-from sqlalchemy.orm import Session
+from sqlalchemy import delete, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.analyzer import Analyzer
 from backend.analyzer.models import FilterModel, ItemModel
@@ -17,7 +18,7 @@ def scrape_cache(scrape_func):
     def decorator(func: t.FunctionType) -> t.FunctionType:
         @functools.wraps(func)
         async def wrapper(
-            session: Session,
+            session: AsyncSession,
             platform: str,
             url: str,
             html: str,
@@ -25,24 +26,27 @@ def scrape_cache(scrape_func):
             *args,
             **kwargs,
         ):
-            item = (
-                session.query(ScrapedItem)
-                .filter(
+            stmt = (
+                select(ScrapedItem)
+                .where(
                     ScrapedItem.platform == platform,
                     ScrapedItem.url == url,
                     ScrapedItem.max_images >= max_images,
                 )
                 .order_by(ScrapedItem.max_images.asc())
-                .first()
             )
-            if item:
+            result = await session.execute(stmt)
+            item_row = result.scalars().first()
+            if item_row:
                 log.debug(
                     "Scrape cache hit",
                     platform=platform,
                     url=url,
                     max_images=max_images,
                 )
-                return scrape_func(platform=platform, url=url, html=item.html)
+                from backend.analyzer.models import ItemModel
+
+                return ItemModel(**item_row.item)
             log.debug(
                 "Scrape cache miss",
                 platform=platform,
@@ -50,8 +54,12 @@ def scrape_cache(scrape_func):
                 max_images=max_images,
             )
             result = await func(session, platform, url, html, max_images, *args, **kwargs)
-            session.add(ScrapedItem(platform=platform, url=url, html=html, max_images=max_images))
-            session.commit()
+            session.add(
+                ScrapedItem(
+                    platform=platform, url=url, max_images=max_images, item=result.model_dump()
+                )
+            )
+            await session.commit()
             return result
 
         return wrapper
@@ -64,7 +72,7 @@ def analyze_cache(func: t.FunctionType) -> t.FunctionType:
 
     @functools.wraps(func)
     async def wrapper(
-        session: Session,
+        session: AsyncSession,
         analyzer: Analyzer,
         item: ItemModel,
         filters: list[FilterModel],
@@ -76,17 +84,18 @@ def analyze_cache(func: t.FunctionType) -> t.FunctionType:
         url = item.url
         filters_json = json.dumps([f.desc for f in filters], sort_keys=True)
         filters_hash = hashlib.sha256(filters_json.encode("utf-8")).hexdigest()
-        analysis = (
-            session.query(AnalysisResult)
-            .filter(
+        stmt = (
+            select(AnalysisResult)
+            .where(
                 AnalysisResult.platform == platform,
                 AnalysisResult.url == url,
                 AnalysisResult.filters_hash == filters_hash,
                 AnalysisResult.max_images >= max_images,
             )
             .order_by(AnalysisResult.max_images.asc())
-            .first()
         )
+        result = await session.execute(stmt)
+        analysis = result.scalars().first()
         if analysis:
             log.debug(
                 "Analysis cache hit",
@@ -101,28 +110,28 @@ def analyze_cache(func: t.FunctionType) -> t.FunctionType:
             url=url,
             max_images=max_images,
         )
-        result = await func(session, analyzer, item, filters, max_images, *args, **kwargs)
+        result_filters = await func(session, analyzer, item, filters, max_images, *args, **kwargs)
         session.add(
             AnalysisResult(
                 platform=platform,
                 url=url,
                 item=item.model_dump(),
-                filters=[f.model_dump() for f in result],
+                filters=[f.model_dump() for f in result_filters],
                 filters_hash=filters_hash,
                 max_images=max_images,
             )
         )
-        session.commit()
-        return result
+        await session.commit()
+        return result_filters
 
     return wrapper
 
 
-async def clear_cache(session: Session) -> int:
+async def clear_cache(session: AsyncSession) -> int:
     """Clear cache entries from database."""
-    scraped = session.query(ScrapedItem).delete()
-    analyzed = session.query(AnalysisResult).delete()
-    session.commit()
-    count = scraped + analyzed
+    scraped_result = await session.execute(delete(ScrapedItem))
+    analyzed_result = await session.execute(delete(AnalysisResult))
+    await session.commit()
+    count = scraped_result.rowcount + analyzed_result.rowcount
     log.debug("Cache entries cleared", count=count)
     return count
