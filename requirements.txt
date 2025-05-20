@@ -191,6 +191,7 @@ pycparser==2.22 ; implementation_name == 'pypy'
 pydantic==2.11.4
     # via
     #   fastapi
+    #   filtergenie
     #   groq
     #   instructor
     #   openai
