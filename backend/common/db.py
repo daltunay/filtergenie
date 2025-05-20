@@ -16,9 +16,9 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.orm import declarative_base
 
 from backend.common.logging import log
-from backend.config import settings
 
-Base = declarative_base()
+DB_PATH = "data/cache.db"
+DB_URL = f"sqlite+aiosqlite:///{DB_PATH}"
 
 
 class DatabaseSessionManager:
@@ -59,7 +59,9 @@ class DatabaseSessionManager:
             await session.close()
 
 
-sessionmanager = DatabaseSessionManager(settings.database_url)
+sessionmanager = DatabaseSessionManager(DB_URL)
+
+Base = declarative_base()
 
 
 class ScrapedItem(Base):
@@ -98,4 +100,4 @@ class AnalysisResult(Base):
 async def init_db() -> None:
     async with sessionmanager.connect() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    log.info("Database initialized", db_path=settings.database_url)
+    log.info("Database initialized", db_path=DB_URL)
