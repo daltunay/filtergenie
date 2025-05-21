@@ -18,7 +18,7 @@ ENV UV_COMPILE_BYTECODE=1 \
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --no-install-project --no-dev
 
-ENV API_PROFILING_ENABLED=false
+ARG API_PROFILING_ENABLED=false
 
 RUN if [ "$API_PROFILING_ENABLED" = "true" ]; then \
     uv pip install pyinstrument; \
