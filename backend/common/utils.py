@@ -11,10 +11,10 @@ def sanitize_text(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", text.lower()).strip("_")
 
 
-def resize_img(img: Image.Image, max_size=(256, 256)) -> Image.Image:
+def resize_img(img: Image.Image, max_size: int = 256) -> Image.Image:
     """Resize an image while maintaining aspect ratio."""
-    if img.width > max_size[0] or img.height > max_size[1]:
-        img.thumbnail(max_size)
+    if img.width > max_size or img.height > max_size:
+        img.thumbnail((max_size, max_size))
     return img
 
 
