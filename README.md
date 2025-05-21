@@ -163,11 +163,8 @@ docker run --rm \
   -e GROQ_API_KEY="your_groq_api_key" \
   -e GROQ_MODEL_NAME="meta-llama/llama-4-scout-17b-16e-instruct" \
   -p 8000:8000 \
-  -v ./data:/app/data \
   filtergenie
 ```
-
-> **Note:** Mount the `data` folder to persist the SQLite database outside the container.
 
 ## Privacy Policy
 

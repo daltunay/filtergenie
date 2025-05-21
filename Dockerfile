@@ -15,27 +15,27 @@ ENV UV_COMPILE_BYTECODE=1 \
     UV_NO_INSTALLER_METADATA=1 \
     VIRTUAL_ENV=/app/.venv
 
+ARG DEV=false
+ENV DEV=${DEV}
+
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --no-install-project --no-dev
-
-ARG API_PROFILING_ENABLED=false
-
-RUN if [ "$API_PROFILING_ENABLED" = "true" ]; then \
-    uv pip install pyinstrument; \
+    if [ "$DEV" = "true" ]; \
+    then uv sync --no-install-project; \
+    else uv sync --no-install-project --no-dev; \
     fi
 
 ENV PATH="/app/.venv/bin:$PATH"
 
 COPY backend/ ./backend
 
-RUN mkdir -p /app/data
+RUN mkdir -p ./data
 
 ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8000
 HEALTHCHECK CMD curl --fail http://localhost:8000/health || exit 1
 
-COPY docker-entrypoint.sh /app/docker-entrypoint.sh
-RUN chmod +x /app/docker-entrypoint.sh
+COPY docker-entrypoint.sh ./docker-entrypoint.sh
+RUN chmod +x ./docker-entrypoint.sh
 
-ENTRYPOINT ["/app/docker-entrypoint.sh"]
+ENTRYPOINT ["./docker-entrypoint.sh"]

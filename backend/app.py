@@ -10,6 +10,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from backend.api.routes import authenticated_router, public_router
+from backend.common.cache import close_redis_client
 from backend.common.logging import log, setup_logging
 from backend.config import settings
 
@@ -81,6 +82,7 @@ async def lifespan(app: FastAPI):
     log.info("Application starting up")
     yield
     log.info("Application shutting down")
+    await close_redis_client()
 
 
 def create_app() -> FastAPI:

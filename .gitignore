@@ -16,6 +16,7 @@ wheels/
 *.db
 *.db-shm
 *.db-wal
+*.rdb
 TODO.txt
 node_modules/
 extension/dist/

@@ -17,11 +17,20 @@ def scraped_item_cache_key(platform: str, url: str, max_images: int) -> str:
     return f"scraped:{platform}:{url}:{max_images}"
 
 
-def analysis_result_cache_key(platform: str, url: str, filters_hash: str, max_images: int) -> str:
+def analysis_result_cache_key(
+    platform: str,
+    url: str,
+    filters_hash: str,
+    max_images: int,
+) -> str:
     return f"analysis:{platform}:{url}:{filters_hash}:{max_images}"
 
 
-async def get_scraped_item_from_cache(platform: str, url: str, max_images: int) -> dict | None:
+async def get_scraped_item_from_cache(
+    platform: str,
+    url: str,
+    max_images: int,
+) -> dict | None:
     key = scraped_item_cache_key(platform, url, max_images)
     try:
         data = await redis_client.get(key)
@@ -33,7 +42,11 @@ async def get_scraped_item_from_cache(platform: str, url: str, max_images: int) 
 
 
 async def set_scraped_item_cache(
-    platform: str, url: str, max_images: int, item: dict, ttl: int = 3600
+    platform: str,
+    url: str,
+    max_images: int,
+    item: dict,
+    ttl: int = 3600,
 ):
     key = scraped_item_cache_key(platform, url, max_images)
     try:
@@ -43,7 +56,10 @@ async def set_scraped_item_cache(
 
 
 async def get_analysis_result_from_cache(
-    platform: str, url: str, filters_hash: str, max_images: int
+    platform: str,
+    url: str,
+    filters_hash: str,
+    max_images: int,
 ) -> list | None:
     key = analysis_result_cache_key(platform, url, filters_hash, max_images)
     try:
@@ -83,3 +99,7 @@ async def clear_cache() -> int:
     except Exception as e:
         log.exception(f"Error clearing cache: {e}")
         return 0
+
+
+async def close_redis_client():
+    await redis_client.close()
