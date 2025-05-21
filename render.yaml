@@ -21,6 +21,8 @@ services:
         value: meta-llama/llama-4-scout-17b-16e-instruct
       - key: API_KEY
         generateValue: true
+      - key: API_PROFILING_ENABLED
+        value: true
 
     # Build configuration
     buildFilter:

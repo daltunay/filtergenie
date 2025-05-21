@@ -1,3 +1,4 @@
+import time
 from contextlib import asynccontextmanager
 
 from asgi_correlation_id import CorrelationIdMiddleware
@@ -5,12 +6,13 @@ from fastapi import FastAPI, Request, status
 from fastapi.exception_handlers import http_exception_handler
 from fastapi.exceptions import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from .api.routes import authenticated_router, public_router
-from .common.db import init_db, sessionmanager
-from .common.logging import log, setup_logging
+from backend.api.routes import authenticated_router, public_router
+from backend.common.db import init_db, sessionmanager
+from backend.common.logging import log, setup_logging
+from backend.config import settings
 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
@@ -24,15 +26,54 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             client=request.client.host if request.client else "unknown",
         )
 
+        start_time = time.perf_counter()
         response = await call_next(request)
+        duration = time.perf_counter() - start_time
 
         log.info(
             "Request completed",
             method=request.method,
             path=request.url.path,
             status_code=response.status_code,
+            duration=f"{duration:.4f}s",
         )
         return response
+
+
+def register_middlewares(app: FastAPI):
+    # CORS
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*", "X-Request-ID"],
+        expose_headers=["X-Request-ID"],
+    )
+    # Correlation ID
+    app.add_middleware(
+        CorrelationIdMiddleware,
+        header_name="X-Request-ID",
+        update_request_header=True,
+    )
+    # Logging
+    app.add_middleware(RequestLoggingMiddleware)
+
+    # Profiling
+    if settings.api.profiling_enabled:
+        from pyinstrument import Profiler
+        from pyinstrument.renderers.html import HTMLRenderer
+
+        class ProfilingMiddleware(BaseHTTPMiddleware):
+            async def dispatch(self, request: Request, call_next):
+                if request.query_params.get("profile", "false").lower() == "true":
+                    with Profiler(interval=0.001, async_mode="enabled") as profiler:
+                        await call_next(request)
+                    html = profiler.output(renderer=HTMLRenderer())
+                    return HTMLResponse(content=html, media_type="text/html")
+                return await call_next(request)
+
+        app.add_middleware(ProfilingMiddleware)
 
 
 @asynccontextmanager
@@ -55,23 +96,7 @@ def create_app() -> FastAPI:
         version="0.1.0",
         lifespan=lifespan,
     )
-
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*", "X-Request-ID"],
-        expose_headers=["X-Request-ID"],
-    )
-
-    app.add_middleware(
-        CorrelationIdMiddleware,
-        header_name="X-Request-ID",
-        update_request_header=True,
-    )
-
-    app.add_middleware(RequestLoggingMiddleware)
+    register_middlewares(app)
 
     @app.exception_handler(Exception)
     async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:

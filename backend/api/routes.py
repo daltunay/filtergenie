@@ -1,4 +1,3 @@
-import time
 import traceback
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -128,7 +127,6 @@ async def analyze_item(
         filters_count=len(request.filters),
     )
     try:
-        start_time = time.perf_counter()
         item = await cached_scrape_item(
             session,
             platform=request.item.platform,
@@ -141,13 +139,11 @@ async def analyze_item(
         analyzed_filters = await cached_analyze_item(
             session, analyzer, item, filter_models, max_images=request.max_images
         )
-        duration = time.perf_counter() - start_time
         matched_count = sum(1 for f in analyzed_filters if f.value)
         log.info(
             "Analysis completed successfully",
             matched_filters=matched_count,
             total_filters=len(filter_models),
-            duration=f"{duration:.2f}s",
         )
         return AnalysisResponse(filters={f.desc: f.value for f in analyzed_filters})
     except Exception as e:

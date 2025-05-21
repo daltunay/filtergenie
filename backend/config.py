@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field, computed_field, field_serializer
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from .common.logging import log
+from backend.common.logging import log
 
 
 class ApiConfig(BaseModel):
@@ -10,6 +10,10 @@ class ApiConfig(BaseModel):
     key: str | None = Field(
         default=None,
         description="API key for authentication",
+    )
+    profiling_enabled: bool = Field(
+        default=False,
+        description="Enable request profiling middleware",
     )
 
     @computed_field
@@ -50,4 +54,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-log.info("Settings loaded (groq)", **settings.groq.model_dump(exclude_none=True))
+log.info("Settings loaded", **settings.model_dump(exclude_none=True))

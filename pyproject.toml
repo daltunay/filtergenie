@@ -24,6 +24,7 @@ dependencies = [
 dev = [
     "ipykernel>=6.29.5",
     "pre-commit>=4.2.0",
+    "pyinstrument>=5.0.1",
     "pytest>=8.3.5",
     "pytest-cov>=6.1.1",
 ]
