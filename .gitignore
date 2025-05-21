@@ -20,3 +20,5 @@ TODO.txt
 node_modules/
 extension/dist/
 .coverage
+test_*
+profile_reports/
