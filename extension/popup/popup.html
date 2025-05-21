@@ -131,6 +131,7 @@
                       type="number"
                       id="max-items"
                       min="1"
+                      max="50"
                       value="10"
                       class="input w-full text-center text-xs"
                     />
@@ -253,13 +254,13 @@
                     class="flex flex-row justify-between mt-1 px-1 gap-2 w-full"
                   >
                     <span
-                      class="text-[10px] text-primary-500/60 bg-dark-800/60 rounded px-2 py-0.5"
+                      class="text-[10px] text-primary-500/60"
                       style="max-width: 60%"
                     >
                       Show all items
                     </span>
                     <span
-                      class="text-[10px] text-primary-500/60 bg-dark-800/60 rounded px-2 py-0.5 text-right"
+                      class="text-[10px] text-primary-500/60 text-right"
                       style="max-width: 60%"
                     >
                       Show items matching all filters
@@ -310,23 +311,6 @@
             </svg>
             API
           </h2>
-          <button
-            id="settings-toggle"
-            class="text-primary-400 hover:text-primary-300 p-1 rounded-full hover:bg-primary-800/50"
-          >
-            <svg
-              class="h-5 w-5"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path
-                fill-rule="evenodd"
-                d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"
-                clip-rule="evenodd"
-              />
-            </svg>
-          </button>
         </div>
 
         <div class="p-4 space-y-3">
@@ -346,8 +330,80 @@
 
         <div
           id="api-settings"
-          class="border-t border-primary-800/30 p-4 space-y-4 bg-dark-900/50 rounded-b-xl"
+          class="border-t border-primary-800/30 p-4 space-y-4 bg-dark-800/60 rounded-b-xl"
         >
+          <!-- API Mode section moved above API Key -->
+          <div class="flex flex-col space-y-1 mb-3">
+            <label
+              class="text-xs font-medium text-primary-200 flex items-center"
+            >
+              <span>API Mode</span>
+              <span
+                class="relative group cursor-pointer ml-2 flex items-center"
+              >
+                <svg
+                  class="h-4 w-4 text-primary-400 align-middle"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  style="vertical-align: middle"
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    fill="none"
+                  />
+                  <text
+                    x="12"
+                    y="16"
+                    text-anchor="middle"
+                    font-size="12"
+                    fill="currentColor"
+                    font-family="Arial"
+                    dy="0"
+                    font-weight="bold"
+                  >
+                    i
+                  </text>
+                </svg>
+                <span
+                  class="fixed left-auto z-[9999] mt-2 min-w-[220px] max-w-xs bg-dark-800 text-xs text-primary-100 rounded shadow-lg px-3 py-2 opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-150"
+                  style="top: auto; left: 50%; transform: translateX(-50%)"
+                >
+                  <b>Remote:</b> Use the FilterGenie cloud API (recommended for
+                  most users).<br />
+                  <b>Local:</b> Use your own local API server (for advanced
+                  users).
+                </span>
+              </span>
+            </label>
+            <div class="flex space-x-4 mt-1">
+              <label class="flex items-center space-x-2 text-xs">
+                <input
+                  type="radio"
+                  name="api-mode"
+                  id="api-mode-remote"
+                  value="remote"
+                  class="accent-primary-500"
+                />
+                <span class="text-xs">Remote</span>
+              </label>
+              <label class="flex items-center space-x-2 text-xs">
+                <input
+                  type="radio"
+                  name="api-mode"
+                  id="api-mode-local"
+                  value="local"
+                  class="accent-primary-500"
+                />
+                <span class="text-xs">Local</span>
+              </label>
+            </div>
+          </div>
+          <!-- API Key section below API Mode -->
           <div id="api-key-row" class="mb-3 flex flex-col">
             <label
               for="api-key"
@@ -438,94 +494,63 @@
               </button>
             </div>
           </div>
-          <div class="flex flex-col space-y-1">
-            <label
-              class="text-xs font-medium text-primary-200 flex items-center"
-            >
-              <span>API Mode</span>
-              <span
-                class="relative group cursor-pointer ml-2 flex items-center"
-              >
-                <svg
-                  class="h-4 w-4 text-primary-400 align-middle"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  style="vertical-align: middle"
-                >
-                  <circle
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    fill="none"
-                  />
-                  <text
-                    x="12"
-                    y="16"
-                    text-anchor="middle"
-                    font-size="12"
-                    fill="currentColor"
-                    font-family="Arial"
-                    dy="0"
-                    font-weight="bold"
-                  >
-                    i
-                  </text>
-                </svg>
-                <span
-                  class="fixed left-auto z-[9999] mt-2 min-w-[220px] max-w-xs bg-dark-800 text-xs text-primary-100 rounded shadow-lg px-3 py-2 opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-150"
-                  style="top: auto; left: 50%; transform: translateX(-50%)"
-                >
-                  <b>Remote:</b> Use the FilterGenie cloud API (recommended for
-                  most users).<br />
-                  <b>Local:</b> Use your own local API server (for advanced
-                  users).
-                </span>
-              </span>
-            </label>
-            <div class="flex space-x-4 mt-1">
-              <label class="flex items-center space-x-2 text-xs">
-                <input
-                  type="radio"
-                  name="api-mode"
-                  id="api-mode-remote"
-                  value="remote"
-                  class="accent-primary-500"
-                />
-                <span class="text-xs">Remote</span>
-              </label>
-              <label class="flex items-center space-x-2 text-xs">
-                <input
-                  type="radio"
-                  name="api-mode"
-                  id="api-mode-local"
-                  value="local"
-                  class="accent-primary-500"
-                />
-                <span class="text-xs">Local</span>
-              </label>
-            </div>
-          </div>
           <div
             class="flex items-center gap-2 pt-2 border-t border-primary-800/30 mt-2"
           >
-            <button id="api-check-btn" class="btn btn-outline text-xs w-1/2">
-              Check Connection
-            </button>
-            <button
-              id="api-clear-cache-btn"
-              class="btn btn-outline text-xs w-1/2"
-            >
-              Clear Cache
-            </button>
-            <span
-              id="api-clear-cache-status"
-              class="text-xs text-primary-300"
-            ></span>
+            <div class="flex flex-col w-1/2 items-center">
+              <button id="api-check-btn" class="btn btn-outline text-xs w-full">
+                Check Connection
+              </button>
+              <span
+                id="api-check-status"
+                class="text-xs text-primary-300 mt-1 min-h-[1.2em] text-center block"
+                style="width: 100%"
+              ></span>
+            </div>
+            <div class="flex flex-col w-1/2 items-center">
+              <button
+                id="api-clear-cache-btn"
+                class="btn btn-outline text-xs w-full"
+              >
+                Clear Cache
+              </button>
+              <span
+                id="api-clear-cache-status"
+                class="text-xs text-primary-300 mt-1 min-h-[1.2em] text-center block"
+                style="width: 100%"
+              ></span>
+            </div>
           </div>
         </div>
+        <!-- Expander button at the bottom of the API section -->
+        <button
+          id="settings-toggle"
+          class="w-full flex items-center justify-center py-2 bg-dark-800/60 text-primary-200 hover:bg-primary-800/60 hover:text-primary-300 transition rounded-b-xl border-t border-primary-800/30"
+          style="
+            font-size: 13px;
+            transition:
+              background 0.3s,
+              color 0.3s;
+          "
+          type="button"
+        >
+          <svg
+            id="settings-toggle-arrow"
+            class="h-4 w-4 mr-1 transition-transform duration-300"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M19 9l-7 7-7-7"
+            />
+          </svg>
+          API Settings
+        </button>
       </section>
     </main>
 

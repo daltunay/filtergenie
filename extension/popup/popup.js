@@ -46,6 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
     "connection-status",
     "notification-area",
     "api-check-btn",
+    "api-check-status", // <-- add this line
     "api-spinner",
     "api-status",
     "api-total-time",
@@ -247,7 +248,7 @@ document.addEventListener("DOMContentLoaded", () => {
       this.notify();
     },
     setMaxItems(val) {
-      this.maxItems = Math.max(1, val);
+      this.maxItems = Math.max(1, Math.min(val, 50));
       saveState();
       this.notify();
     },
@@ -452,7 +453,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 300);
 
     const debouncedMaxItemsHandler = debounce((value) => {
-      state.setMaxItems(+value);
+      let v = Math.min(+value, 50);
+      state.setMaxItems(v);
+      ui.maxItems.value = v;
       sendToContent({
         type: "UPDATE_MIN_MATCH",
         minMatch: state.minMatch,
@@ -470,7 +473,9 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     ui.maxItems.oninput = (e) => {
-      debouncedMaxItemsHandler(e.target.value);
+      let v = Math.min(+e.target.value, 50);
+      e.target.value = v;
+      debouncedMaxItemsHandler(v);
     };
 
     ui.maxImages.oninput = (e) => {
@@ -482,15 +487,34 @@ document.addEventListener("DOMContentLoaded", () => {
     if (ui.settingsToggle) {
       ui.settingsToggle.onclick = () => {
         const settings = ui.apiSettings;
+        const arrow = document.getElementById("settings-toggle-arrow");
         const expanded = settings.classList.contains("expanded");
         if (!expanded) {
           settings.classList.add("expanded");
           settings.classList.remove("hidden");
+          // Arrow down
+          if (arrow) {
+            arrow.style.transform = "rotate(180deg)";
+          }
         } else {
           settings.classList.remove("expanded");
           setTimeout(() => settings.classList.add("hidden"), 300);
+          // Arrow up
+          if (arrow) {
+            arrow.style.transform = "rotate(0deg)";
+          }
         }
       };
+      // On load, set arrow direction based on expanded state
+      const arrow = document.getElementById("settings-toggle-arrow");
+      const settings = ui.apiSettings;
+      if (arrow && settings) {
+        if (settings.classList.contains("expanded")) {
+          arrow.style.transform = "rotate(180deg)";
+        } else {
+          arrow.style.transform = "rotate(0deg)";
+        }
+      }
     }
 
     [ui.apiModeRemote, ui.apiModeLocal].forEach((el) => {
@@ -507,8 +531,59 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     if (ui.apiCheckBtn) {
-      ui.apiCheckBtn.onclick = () => {
-        checkApiStatus();
+      ui.apiCheckBtn.onclick = async () => {
+        ui.apiCheckStatus.textContent = "Checking...";
+        ui.apiCheckStatus.className =
+          "text-xs text-primary-300 mt-1 min-h-[1.2em] text-center";
+        ui.apiCheckStatus.style.display = "block";
+        const endpoint =
+          state.apiMode === "local"
+            ? DEFAULT_LOCAL_API_ENDPOINT
+            : DEFAULT_REMOTE_API_ENDPOINT;
+        let timeoutId;
+        function clearStatus() {
+          ui.apiCheckStatus.textContent = "";
+        }
+        try {
+          const healthResp = await fetch(
+            endpoint.replace(/\/+$/, "") + "/health",
+          );
+          if (!healthResp.ok) {
+            ui.apiCheckStatus.textContent = "Not available";
+            ui.apiCheckStatus.className =
+              "text-xs text-red-400 mt-1 min-h-[1.2em] text-center";
+            setApiStatus("unavailable");
+            timeoutId = setTimeout(clearStatus, 2500);
+            return;
+          }
+          if (state.apiMode === "remote") {
+            const authResp = await fetch(
+              endpoint.replace(/\/+$/, "") + "/auth/check",
+              {
+                headers: state.apiKey ? { "X-API-Key": state.apiKey } : {},
+              },
+            );
+            if (!authResp.ok) {
+              ui.apiCheckStatus.textContent = "Auth failed";
+              ui.apiCheckStatus.className =
+                "text-xs text-red-400 mt-1 min-h-[1.2em] text-center";
+              setApiStatus("auth-failed");
+              timeoutId = setTimeout(clearStatus, 2500);
+              return;
+            }
+          }
+          ui.apiCheckStatus.textContent = "Available";
+          ui.apiCheckStatus.className =
+            "text-xs text-green-400 mt-1 min-h-[1.2em] text-center";
+          setApiStatus("available");
+          timeoutId = setTimeout(clearStatus, 2500);
+        } catch (e) {
+          ui.apiCheckStatus.textContent = "Not available";
+          ui.apiCheckStatus.className =
+            "text-xs text-red-400 mt-1 min-h-[1.2em] text-center";
+          setApiStatus("unavailable");
+          timeoutId = setTimeout(clearStatus, 2500);
+        }
       };
     }
 
@@ -516,6 +591,12 @@ document.addEventListener("DOMContentLoaded", () => {
       ui.apiClearCacheBtn.onclick = async () => {
         ui.apiClearCacheBtn.disabled = true;
         ui.apiClearCacheStatus.textContent = "Clearing...";
+        ui.apiClearCacheStatus.className =
+          "text-xs text-primary-300 mt-1 min-h-[1.2em] text-center";
+        let timeoutId;
+        function clearStatus() {
+          ui.apiClearCacheStatus.textContent = "";
+        }
         const endpoint =
           state.apiMode === "remote"
             ? DEFAULT_REMOTE_API_ENDPOINT
@@ -532,15 +613,27 @@ document.addEventListener("DOMContentLoaded", () => {
             },
           );
           if (resp.ok) {
-            ui.apiClearCacheStatus.textContent = "Cleared";
-            ui.apiClearCacheStatus.className = "text-xs text-green-400";
+            const data = await resp.json();
+            const count =
+              typeof data.entries_cleared === "number"
+                ? data.entries_cleared
+                : null;
+            ui.apiClearCacheStatus.textContent =
+              count !== null ? `Cleared (${count})` : "Cleared";
+            ui.apiClearCacheStatus.className =
+              "text-xs text-green-400 mt-1 min-h-[1.2em] text-center";
+            timeoutId = setTimeout(clearStatus, 2500);
           } else {
             ui.apiClearCacheStatus.textContent = "Failed";
-            ui.apiClearCacheStatus.className = "text-xs text-red-400";
+            ui.apiClearCacheStatus.className =
+              "text-xs text-red-400 mt-1 min-h-[1.2em] text-center";
+            timeoutId = setTimeout(clearStatus, 2500);
           }
         } catch (e) {
           ui.apiClearCacheStatus.textContent = "Error";
-          ui.apiClearCacheStatus.className = "text-xs text-red-400";
+          ui.apiClearCacheStatus.className =
+            "text-xs text-red-400 mt-1 min-h-[1.2em] text-center";
+          timeoutId = setTimeout(clearStatus, 2500);
         } finally {
           ui.apiClearCacheBtn.disabled = false;
         }
