@@ -4,14 +4,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 
 from backend.analyzer import Analyzer
 from backend.analyzer.models import FilterModel
-from backend.api.services import analyze_item as analyze_item_service
-from backend.api.services import (
-    get_cached_analysis_result,
-    get_cached_scraped_item,
-    scrape_and_truncate_images,
-    write_analysis_result_cache,
-    write_scraped_item_cache,
-)
+from backend.api.services import get_or_analyze_filters, get_or_scrape_item
 from backend.auth import verify_api_key
 from backend.common.cache import clear_cache
 from backend.common.logging import log
@@ -66,36 +59,23 @@ async def analyze_item(
 ):
     log.info("Received analysis request", filters_count=len(request.filters))
     try:
-        item = await get_cached_scraped_item(
+        item = await get_or_scrape_item(
             platform=request.item.platform,
             url=request.item.url,
+            html=request.item.html,
             max_images=request.max_images,
+            background_tasks=background_tasks,
         )
-        if item is None:
-            item = scrape_and_truncate_images(
-                platform=request.item.platform,
-                url=request.item.url,
-                html=request.item.html,
-                max_images=request.max_images,
-            )
-            background_tasks.add_task(write_scraped_item_cache, item, request.max_images)
 
         filter_models = [FilterModel(desc=desc) for desc in sorted(request.filters)]
 
-        analyzed_filters = await get_cached_analysis_result(
-            platform=item.platform,
-            url=item.url,
+        analyzed_filters = await get_or_analyze_filters(
+            analyzer=analyzer,
+            item=item,
             filters=filter_models,
             max_images=request.max_images,
+            background_tasks=background_tasks,
         )
-        if analyzed_filters is None:
-            analyzed_filters = await analyze_item_service(analyzer, item, filter_models)
-            background_tasks.add_task(
-                write_analysis_result_cache,
-                item,
-                analyzed_filters,
-                request.max_images,
-            )
 
         matched_count = sum(1 for f in analyzed_filters if f.value)
         log.info(

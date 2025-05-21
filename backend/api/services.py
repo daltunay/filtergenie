@@ -1,90 +1,84 @@
+from fastapi import BackgroundTasks
+
 from backend.analyzer import Analyzer
 from backend.analyzer.models import FilterModel, ItemModel
 from backend.common.cache import (
-    get_analysis_result_from_cache,
-    get_scraped_item_from_cache,
-    make_filters_hash,
-    set_analysis_result_cache,
-    set_scraped_item_cache,
+    get_analysis_cache,
+    get_scraped_cache,
+    set_analysis_cache,
+    set_scraped_cache,
 )
 from backend.common.logging import log
 from backend.scraper import scrape_item
 
 
-async def get_cached_scraped_item(
-    platform: str,
-    url: str,
-    max_images: int,
-) -> ItemModel | None:
-    data = await get_scraped_item_from_cache(platform, url, max_images)
-    if data:
-        log.debug("Scrape cache hit (redis)", platform=platform, url=url, max_images=max_images)
-        return ItemModel(**data)
-    return None
-
-
-async def write_scraped_item_cache(
-    item: ItemModel,
-    max_images: int,
-):
-    await set_scraped_item_cache(item.platform, item.url, max_images, item.model_dump())
-    log.debug(
-        "Scrape cache written (redis)",
-        platform=item.platform,
-        url=item.url,
-        max_images=max_images,
-    )
-
-
-def scrape_and_truncate_images(
+async def get_or_scrape_item(
     platform: str,
     url: str,
     html: str,
     max_images: int,
+    background_tasks: BackgroundTasks,
 ) -> ItemModel:
+    item_data = await get_scraped_cache(platform=platform, url=url, max_images=max_images)
+    if item_data:
+        log.debug(
+            "Scrape cache hit",
+            platform=platform,
+            url=url,
+            max_images=max_images,
+        )
+        return ItemModel(**item_data)
     item = scrape_item(platform=platform, url=url, html=html)
     item.images = item.images[:max_images]
+    background_tasks.add_task(
+        lambda: set_scraped_cache(
+            platform=platform,
+            url=url,
+            max_images=max_images,
+            value=item.model_dump(),
+        )
+    )
+    log.debug(
+        "Scrape cache write scheduled",
+        platform=platform,
+        url=url,
+        max_images=max_images,
+    )
     return item
 
 
-async def get_cached_analysis_result(
-    platform: str,
-    url: str,
-    filters: list[FilterModel],
-    max_images: int,
-) -> list[FilterModel] | None:
-    filters_hash = make_filters_hash(filters)
-    data = await get_analysis_result_from_cache(platform, url, filters_hash, max_images)
-    if data:
-        log.debug("Analysis cache hit (redis)", platform=platform, url=url, max_images=max_images)
-        return [FilterModel(**f) for f in data]
-    return None
-
-
-async def write_analysis_result_cache(
+async def get_or_analyze_filters(
+    analyzer: Analyzer,
     item: ItemModel,
     filters: list[FilterModel],
     max_images: int,
-):
-    filters_hash = make_filters_hash(filters)
-    await set_analysis_result_cache(
-        item.platform,
-        item.url,
-        filters_hash,
-        max_images,
-        [f.model_dump() for f in filters],
+    background_tasks: BackgroundTasks,
+) -> list[FilterModel]:
+    data = await get_analysis_cache(
+        platform=item.platform, url=item.url, max_images=max_images, filters=filters
+    )
+    if data:
+        log.debug(
+            "Analysis cache hit",
+            platform=item.platform,
+            url=item.url,
+            max_images=max_images,
+        )
+        return [FilterModel(**f) for f in data]
+    analyzed_filters = await analyzer.analyze_item(item=item, filters=filters)
+    background_tasks.add_task(
+        lambda: set_analysis_cache(
+            platform=item.platform,
+            url=item.url,
+            max_images=max_images,
+            value=[f.model_dump() for f in analyzed_filters],
+            filters=filters,
+        ),
     )
     log.debug(
-        "Analysis cache written (redis)",
+        "Analysis cache write scheduled",
         platform=item.platform,
         url=item.url,
         max_images=max_images,
     )
-
-
-async def analyze_item(
-    analyzer: Analyzer,
-    item: ItemModel,
-    filters: list[FilterModel],
-) -> list[FilterModel]:
-    return await analyzer.analyze_item(item=item, filters=filters)
+    return analyzed_filters
