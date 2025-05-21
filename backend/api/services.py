@@ -38,15 +38,15 @@ async def cached_scrape_item(
     )
     item = scrape_item(platform=platform, url=url, html=html)
     item.images = item.images[:max_images]
-    async with sessionmanager.write_lock:
-        session.add(
-            ScrapedItem(
-                platform=platform,
-                url=url,
-                max_images=max_images,
-                item=item.model_dump(),
-            )
+    session.add(
+        ScrapedItem(
+            platform=platform,
+            url=url,
+            max_images=max_images,
+            item=item.model_dump(),
         )
+    )
+    async with sessionmanager.write_lock:
         await session.commit()
     return item
 
@@ -79,15 +79,15 @@ async def cached_analyze_item(
         max_images=max_images,
     )
     result_filters = await analyzer.analyze_item(item=item, filters=filters)
-    async with sessionmanager.write_lock:
-        session.add(
-            AnalysisResult(
-                platform=platform,
-                url=url,
-                filters=[f.model_dump() for f in result_filters],
-                filters_hash=filters_hash,
-                max_images=max_images,
-            )
+    session.add(
+        AnalysisResult(
+            platform=platform,
+            url=url,
+            filters=[f.model_dump() for f in result_filters],
+            filters_hash=filters_hash,
+            max_images=max_images,
         )
+    )
+    async with sessionmanager.write_lock:
         await session.commit()
     return result_filters
