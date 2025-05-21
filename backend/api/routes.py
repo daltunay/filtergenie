@@ -1,6 +1,6 @@
 import traceback
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.analyzer import Analyzer
@@ -12,7 +12,14 @@ from backend.common.logging import log
 from backend.dependencies import get_analyzer, get_db_session
 
 from .models import AnalysisRequest, AnalysisResponse, ItemSource
-from .services import cached_analyze_item, cached_scrape_item
+from .services import analyze_item as analyze_item_service
+from .services import (
+    get_cached_analysis_result,
+    get_cached_scraped_item,
+    scrape_and_truncate_images,
+    write_analysis_result_cache,
+    write_scraped_item_cache,
+)
 
 public_router = APIRouter()
 authenticated_router = APIRouter(dependencies=[Depends(verify_api_key)])
@@ -67,16 +74,25 @@ async def _analyze_single_item(
     log.debug(f"Processing item {idx + 1}", platform=platform, url=url)
     async with sessionmanager.session() as task_session:
         try:
-            item = await cached_scrape_item(
+            item = await get_cached_scraped_item(
                 task_session,
                 platform=platform,
                 url=url,
-                html=item_request.html,
                 max_images=max_images,
             )
-            item.images = item.images[:max_images]
+            if item is None:
+                item = scrape_and_truncate_images(
+                    platform=platform,
+                    url=url,
+                    html=item_request.html,
+                    max_images=max_images,
+                )
+                await write_scraped_item_cache(task_session, item, max_images)
             log.debug(
-                f"ItemModel {idx + 1} scraped successfully", platform=platform, url=url, item=item
+                f"ItemModel {idx + 1} scraped successfully",
+                platform=platform,
+                url=url,
+                item=item,
             )
         except Exception as e:
             log.error(
@@ -90,9 +106,16 @@ async def _analyze_single_item(
 
         try:
             filter_models = [FilterModel(desc=desc) for desc in sorted(filters)]
-            analyzed_filters = await cached_analyze_item(
-                task_session, analyzer, item, filter_models, max_images=max_images
+            analyzed_filters = await get_cached_analysis_result(
+                task_session,
+                platform=item.platform,
+                url=item.url,
+                filters=filter_models,
+                max_images=max_images,
             )
+            if analyzed_filters is None:
+                analyzed_filters = await analyze_item_service(analyzer, item, filter_models)
+                await write_analysis_result_cache(task_session, item, analyzed_filters, max_images)
             matched_count = sum(1 for f in analyzed_filters if f.value)
             log.debug(
                 f"ItemModel {idx + 1} analyzed successfully",
@@ -118,27 +141,46 @@ async def _analyze_single_item(
 @authenticated_router.post("/item/analyze", response_model=AnalysisResponse)
 async def analyze_item(
     request: AnalysisRequest,
+    background_tasks: BackgroundTasks,
     analyzer: Analyzer = Depends(get_analyzer),
     session: AsyncSession = Depends(get_db_session),
 ):
-    """RESTful endpoint to analyze a single item based on HTML content."""
-    log.info(
-        "Received analysis request",
-        filters_count=len(request.filters),
-    )
+    log.info("Received analysis request", filters_count=len(request.filters))
     try:
-        item = await cached_scrape_item(
+        item = await get_cached_scraped_item(
             session,
             platform=request.item.platform,
             url=request.item.url,
-            html=request.item.html,
             max_images=request.max_images,
         )
-        item.images = item.images[: request.max_images]
+        if item is None:
+            item = scrape_and_truncate_images(
+                platform=request.item.platform,
+                url=request.item.url,
+                html=request.item.html,
+                max_images=request.max_images,
+            )
+            background_tasks.add_task(write_scraped_item_cache, session, item, request.max_images)
+
         filter_models = [FilterModel(desc=desc) for desc in sorted(request.filters)]
-        analyzed_filters = await cached_analyze_item(
-            session, analyzer, item, filter_models, max_images=request.max_images
+
+        analyzed_filters = await get_cached_analysis_result(
+            session,
+            platform=item.platform,
+            url=item.url,
+            filters=filter_models,
+            max_images=request.max_images,
         )
+        if analyzed_filters is None:
+            analyzed_filters = await analyze_item_service(analyzer, item, filter_models)
+            background_tasks.add_task(
+                write_analysis_result_cache,
+                session,
+                item,
+                analyzed_filters,
+                request.max_images,
+            )
+
         matched_count = sum(1 for f in analyzed_filters if f.value)
         log.info(
             "Analysis completed successfully",
