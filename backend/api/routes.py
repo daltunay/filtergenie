@@ -38,9 +38,7 @@ async def check_api_auth():
 async def clear_cache_endpoint(redis=Depends(get_redis)):
     """Clear cache entries."""
     try:
-        log.info("Clearing cache entries")
         count = await clear_cache()
-        log.info("Cache cleared successfully", entries_removed=count)
         return {"status": "success", "entries_cleared": count}
     except Exception as e:
         log.error("Error clearing cache", error=str(e), exc_info=e)

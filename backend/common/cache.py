@@ -36,7 +36,7 @@ def redis_catch(func: t.FunctionType) -> t.FunctionType:
         try:
             return await func(*args, **kwargs)
         except Exception as e:
-            log.exception(f"Redis operation error: {e}")
+            log.error(f"Redis operation error: {e}")
 
     return wrapper
 
@@ -78,14 +78,13 @@ set_analysis_cache = partial(set_cache, "analysis")
 
 @redis_catch
 async def clear_cache() -> int:
-    keys = [
-        key
-        async for pattern in ("scraped:*", "analysis:*")
-        async for key in redis_client.scan_iter(match=pattern)
-    ]
-    if keys:
-        await redis_client.delete(*keys)
-    return len(keys)
+    keys_count = await redis_client.dbsize()
+    if keys_count == 0:
+        log.info("Cache is already empty")
+        return 0
+    await redis_client.flushdb(asynchronous=True)
+    log.info("Cache cleared", keys_cleared=keys_count)
+    return keys_count
 
 
 @redis_catch

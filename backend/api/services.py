@@ -30,13 +30,13 @@ async def get_or_scrape_item(
         return ItemModel(**item_data)
     item = scrape_item(platform=platform, url=url, html=html)
     item.images = item.images[:max_images]
+
     background_tasks.add_task(
-        lambda: set_scraped_cache(
-            platform=platform,
-            url=url,
-            max_images=max_images,
-            value=item.model_dump(),
-        )
+        set_scraped_cache,
+        platform,
+        url,
+        max_images,
+        item.model_dump(),
     )
     log.debug(
         "Scrape cache write scheduled",
@@ -66,14 +66,14 @@ async def get_or_analyze_filters(
         )
         return [FilterModel(**f) for f in data]
     analyzed_filters = await analyzer.analyze_item(item=item, filters=filters)
+
     background_tasks.add_task(
-        lambda: set_analysis_cache(
-            platform=item.platform,
-            url=item.url,
-            max_images=max_images,
-            value=[f.model_dump() for f in analyzed_filters],
-            filters=filters,
-        ),
+        set_analysis_cache,
+        item.platform,
+        item.url,
+        max_images,
+        [f.model_dump() for f in analyzed_filters],
+        filters,
     )
     log.debug(
         "Analysis cache write scheduled",
