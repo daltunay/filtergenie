@@ -13,4 +13,4 @@ while true; do
 	elapsed=$((elapsed + 1))
 done
 
-exec fastapi run backend/app.py --host 0.0.0.0 --port 8000
+exec fastapi run backend/app.py
