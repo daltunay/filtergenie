@@ -1,14 +1,12 @@
 from backend.analyzer import Analyzer
-from backend.common.db import sessionmanager
+from backend.common.cache import redis_client
 
 _analyzer = Analyzer()
 
 
 def get_analyzer() -> Analyzer:
-    """Dependency that provides the analyzer instance."""
     return _analyzer
 
 
-async def get_db_session():
-    async with sessionmanager.session() as session:
-        yield session
+async def get_redis():
+    yield redis_client

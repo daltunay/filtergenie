@@ -1,7 +1,7 @@
 FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
 
 RUN apt-get update && \
-    apt-get install -y curl && \
+    apt-get install -y curl redis-server && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -35,4 +35,7 @@ ENV PYTHONUNBUFFERED=1
 EXPOSE 8000
 HEALTHCHECK CMD curl --fail http://localhost:8000/health || exit 1
 
-CMD ["fastapi", "run", "backend/app.py", "--host", "0.0.0.0", "--port", "8000"]
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
+
+ENTRYPOINT ["/app/docker-entrypoint.sh"]

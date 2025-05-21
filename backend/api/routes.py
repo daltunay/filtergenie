@@ -1,7 +1,6 @@
 import traceback
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.analyzer import Analyzer
 from backend.analyzer.models import FilterModel
@@ -16,7 +15,7 @@ from backend.api.services import (
 from backend.auth import verify_api_key
 from backend.common.cache import clear_cache
 from backend.common.logging import log
-from backend.dependencies import get_analyzer, get_db_session
+from backend.dependencies import get_analyzer, get_redis
 
 from .models import AnalysisRequest, AnalysisResponse
 
@@ -43,14 +42,13 @@ async def check_api_auth():
 
 
 @authenticated_router.post("/cache/clear")
-async def clear_cache_endpoint(session: AsyncSession = Depends(get_db_session)):
+async def clear_cache_endpoint(redis=Depends(get_redis)):
     """Clear cache entries."""
     try:
         log.info("Clearing cache entries")
-        count = await clear_cache(session=session)
+        count = await clear_cache()
         log.info("Cache cleared successfully", entries_removed=count)
         return {"status": "success", "entries_cleared": count}
-
     except Exception as e:
         log.error("Error clearing cache", error=str(e), exc_info=e)
         raise HTTPException(
@@ -64,12 +62,11 @@ async def analyze_item(
     request: AnalysisRequest,
     background_tasks: BackgroundTasks,
     analyzer: Analyzer = Depends(get_analyzer),
-    session: AsyncSession = Depends(get_db_session),
+    redis=Depends(get_redis),
 ):
     log.info("Received analysis request", filters_count=len(request.filters))
     try:
         item = await get_cached_scraped_item(
-            session,
             platform=request.item.platform,
             url=request.item.url,
             max_images=request.max_images,
@@ -81,12 +78,11 @@ async def analyze_item(
                 html=request.item.html,
                 max_images=request.max_images,
             )
-            background_tasks.add_task(write_scraped_item_cache, session, item, request.max_images)
+            background_tasks.add_task(write_scraped_item_cache, item, request.max_images)
 
         filter_models = [FilterModel(desc=desc) for desc in sorted(request.filters)]
 
         analyzed_filters = await get_cached_analysis_result(
-            session,
             platform=item.platform,
             url=item.url,
             filters=filter_models,
@@ -96,7 +92,6 @@ async def analyze_item(
             analyzed_filters = await analyze_item_service(analyzer, item, filter_models)
             background_tasks.add_task(
                 write_analysis_result_cache,
-                session,
                 item,
                 analyzed_filters,
                 request.max_images,

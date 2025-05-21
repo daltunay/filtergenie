@@ -10,7 +10,6 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from backend.api.routes import authenticated_router, public_router
-from backend.common.db import init_db, sessionmanager
 from backend.common.logging import log, setup_logging
 from backend.config import settings
 
@@ -79,11 +78,9 @@ def register_middlewares(app: FastAPI):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application startup and shutdown event handler."""
-    log.info("Application starting up - initializing database")
-    await init_db()
+    log.info("Application starting up")
     yield
     log.info("Application shutting down")
-    await sessionmanager.close()
 
 
 def create_app() -> FastAPI:
