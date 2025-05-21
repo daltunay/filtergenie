@@ -38,7 +38,8 @@ class DatabaseSessionManager:
             async with self._engine.begin() as conn:
                 await conn.execute(text("PRAGMA journal_mode=WAL"))
 
-        asyncio.get_event_loop().run_until_complete(set_wal())
+        asyncio.run(set_wal())
+
         self._sessionmaker = async_sessionmaker(
             autocommit=False, bind=self._engine
         )  # ty: ignore[no-matching-overload]
