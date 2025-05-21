@@ -339,23 +339,18 @@ document.addEventListener("DOMContentLoaded", () => {
     ui.apiKeyRow.style.display = state.apiMode === "remote" ? "" : "none";
     ui.apiKey.value = state.apiKey;
 
+    // Only update the colored dot, remove the text
     const statusIndicator =
       ui.connectionStatus.querySelector("span:first-child");
-    let statusText = ui.connectionStatus.querySelector("span:last-child");
-    if (!statusText) {
-      statusText = document.createElement("span");
-      ui.connectionStatus.appendChild(statusText);
+    if (statusIndicator) {
+      statusIndicator.className =
+        "inline-flex h-4 w-4 rounded-full " +
+        (state.isConnected ? "bg-green-500" : "bg-red-500");
     }
-    const connected = state.isConnected;
-    statusIndicator.className =
-      "inline-flex h-4 w-4 rounded-full mr-2 " +
-      (connected ? "bg-green-500" : "bg-red-500");
-    statusText.textContent = connected ? "Available" : "Not available";
-    statusText.className = connected ? "text-green-400" : "text-red-400";
 
-    if (lastConnectionStatus !== connected) {
-      state.showNotification(connected);
-      lastConnectionStatus = connected;
+    if (lastConnectionStatus !== state.isConnected) {
+      state.showNotification(state.isConnected);
+      lastConnectionStatus = state.isConnected;
     }
 
     ui.apiStatus.innerHTML = "";
