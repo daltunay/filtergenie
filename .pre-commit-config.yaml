@@ -31,6 +31,7 @@ repos:
       - id: ruff-check
         args: [--extend-select=I, --fix]
       - id: ruff-format
+        args: [--line-length=100]
 
   - repo: local
     hooks:
@@ -46,7 +47,7 @@ repos:
     rev: 1.8.3
     hooks:
       - id: bandit
-        args: [-c, pyproject.toml]
+        args: [-c=pyproject.toml, -x=tests]
         additional_dependencies: ["bandit[toml]"]
 
   - repo: https://github.com/Yelp/detect-secrets

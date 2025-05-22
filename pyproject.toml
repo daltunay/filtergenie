@@ -33,9 +33,3 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 packages = ["backend"]
-
-[tool.ruff]
-line-length = 100
-
-[tool.bandit]
-exclude_dirs = ["tests"]
