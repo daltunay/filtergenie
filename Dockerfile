@@ -1,7 +1,7 @@
 FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
 
 RUN apt-get update && \
-    apt-get install -y curl redis-server && \
+    apt-get install -y --no-install-recommends curl redis-server && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
