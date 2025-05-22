@@ -13,7 +13,8 @@ ENV UV_COMPILE_BYTECODE=1 \
     UV_FROZEN=1 \
     UV_LINK_MODE=copy \
     UV_NO_INSTALLER_METADATA=1 \
-    VIRTUAL_ENV=/app/.venv
+    VIRTUAL_ENV=/app/.venv \
+    PYTHONUNBUFFERED=1
 
 ARG DEV=false
 ENV DEV=${DEV}
@@ -27,10 +28,6 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 ENV PATH="/app/.venv/bin:$PATH"
 
 COPY backend/ ./backend
-
-RUN mkdir -p ./data
-
-ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8000
 HEALTHCHECK CMD curl --fail http://localhost:8000/health || exit 1
