@@ -13,7 +13,7 @@ class ApiConfig(BaseModel):
         default=None,
         description="API key for authentication",
     )
-    profiling_enabled: bool = Field(
+    profile: bool = Field(
         default=os.getenv("DEV", "false").lower() == "true",
         description="Enable request profiling middleware",
     )

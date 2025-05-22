@@ -60,7 +60,7 @@ def register_middlewares(app: FastAPI):
     app.add_middleware(RequestLoggingMiddleware)
 
     # Profiling
-    if settings.api.profiling_enabled:
+    if settings.api.profile:
         from pyinstrument import Profiler
         from pyinstrument.renderers.html import HTMLRenderer
 
