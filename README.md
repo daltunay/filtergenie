@@ -121,50 +121,37 @@ To install:
 #### Setup
 
 ```bash
+# Create the virtual environment
 uv venv .venv
+
+# Activate the virtual environment
 source .venv/bin/activate
+
+# Install the dependencies
 uv sync
-```
-
-#### Configuration
-
-Set your Groq API key as an environment variable before running the API:
-
-```bash
-export GROQ_API_KEY="your_groq_api_key"
-```
-
-You can get a Groq API key at: [console.groq.com](https://console.groq.com/keys)
-
-Optionally, set the model:
-
-```bash
-export GROQ_MODEL_NAME="meta-llama/llama-4-scout-17b-16e-instruct"  # default
-```
-
-You can also use a `.env` file in the project root:
-
-```env
-GROQ_API_KEY="your_groq_api_key"
-GROQ_MODEL_NAME="meta-llama/llama-4-scout-17b-16e-instruct"
 ```
 
 #### Run the API
 
 ```bash
-fastapi run backend/app.py
+# Run the FastAPI CLI
+GROQ_API_KEY="your_groq_api_key" fastapi run backend/app.py
 ```
 
 Or with Docker:
 
 ```bash
+# Build the Docker image
 docker build -t filtergenie .
+
+# Run the Docker container
 docker run --rm \
   -e GROQ_API_KEY="your_groq_api_key" \
-  -e GROQ_MODEL_NAME="meta-llama/llama-4-scout-17b-16e-instruct" \
   -p 8000:8000 \
   filtergenie
 ```
+
+> Note: Docker does not parse `.env` files, so you need to set the environment variables in the command line using `-e`.
 
 ## Privacy Policy
 
