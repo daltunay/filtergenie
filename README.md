@@ -55,44 +55,13 @@ FilterGenie is an AI-powered browser extension and API that filters e-commerce s
 | doctolib   | doctolib.fr                                       | 📝 TODO |
 | seloger    | seloger.fr                                        | 📝 TODO |
 
-<details>
+<!-- <details>
 <summary>Architecture</summary>
 
 ```mermaid
-graph TD
-    subgraph Client
-        User["User<br>enters filters"]
-        BrowserExt["Browser + Extension"]
-        Website["E-commerce Website<br>(leboncoin, vinted, etc.)"]
-        User -->|uses| BrowserExt
-        BrowserExt <-->|interacts with| Website
-    end
-
-    subgraph "API Layer"
-        API["API Service<br>(FastAPI)"]
-    end
-
-    subgraph Backend
-        Scraper["Scraper<br>(BeautifulSoup)"]
-        Analyzer["Analyzer"]
-        VLM["Vision Language Model<br>(Remote or Local)"]
-
-        Analyzer <-->|"process/analysis"| VLM
-        Scraper -->|"structured data"| Analyzer
-    end
-
-    subgraph Storage
-        DB["Database<br>(SQLite)"]
-    end
-
-    BrowserExt -->|"requests"| API
-    API -->|"request scraping"| Scraper
-    API -->|"request analysis"| Analyzer
-    Analyzer <-->|"check/update cache"| DB
-    Scraper <-->|"check/update cache"| DB
 ```
 
-</details>
+</details> -->
 
 ## Quick Start
 
