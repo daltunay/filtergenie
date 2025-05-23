@@ -1,7 +1,7 @@
 services:
   - type: web
     name: filtergenie-api
-    plan: free
+    plan: starter
 
     # Source code information
     repo: https://github.com/daltunay/filtergenie
