@@ -55,13 +55,62 @@ FilterGenie is an AI-powered browser extension and API that filters e-commerce s
 | doctolib   | doctolib.fr                                       | 📝 TODO |
 | seloger    | seloger.fr                                        | 📝 TODO |
 
-<!-- <details>
-<summary>Architecture</summary>
+## Architecture
+
+The architecture of FilterGenie is designed to efficiently filter e-commerce listings using both client-side and backend components. Below is a high-level overview of how the system works:
+
+- **Client Side**: The browser extension scrapes listings from supported e-commerce sites and injects the FilterGenie UI for user interaction.
+- **Backend/API**: The FastAPI backend handles requests from the extension, manages caching with Redis, scrapes additional data if needed, and analyzes listings using AI models.
+- **AI & Analysis**: The Analyzer and Instructor components process listing data, interact with the Groq API (LLM), and return structured, filtered results to the user.
 
 ```mermaid
+flowchart TD
+    %% Client Side
+    subgraph CLIENT["User, Browser & Extension"]
+        User["User"]
+        Browser["Browser"]
+        Extension["FilterGenie Extension"]
+        User --> Browser
+        Browser --> Extension
+        Extension -- "Scrapes listings, injects UI" --- Websites
+        Extension --> Browser
+    end
+
+    %% E-commerce Websites
+    Websites["E-commerce Sites<br>(Vinted, Leboncoin, etc.)"]
+
+    %% Backend/API
+    subgraph API["FilterGenie API & Backend"]
+        APIInst["FastAPI API"]
+        Redis["Redis Cache"]
+        Scraper["Scraper"]
+        Analyzer["Analyzer"]
+        Instructor["Instructor Wrapper"]
+        Groq["Groq API (LLM)"]
+        Extension -->|"Analyze request"| APIInst
+        APIInst -->|"Filtered results"| Extension
+        APIInst <--> Redis
+        APIInst --> Scraper
+        Scraper --> Websites
+        APIInst --> Analyzer
+        Analyzer -->|"Prompt, images, filters"| Instructor
+        Instructor --> Groq
+        Groq -->|"Structured output"| Instructor
+        Instructor -->|"Results"| Analyzer
+        Analyzer -->|"Filter results"| APIInst
+    end
 ```
 
-</details> -->
+**Key Components:**
+
+- **Extension**: Scrapes listings and provides the user interface.
+- **FastAPI API**: Main backend entry point for requests and responses.
+- **Redis**: Caches results for faster response times.
+- **Scraper**: Gathers additional data from e-commerce sites if needed.
+- **Analyzer**: Processes and filters listings using AI.
+- **Instructor & Groq**: Handles advanced AI analysis and structured output.
+
+This modular architecture allows FilterGenie to be flexible, scalable, and easy to maintain, supporting both local and cloud deployments.
 
 ## Quick Start
 
