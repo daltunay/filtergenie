@@ -6,8 +6,7 @@
 [![License: CC BY-NC 4.0](https://img.shields.io/badge/license-CC--BY--NC%204.0-lightgrey?logo=creativecommons)](https://github.com/daltunay/filtergenie/blob/master/LICENSE)
 [![Build Status](https://img.shields.io/github/check-runs/daltunay/filtergenie/master)](https://github.com/daltunay/filtergenie/actions/workflows/ci.yml)
 [![Last Commit](https://img.shields.io/github/last-commit/daltunay/filtergenie)](https://github.com/daltunay/filtergenie/commits/master/?author=daltunay)
-[![Deployment Status](https://img.shields.io/badge/deployment-success-brightgreen?logo=github)](https://github.com/daltunay/filtergenie/deployments)
-[![Render Status](https://img.shields.io/badge/render-live-brightgreen?logo=render)](https://filtergenie-api.onrender.com/)
+[![Render Status](https://img.shields.io/badge/Render-live-brightgreen?logo=render)](https://filtergenie-api.onrender.com/)
 
 </div>
 
@@ -17,9 +16,8 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-009485.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 [![Pydantic v2](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/pydantic/pydantic/main/docs/badge/v2.json)](https://docs.pydantic.dev/latest/contributing/#badges)
-[![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-306998?logo=python&logoColor=white)](https://www.sqlalchemy.org/)
-[![BeautifulSoup](https://shields.io/badge/BeautifulSoup-4-green)](https://www.crummy.com/software/BeautifulSoup/)
-[![Meta](https://img.shields.io/badge/Llama4-Groq-blue?logo=meta)](https://console.groq.com/docs/model/llama-4-scout-17b-16e-instruct)
+[![Llama](https://img.shields.io/badge/Llama4-blue?logo=meta)](https://console.groq.com/docs/model/llama-4-scout-17b-16e-instruct)
+[![Redis](https://img.shields.io/badge/Redis-DC382D?logo=redis&logoColor=white)](https://redis.io/)
 
 </div>
 
