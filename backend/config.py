@@ -67,6 +67,7 @@ class Settings(BaseSettings):
             r.ping()
             return True
         except Exception:
+            log.warning("Redis is not available. Cache will be disabled.")
             return False
 
 
