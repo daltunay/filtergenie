@@ -4,13 +4,12 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 
 from backend.analyzer import Analyzer
 from backend.analyzer.models import FilterModel
+from backend.api.models import AnalysisRequest, AnalysisResponse
 from backend.api.services import get_or_analyze_filters, get_or_scrape_item
 from backend.auth import verify_api_key
 from backend.common.cache import clear_cache
 from backend.common.logging import log
 from backend.dependencies import get_analyzer, get_redis
-
-from .models import AnalysisRequest, AnalysisResponse
 
 public_router = APIRouter()
 authenticated_router = APIRouter(dependencies=[Depends(verify_api_key)])

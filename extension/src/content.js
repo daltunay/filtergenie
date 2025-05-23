@@ -3,15 +3,28 @@ import "../platforms/leboncoin.js";
 import "../platforms/vinted.js";
 import { showItemSpinner, removeItemSpinner } from "../utils/spinnerUtils.js";
 
+function getCurrentPlatform() {
+  const reg = platformRegistry;
+  const url = window.location.href;
+  return reg && reg._platforms?.length ? reg.getCurrentPlatform(url) : null;
+}
+
+function ensureStatusDiv(item) {
+  let div = item.querySelector(".filtergenie-status");
+  if (!div) {
+    div = document.createElement("div");
+    div.className = "filtergenie-status";
+    item.appendChild(div);
+  }
+  div.style.display = "none";
+}
+
 async function fetchItemSource(platform, item) {
   const html = await platform.getItemHtml(item);
-  let images = [];
-  try {
-    const doc = new DOMParser().parseFromString(html, "text/html");
-    images = Array.from(doc.querySelectorAll("img"))
-      .map((img) => img.src)
-      .filter(Boolean);
-  } catch {}
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const images = Array.from(doc.querySelectorAll("img"))
+    .map((img) => img.src)
+    .filter(Boolean);
   return {
     platform: platform.name,
     url: platform.getItemUrl(item),
@@ -30,20 +43,16 @@ async function callApiAnalyzeSingle(
   const headers = { "Content-Type": "application/json" };
   if (apiKey) headers["X-API-Key"] = apiKey;
   apiEndpoint = apiEndpoint.replace(/\/+$/, "");
-  try {
-    const resp = await fetch(`${apiEndpoint}/item/analyze`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        item: itemSource,
-        filters,
-        max_images: maxImagesPerItem,
-      }),
-    });
-    return resp.json();
-  } catch (e) {
-    throw e;
-  }
+  const resp = await fetch(`${apiEndpoint}/item/analyze`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      item: itemSource,
+      filters,
+      max_images: maxImagesPerItem,
+    }),
+  });
+  return resp.json();
 }
 
 function updateItemStatus(items, filtersData, minMatch) {
@@ -75,12 +84,7 @@ function updateItemStatus(items, filtersData, minMatch) {
     `;
     document.head.appendChild(style);
   }
-
-  const reg = platformRegistry;
-  const url = window.location.href;
-  const platform =
-    reg && reg._platforms?.length ? reg.getCurrentPlatform(url) : null;
-
+  const platform = getCurrentPlatform();
   items.forEach((item, idx) => {
     const filterResults = filtersData[idx] || {};
     const matchCount = Object.values(filterResults).filter(Boolean).length;
@@ -118,97 +122,46 @@ async function analyzeItems(
   maxImagesPerItem,
 ) {
   if (!platform) return;
-
   const items = Array.from(platform.getItemElements()).slice(0, maxItems);
   if (!items.length) return;
-
-  items.forEach((item) => {
-    let div = item.querySelector(".filtergenie-status");
-    if (!div) {
-      div = document.createElement("div");
-      div.className = "filtergenie-status";
-      item.appendChild(div);
-    }
-    div.style.display = "none";
-  });
-
+  items.forEach(ensureStatusDiv);
   showItemSpinner(items);
-
-  const filtersData = [];
   const sortedFilters = [...filters].sort();
-  let finished = 0;
-
-  // Helper to update API status in popup
-  function setApiStatus(state, opts = {}) {
-    chrome.runtime.sendMessage({ type: "API_STATUS", state, ...opts });
-  }
-
-  setApiStatus("filtering");
-
-  try {
-    // Fetch all item sources concurrently
-    const itemSources = await Promise.all(
-      items.map((item) => fetchItemSource(platform, item)),
-    );
-
-    // For each item, send API call and update UI as soon as it's done
-    await Promise.all(
-      itemSources.map(async (itemSource, idx) => {
-        let result = {};
-        try {
-          const data = await callApiAnalyzeSingle(
-            itemSource,
-            sortedFilters,
-            apiEndpoint,
-            apiKey,
-            maxImagesPerItem,
-          );
-          if (data && data.filters) result = data.filters;
-        } catch {}
-        filtersData[idx] = result;
-        removeItemSpinner([items[idx]]);
-        updateItemStatus([items[idx]], [result], minMatch);
-        finished++;
-        // When all items are done, update API status and remove all spinners
-        if (finished === items.length) {
-          removeItemSpinner(items);
-          setApiStatus("done");
-          chrome.storage.local.set({
-            filtergenieLastAnalyzed: {
-              filtersData,
-              minMatch,
-              maxItems,
-              timestamp: Date.now(),
-            },
-          });
-          chrome.runtime.sendMessage({
-            type: "FILTERS_APPLIED",
-            success: true,
-          });
-          sendResponse?.({ apiResponse: { filters: filtersData } });
-        }
-      }),
-    );
-  } catch (error) {
-    console.error("FilterGenie analysis error:", error);
-    removeItemSpinner(items);
-    setApiStatus("error", { error: "API error" });
-    chrome.runtime.sendMessage({
-      type: "FILTERS_APPLIED",
-      success: false,
-      error: "API error",
-    });
-    sendResponse?.({ apiResponse: "API error" });
-  }
+  chrome.runtime.sendMessage({ type: "API_STATUS", state: "filtering" });
+  const itemSources = await Promise.all(
+    items.map((item) => fetchItemSource(platform, item)),
+  );
+  const results = await Promise.all(
+    itemSources.map((itemSource) =>
+      callApiAnalyzeSingle(
+        itemSource,
+        sortedFilters,
+        apiEndpoint,
+        apiKey,
+        maxImagesPerItem,
+      ),
+    ),
+  );
+  results.forEach((data, idx) => {
+    removeItemSpinner([items[idx]]);
+    updateItemStatus([items[idx]], [data.filters], minMatch);
+  });
+  chrome.runtime.sendMessage({ type: "API_STATUS", state: "done" });
+  chrome.storage.local.set({
+    filtergenieLastAnalyzed: {
+      filtersData: results.map((r) => r.filters),
+      minMatch,
+      maxItems,
+      timestamp: Date.now(),
+    },
+  });
+  chrome.runtime.sendMessage({ type: "FILTERS_APPLIED", success: true });
+  sendResponse?.({ apiResponse: { filters: results.map((r) => r.filters) } });
 }
 
 function updateItemVisibility(minMatch, maxItems) {
-  const reg = platformRegistry;
-  const url = window.location.href;
-  const platform =
-    reg && reg._platforms?.length ? reg.getCurrentPlatform(url) : null;
+  const platform = getCurrentPlatform();
   if (!platform) return;
-
   const items = Array.from(platform.getItemElements()).slice(0, maxItems);
   items.forEach((item) => {
     const statusDiv = item.querySelector(".filtergenie-status");
@@ -222,19 +175,12 @@ function handleMessage(msg, sender, sendResponse) {
     sendResponse({ type: "PONG" });
     return true;
   }
-
   switch (msg.type) {
     case "APPLY_FILTERS":
       analyzeItems(
         msg.activeFilters,
         msg.minMatch,
-        (() => {
-          const reg = platformRegistry;
-          const url = window.location.href;
-          return reg && reg._platforms?.length
-            ? reg.getCurrentPlatform(url)
-            : null;
-        })(),
+        getCurrentPlatform(),
         msg.maxItems,
         sendResponse,
         msg.apiEndpoint,
@@ -242,45 +188,34 @@ function handleMessage(msg, sender, sendResponse) {
         msg.maxImagesPerItem,
       );
       return true;
-
     case "UPDATE_MIN_MATCH":
       updateItemVisibility(
         msg.minMatch,
         typeof msg.maxItems === "number" ? msg.maxItems : 10,
       );
       return false;
-
     case "RESET_FILTERS_ON_PAGE":
       document
         .querySelectorAll(".filtergenie-status")
         .forEach((el) => el.remove());
       return false;
   }
-
   return false;
 }
 
 function initializeContentScript() {
   chrome.runtime.onMessage.addListener(handleMessage);
-
-  const reg = platformRegistry;
-  const url = window.location.href;
-  const platform =
-    reg && reg._platforms?.length ? reg.getCurrentPlatform(url) : null;
+  const platform = getCurrentPlatform();
   if (platform && platform.isSearchPage(window.location.href)) {
     chrome.storage.local.get("filtergenieLastAnalyzed", (res) => {
       const last = res.filtergenieLastAnalyzed;
       if (!last?.filtersData) return;
-
       const maxItems = typeof last.maxItems === "number" ? last.maxItems : 10;
       const items = Array.from(platform.getItemElements()).slice(0, maxItems);
       if (!items.length) return;
-
       updateItemStatus(items, last.filtersData, last.minMatch);
     });
-
     chrome.storage.local.set({ popupAppliedFilters: [] });
-
     console.log(
       "FilterGenie: Content script initialized successfully on supported website",
     );

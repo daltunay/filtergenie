@@ -46,7 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
     "connection-status",
     "notification-area",
     "api-check-btn",
-    "api-check-status", // <-- add this line
+    "api-check-status",
     "api-spinner",
     "api-status",
     "api-total-time",
@@ -70,9 +70,6 @@ document.addEventListener("DOMContentLoaded", () => {
   let elapsedInterval = null;
 
   function setApiStatus(state, opts = {}) {
-    if (state === "ready" && !stateIsAvailable()) {
-      state = "unavailable";
-    }
     if (["checking", "filtering"].includes(state)) {
       apiStatus = {
         ...apiStatus,
@@ -83,17 +80,15 @@ document.addEventListener("DOMContentLoaded", () => {
       };
       startElapsedTimer();
     } else {
-      if (apiStatus.startedAt) {
-        apiStatus = {
-          ...apiStatus,
-          state,
-          ...opts,
-          elapsed: (Date.now() - apiStatus.startedAt) / 1000,
-          startedAt: null,
-        };
-      } else {
-        apiStatus = { ...apiStatus, state, ...opts, startedAt: null };
-      }
+      apiStatus = {
+        ...apiStatus,
+        state,
+        ...opts,
+        elapsed: apiStatus.startedAt
+          ? (Date.now() - apiStatus.startedAt) / 1000
+          : apiStatus.elapsed,
+        startedAt: null,
+      };
       stopElapsedTimer();
     }
     renderApiStatusBadge();
@@ -108,57 +103,29 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }, 100);
   }
-
   function stopElapsedTimer() {
-    if (elapsedInterval) {
-      clearInterval(elapsedInterval);
-      elapsedInterval = null;
-    }
-  }
-
-  function stateIsAvailable() {
-    return apiStatus.state === "available";
+    if (elapsedInterval)
+      clearInterval(elapsedInterval), (elapsedInterval = null);
   }
 
   function renderApiStatusBadge() {
     const badge = ui.apiStatus;
     let status = apiStatus.state;
-    let text = "";
-    let elapsedText = "";
-    if (
-      ["filtering", "checking"].includes(status) &&
+    let elapsedText =
+      ["filtering", "checking", "done"].includes(status) &&
       typeof apiStatus.elapsed === "number"
-    ) {
-      elapsedText = ` (${apiStatus.elapsed.toFixed(1)}s)`;
-    } else if (status === "done" && typeof apiStatus.elapsed === "number") {
-      elapsedText = ` (${apiStatus.elapsed.toFixed(1)}s)`;
-    }
-    switch (status) {
-      case "checking":
-        text = "Checking...";
-        break;
-      case "available":
-        text = "Ready";
-        break;
-      case "unavailable":
-        text = "Not available";
-        break;
-      case "auth-failed":
-        text = "Auth failed";
-        break;
-      case "filtering":
-        text = "Filtering...";
-        break;
-      case "done":
-        text = "Done";
-        break;
-      case "error":
-        text = apiStatus.error || "API Error";
-        break;
-      default:
-        text = "Not available";
-        status = "unavailable";
-    }
+        ? ` (${apiStatus.elapsed.toFixed(1)}s)`
+        : "";
+    let text =
+      {
+        checking: "Checking...",
+        available: "Ready",
+        unavailable: "Not available",
+        "auth-failed": "Auth failed",
+        filtering: "Filtering...",
+        done: "Done",
+        error: apiStatus.error || "API Error",
+      }[status] || "Not available";
     badge.className = `status-badge status-${status}`;
     badge.textContent = text + elapsedText;
   }
@@ -170,36 +137,16 @@ document.addEventListener("DOMContentLoaded", () => {
         ? DEFAULT_LOCAL_API_ENDPOINT
         : DEFAULT_REMOTE_API_ENDPOINT;
     try {
-      const healthResp = await fetch(endpoint.replace(/\/+$/, "") + "/health");
-      if (!healthResp.ok) {
-        setApiStatus("unavailable");
-        return;
-      }
       if (state.apiMode === "remote") {
-        const authResp = await fetch(
-          endpoint.replace(/\/+$/, "") + "/auth/check",
-          {
-            headers: state.apiKey ? { "X-API-Key": state.apiKey } : {},
-          },
-        );
-        if (!authResp.ok) {
-          setApiStatus("auth-failed");
-          return;
-        }
+        await fetch(endpoint.replace(/\/+$/, "") + "/auth/check", {
+          headers: state.apiKey ? { "X-API-Key": state.apiKey } : {},
+        });
+      } else {
+        await fetch(endpoint.replace(/\/+$/, "") + "/health");
       }
       setApiStatus("available");
-    } catch (e) {
+    } catch {
       setApiStatus("unavailable");
-    }
-  }
-
-  function resetApiBadgeOnInteraction() {
-    if (
-      ["done", "error", "available", "unavailable", "auth-failed"].includes(
-        apiStatus.state,
-      )
-    ) {
-      setApiStatus("ready");
     }
   }
 
@@ -300,30 +247,20 @@ document.addEventListener("DOMContentLoaded", () => {
     },
   };
 
-  let lastConnectionStatus = null;
-  let lastRenderedFilters = null;
-
   function renderUI() {
-    if (ui.filtersSection) {
+    if (ui.filtersSection)
       ui.filtersSection.style.display = state.isConnected ? "" : "none";
-    }
-
-    if (!state.isConnected) {
-      document.body.style.minHeight = "0";
-      document.body.style.height = "auto";
-    } else {
-      document.body.style.minHeight = "";
-      document.body.style.height = "";
-    }
-
+    document.body.style.minHeight = state.isConnected ? "" : "0";
+    document.body.style.height = state.isConnected ? "" : "auto";
     ui.filtersList.innerHTML = "";
     state.filters.forEach((filter, index) => {
-      const badge = createFilterBadge(
-        filter,
-        () => state.removeFilter(index),
-        (newValue) => state.editFilter(index, newValue),
+      ui.filtersList.appendChild(
+        createFilterBadge(
+          filter,
+          () => state.removeFilter(index),
+          (newValue) => state.editFilter(index, newValue),
+        ),
       );
-      ui.filtersList.appendChild(badge);
     });
     ui.minMatch.max = state.filters.length;
     ui.minMatch.value = Math.min(state.minMatch, state.filters.length);
@@ -338,105 +275,105 @@ document.addEventListener("DOMContentLoaded", () => {
     ui.apiModeLocal.checked = state.apiMode === "local";
     ui.apiKeyRow.style.display = state.apiMode === "remote" ? "" : "none";
     ui.apiKey.value = state.apiKey;
-
-    // Only update the colored dot, remove the text
     const statusIndicator =
       ui.connectionStatus.querySelector("span:first-child");
-    if (statusIndicator) {
+    if (statusIndicator)
       statusIndicator.className =
         "inline-flex h-4 w-4 rounded-full " +
         (state.isConnected ? "bg-green-500" : "bg-red-500");
-    }
-
-    if (lastConnectionStatus !== state.isConnected) {
-      state.showNotification(state.isConnected);
-      lastConnectionStatus = state.isConnected;
-    }
-
     ui.apiStatus.innerHTML = "";
     renderApiStatusBadge();
-
     ui.apiTotalTime.textContent = "";
   }
 
   function checkConnection() {
     chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
-      if (!tab?.id) {
-        if (state.isConnected !== false) state.setConnection(false);
-        return;
-      }
+      if (!tab?.id) return state.setConnection(false);
       state.currentActiveTab = tab;
       chrome.tabs.sendMessage(tab.id, { type: "PING" }, (response) => {
-        const isConnected =
-          !chrome.runtime.lastError && response?.type === "PONG";
-        if (state.isConnected !== isConnected) {
-          state.setConnection(isConnected);
-        }
+        state.setConnection(
+          !chrome.runtime.lastError && response?.type === "PONG",
+        );
       });
     });
   }
 
-  function bindFilterEvents(sendToContent) {
-    ui.addFilter.onclick = () => {
-      const value = ui.filterInput.value.trim();
-      if (value && state.addFilter(value)) {
-        ui.filterInput.value = "";
-        ui.addFilter.disabled = true;
-      }
-    };
-    ui.filterInput.oninput = () => {
-      ui.addFilter.disabled = !ui.filterInput.value.trim();
-    };
-    ui.filterInput.onkeydown = (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        ui.addFilter.onclick();
-      }
-    };
-    ui.resetFilters.onclick = () => {
-      state.resetFilters();
-      chrome.storage.local.remove("filtergenieLastAnalyzed");
-      sendToContent({ type: "RESET_FILTERS_ON_PAGE" });
-    };
-
-    ui.applyFilters.onclick = () => {
-      resetApiBadgeOnInteraction();
-      state.setMaxItems(+ui.maxItems.value);
-      state.setMaxImagesPerItem(+ui.maxImages.value);
-      ui.applyFilters.disabled = true;
-      setApiStatus("filtering");
-      const requestStart = Date.now();
-      const apiEndpoint =
-        state.apiMode === "local"
-          ? DEFAULT_LOCAL_API_ENDPOINT
-          : DEFAULT_REMOTE_API_ENDPOINT;
-      const apiKey = state.apiKey;
-      sendToContent({
-        type: "APPLY_FILTERS",
-        activeFilters: state.filters,
-        minMatch: state.minMatch,
-        maxItems: state.maxItems,
-        maxImagesPerItem: state.maxImagesPerItem,
-        apiEndpoint,
-        apiKey,
-      });
-      function apiListener(msg) {
-        if (msg.type === "FILTERS_APPLIED") {
-          if (msg.success) {
-            const totalTime = (Date.now() - requestStart) / 1000;
-            setApiStatus("done", { doneTime: totalTime });
-          } else {
-            setApiStatus("error", { error: msg.error });
-          }
-          ui.applyFilters.disabled = false;
-          chrome.runtime.onMessage.removeListener(apiListener);
-        }
-      }
-      chrome.runtime.onMessage.addListener(apiListener);
-    };
+  function bindEvents() {
+    bindFilterEvents();
+    bindMatchEvents();
+    bindApiEvents();
+    bindApiKeyToggle();
+    bindStorageEvents();
   }
 
-  function bindMatchEvents(sendToContent) {
+  function bindFilterEvents() {
+    ui.addFilter.onclick = onAddFilter;
+    ui.filterInput.oninput = onFilterInput;
+    ui.filterInput.onkeydown = onFilterInputKeydown;
+    ui.resetFilters.onclick = onResetFilters;
+    ui.applyFilters.onclick = onApplyFilters;
+  }
+
+  function onAddFilter() {
+    const value = ui.filterInput.value.trim();
+    if (value && state.addFilter(value)) {
+      ui.filterInput.value = "";
+      ui.addFilter.disabled = true;
+    }
+  }
+
+  function onFilterInput() {
+    ui.addFilter.disabled = !ui.filterInput.value.trim();
+  }
+
+  function onFilterInputKeydown(e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      onAddFilter();
+    }
+  }
+
+  function onResetFilters() {
+    state.resetFilters();
+    chrome.storage.local.remove("filtergenieLastAnalyzed");
+    sendToContent({ type: "RESET_FILTERS_ON_PAGE" });
+  }
+
+  function onApplyFilters() {
+    setApiStatus("filtering");
+    state.setMaxItems(+ui.maxItems.value);
+    state.setMaxImagesPerItem(+ui.maxImages.value);
+    ui.applyFilters.disabled = true;
+    const requestStart = Date.now();
+    const apiEndpoint =
+      state.apiMode === "local"
+        ? DEFAULT_LOCAL_API_ENDPOINT
+        : DEFAULT_REMOTE_API_ENDPOINT;
+    sendToContent({
+      type: "APPLY_FILTERS",
+      activeFilters: state.filters,
+      minMatch: state.minMatch,
+      maxItems: state.maxItems,
+      maxImagesPerItem: state.maxImagesPerItem,
+      apiEndpoint,
+      apiKey: state.apiKey,
+    });
+    function apiListener(msg) {
+      if (msg.type === "FILTERS_APPLIED") {
+        setApiStatus(
+          msg.success ? "done" : "error",
+          msg.success
+            ? { doneTime: (Date.now() - requestStart) / 1000 }
+            : { error: msg.error },
+        );
+        ui.applyFilters.disabled = false;
+        chrome.runtime.onMessage.removeListener(apiListener);
+      }
+    }
+    chrome.runtime.onMessage.addListener(apiListener);
+  }
+
+  function bindMatchEvents() {
     const debouncedMinMatchHandler = debounce((value) => {
       state.setMinMatch(+value);
       ui.minMatchValue.textContent = state.minMatch;
@@ -446,7 +383,6 @@ document.addEventListener("DOMContentLoaded", () => {
         maxItems: state.maxItems,
       });
     }, 300);
-
     const debouncedMaxItemsHandler = debounce((value) => {
       let v = Math.min(+value, 50);
       state.setMaxItems(v);
@@ -457,22 +393,18 @@ document.addEventListener("DOMContentLoaded", () => {
         maxItems: state.maxItems,
       });
     }, 300);
-
     const debouncedMaxImagesHandler = debounce((value) => {
       state.setMaxImagesPerItem(+value);
     }, 300);
-
     ui.minMatch.oninput = (e) => {
       ui.minMatchValue.textContent = e.target.value;
       debouncedMinMatchHandler(e.target.value);
     };
-
     ui.maxItems.oninput = (e) => {
       let v = Math.min(+e.target.value, 50);
       e.target.value = v;
       debouncedMaxItemsHandler(v);
     };
-
     ui.maxImages.oninput = (e) => {
       debouncedMaxImagesHandler(e.target.value);
     };
@@ -484,34 +416,18 @@ document.addEventListener("DOMContentLoaded", () => {
         const settings = ui.apiSettings;
         const arrow = document.getElementById("settings-toggle-arrow");
         const expanded = settings.classList.contains("expanded");
-        if (!expanded) {
-          settings.classList.add("expanded");
-          settings.classList.remove("hidden");
-          // Arrow down
-          if (arrow) {
-            arrow.style.transform = "rotate(180deg)";
-          }
-        } else {
-          settings.classList.remove("expanded");
-          setTimeout(() => settings.classList.add("hidden"), 300);
-          // Arrow up
-          if (arrow) {
-            arrow.style.transform = "rotate(0deg)";
-          }
-        }
+        settings.classList.toggle("expanded");
+        settings.classList.toggle("hidden", expanded);
+        if (arrow)
+          arrow.style.transform = expanded ? "rotate(0deg)" : "rotate(180deg)";
       };
-      // On load, set arrow direction based on expanded state
       const arrow = document.getElementById("settings-toggle-arrow");
       const settings = ui.apiSettings;
-      if (arrow && settings) {
-        if (settings.classList.contains("expanded")) {
-          arrow.style.transform = "rotate(180deg)";
-        } else {
-          arrow.style.transform = "rotate(0deg)";
-        }
-      }
+      if (arrow && settings)
+        arrow.style.transform = settings.classList.contains("expanded")
+          ? "rotate(180deg)"
+          : "rotate(0deg)";
     }
-
     [ui.apiModeRemote, ui.apiModeLocal].forEach((el) => {
       el.onchange = () => {
         state.setApiMode(ui.apiModeRemote.checked ? "remote" : "local");
@@ -519,12 +435,10 @@ document.addEventListener("DOMContentLoaded", () => {
         checkApiStatus();
       };
     });
-
     ui.apiKey.oninput = () => {
       state.setApiKey(ui.apiKey.value.trim());
       checkApiStatus();
     };
-
     if (ui.apiCheckBtn) {
       ui.apiCheckBtn.onclick = async () => {
         ui.apiCheckStatus.textContent = "Checking...";
@@ -535,22 +449,7 @@ document.addEventListener("DOMContentLoaded", () => {
           state.apiMode === "local"
             ? DEFAULT_LOCAL_API_ENDPOINT
             : DEFAULT_REMOTE_API_ENDPOINT;
-        let timeoutId;
-        function clearStatus() {
-          ui.apiCheckStatus.textContent = "";
-        }
         try {
-          const healthResp = await fetch(
-            endpoint.replace(/\/+$/, "") + "/health",
-          );
-          if (!healthResp.ok) {
-            ui.apiCheckStatus.textContent = "Not available";
-            ui.apiCheckStatus.className =
-              "text-xs text-red-400 mt-1 min-h-[1.2em] text-center";
-            setApiStatus("unavailable");
-            timeoutId = setTimeout(clearStatus, 2500);
-            return;
-          }
           if (state.apiMode === "remote") {
             const authResp = await fetch(
               endpoint.replace(/\/+$/, "") + "/auth/check",
@@ -563,35 +462,31 @@ document.addEventListener("DOMContentLoaded", () => {
               ui.apiCheckStatus.className =
                 "text-xs text-red-400 mt-1 min-h-[1.2em] text-center";
               setApiStatus("auth-failed");
-              timeoutId = setTimeout(clearStatus, 2500);
+              setTimeout(() => (ui.apiCheckStatus.textContent = ""), 2500);
               return;
             }
+          } else {
+            await fetch(endpoint.replace(/\/+$/, "") + "/health");
           }
           ui.apiCheckStatus.textContent = "Available";
           ui.apiCheckStatus.className =
             "text-xs text-green-400 mt-1 min-h-[1.2em] text-center";
           setApiStatus("available");
-          timeoutId = setTimeout(clearStatus, 2500);
-        } catch (e) {
+        } catch {
           ui.apiCheckStatus.textContent = "Not available";
           ui.apiCheckStatus.className =
             "text-xs text-red-400 mt-1 min-h-[1.2em] text-center";
           setApiStatus("unavailable");
-          timeoutId = setTimeout(clearStatus, 2500);
         }
+        setTimeout(() => (ui.apiCheckStatus.textContent = ""), 2500);
       };
     }
-
     if (ui.apiClearCacheBtn) {
       ui.apiClearCacheBtn.onclick = async () => {
         ui.apiClearCacheBtn.disabled = true;
         ui.apiClearCacheStatus.textContent = "Clearing...";
         ui.apiClearCacheStatus.className =
           "text-xs text-primary-300 mt-1 min-h-[1.2em] text-center";
-        let timeoutId;
-        function clearStatus() {
-          ui.apiClearCacheStatus.textContent = "";
-        }
         const endpoint =
           state.apiMode === "remote"
             ? DEFAULT_REMOTE_API_ENDPOINT
@@ -607,37 +502,26 @@ document.addEventListener("DOMContentLoaded", () => {
                   : {},
             },
           );
-          if (resp.ok) {
-            const data = await resp.json();
-            if (data.status === "disabled") {
-              ui.apiClearCacheStatus.textContent = "Cache unavailable";
-              ui.apiClearCacheStatus.className =
-                "text-xs text-yellow-400 mt-1 min-h-[1.2em] text-center";
-            } else {
-              const count =
-                typeof data.entries_cleared === "number"
-                  ? data.entries_cleared
-                  : null;
-              ui.apiClearCacheStatus.textContent =
-                count !== null ? `Cleared (${count})` : "Cleared";
-              ui.apiClearCacheStatus.className =
-                "text-xs text-green-400 mt-1 min-h-[1.2em] text-center";
-            }
-            timeoutId = setTimeout(clearStatus, 2500);
-          } else {
-            ui.apiClearCacheStatus.textContent = "Failed";
+          const data = await resp.json();
+          if (data.status === "disabled") {
+            ui.apiClearCacheStatus.textContent = "Cache unavailable";
             ui.apiClearCacheStatus.className =
-              "text-xs text-red-400 mt-1 min-h-[1.2em] text-center";
-            timeoutId = setTimeout(clearStatus, 2500);
+              "text-xs text-yellow-400 mt-1 min-h-[1.2em] text-center";
+          } else {
+            ui.apiClearCacheStatus.textContent =
+              typeof data.entries_cleared === "number"
+                ? `Cleared (${data.entries_cleared})`
+                : "Cleared";
+            ui.apiClearCacheStatus.className =
+              "text-xs text-green-400 mt-1 min-h-[1.2em] text-center";
           }
-        } catch (e) {
-          ui.apiClearCacheStatus.textContent = "Error";
+        } catch {
+          ui.apiClearCacheStatus.textContent = "Not available";
           ui.apiClearCacheStatus.className =
             "text-xs text-red-400 mt-1 min-h-[1.2em] text-center";
-          timeoutId = setTimeout(clearStatus, 2500);
-        } finally {
-          ui.apiClearCacheBtn.disabled = false;
         }
+        setTimeout(() => (ui.apiClearCacheStatus.textContent = ""), 2500);
+        ui.apiClearCacheBtn.disabled = false;
       };
     }
   }
@@ -649,35 +533,18 @@ document.addEventListener("DOMContentLoaded", () => {
       visible = !visible;
       ui.apiKey.type = visible ? "text" : "password";
       ui.apiKeyToggle.innerHTML = visible
-        ? `<svg id="api-key-eye" class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.956 9.956 0 012.042-3.338m1.528-1.712A9.956 9.956 0 0112 5c4.477 0 8.268 2.943 9.542 7a9.956 9.956 0 01-4.293 5.411M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18" />
-          </svg>`
-        : `<svg id="api-key-eye" class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-          </svg>`;
+        ? `<svg id="api-key-eye" class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.956 9.956 0 012.042-3.338m1.528-1.712A9.956 9.956 0 0112 5c4.477 0 8.268 2.943 9.542 7a9.956 9.956 0 01-4.293 5.411M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18" /></svg>`
+        : `<svg id="api-key-eye" class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>`;
     };
   }
 
   function bindStorageEvents() {
-    chrome.storage.onChanged.addListener((changes) => {
+    chrome.storage.onChanged.addListener(() => {
       if (ignoreNextStorageUpdate) {
         ignoreNextStorageUpdate = false;
         return;
       }
-
-      if (
-        changes.popupFilters ||
-        changes.popupMinMatch ||
-        changes.popupMaxItems ||
-        changes.popupMaxImagesPerItem ||
-        changes.popupApiMode ||
-        changes.popupApiKey ||
-        changes.filtergenieApiStatus
-      ) {
-        loadState();
-      }
+      loadState();
     });
   }
 
@@ -737,14 +604,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function setupEvents(sendToContent) {
-    bindFilterEvents(sendToContent);
-    bindMatchEvents(sendToContent);
-    bindApiEvents();
-    bindApiKeyToggle();
-    bindStorageEvents();
-
+    bindEvents();
     state.subscribe(renderUI);
-
     checkConnection();
     setInterval(checkConnection, 10000);
     renderApiStatusBadge();
