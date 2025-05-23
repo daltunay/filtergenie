@@ -609,14 +609,20 @@ document.addEventListener("DOMContentLoaded", () => {
           );
           if (resp.ok) {
             const data = await resp.json();
-            const count =
-              typeof data.entries_cleared === "number"
-                ? data.entries_cleared
-                : null;
-            ui.apiClearCacheStatus.textContent =
-              count !== null ? `Cleared (${count})` : "Cleared";
-            ui.apiClearCacheStatus.className =
-              "text-xs text-green-400 mt-1 min-h-[1.2em] text-center";
+            if (data.status === "disabled") {
+              ui.apiClearCacheStatus.textContent = "Cache unavailable";
+              ui.apiClearCacheStatus.className =
+                "text-xs text-yellow-400 mt-1 min-h-[1.2em] text-center";
+            } else {
+              const count =
+                typeof data.entries_cleared === "number"
+                  ? data.entries_cleared
+                  : null;
+              ui.apiClearCacheStatus.textContent =
+                count !== null ? `Cleared (${count})` : "Cleared";
+              ui.apiClearCacheStatus.className =
+                "text-xs text-green-400 mt-1 min-h-[1.2em] text-center";
+            }
             timeoutId = setTimeout(clearStatus, 2500);
           } else {
             ui.apiClearCacheStatus.textContent = "Failed";

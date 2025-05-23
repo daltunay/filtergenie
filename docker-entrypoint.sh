@@ -10,4 +10,4 @@ while true; do
 	sleep 1
 done
 
-exec fastapi run backend/app.py
+exec env CACHE_ENABLED="${CACHE_ENABLED}" fastapi run backend/app.py

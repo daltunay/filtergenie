@@ -8,6 +8,7 @@ import redis.asyncio as redis
 
 from backend.analyzer.models import FilterModel
 from backend.common.logging import log
+from backend.config import settings
 
 redis_client = redis.Redis(host="localhost", port=6379, decode_responses=True)
 
@@ -33,6 +34,8 @@ def make_cache_key(
 
 def redis_catch(func: t.FunctionType) -> t.FunctionType:
     async def wrapper(*args, **kwargs):
+        if not settings.cache_enabled:
+            return None
         try:
             return await func(*args, **kwargs)
         except Exception as e:

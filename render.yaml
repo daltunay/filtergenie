@@ -19,6 +19,8 @@ services:
         value: true
       - key: API_KEY
         generateValue: true
+      - key: CACHE_ENABLED
+        value: true
       - key: GROQ_API_KEY
         sync: false
       - key: GROQ_MODEL_NAME

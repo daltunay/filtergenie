@@ -1,6 +1,6 @@
 import os
 
-from pydantic import BaseModel, Field, computed_field, field_serializer
+from pydantic import BaseModel, Field, computed_field, field_serializer, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from backend.common.logging import log
@@ -53,6 +53,21 @@ class Settings(BaseSettings):
 
     api: ApiConfig = Field(default_factory=ApiConfig)
     groq: GroqConfig = Field(default_factory=GroqConfig)
+    cache_enabled: bool = Field(default=False)
+
+    @field_validator("cache_enabled", mode="after")
+    @classmethod
+    def check_redis_available(cls, v):
+        if not v:
+            return False
+        try:
+            import redis
+
+            r = redis.Redis(host="localhost", port=6379, socket_connect_timeout=1)
+            r.ping()
+            return True
+        except Exception:
+            return False
 
 
 settings = Settings()

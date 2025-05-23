@@ -32,6 +32,9 @@ COPY backend/ ./backend
 EXPOSE 8000
 HEALTHCHECK CMD curl --fail http://localhost:8000/health || exit 1
 
+ARG CACHE_ENABLED=true
+ENV CACHE_ENABLED=${CACHE_ENABLED}
+
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x ./docker-entrypoint.sh
 

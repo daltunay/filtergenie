@@ -134,7 +134,7 @@ uv sync
 #### Run the API
 
 ```bash
-# Run the FastAPI CLI
+# Run the FastAPI server
 GROQ_API_KEY="your_groq_api_key" fastapi run backend/app.py
 ```
 
@@ -151,7 +151,7 @@ docker run --rm \
   filtergenie
 ```
 
-> Note: Docker does not parse `.env` files, so you need to set the environment variables in the command line using `-e`.
+> Note: To use caching, you must have a running Redis server on `localhost:6379` and pass `CACHE_ENABLED=true` as an environment variable to the API.
 
 ## Privacy Policy
 

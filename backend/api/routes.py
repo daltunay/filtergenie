@@ -37,9 +37,21 @@ async def check_api_auth():
 @authenticated_router.post("/cache/clear")
 async def clear_cache_endpoint(redis=Depends(get_redis)):
     """Clear cache entries."""
+    from backend.config import settings
+
+    if not settings.cache_enabled:
+        return {
+            "status": "disabled",
+            "entries_cleared": None,
+            "message": "Cache is disabled or unavailable.",
+        }
     try:
         count = await clear_cache()
-        return {"status": "success", "entries_cleared": count}
+        return {
+            "status": "success",
+            "entries_cleared": count,
+            "message": "Cache cleared successfully.",
+        }
     except Exception as e:
         log.error("Error clearing cache", error=str(e), exc_info=e)
         raise HTTPException(
