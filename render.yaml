@@ -17,6 +17,8 @@ services:
     envVars:
       - key: API_KEY
         generateValue: true
+      - key: API_PROFILE
+        value: true
       - key: CACHE_ENABLED
         value: true
       - key: GROQ_API_KEY
