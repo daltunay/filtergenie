@@ -1,6 +1,6 @@
 # FilterGenie 🧞‍♂️
 
-<!-- Project info badges -->
+<!-- Project info -->
 <div align="center">
 
 [![License: CC BY-NC 4.0](https://img.shields.io/badge/license-CC--BY--NC%204.0-lightgrey?logo=creativecommons)](https://github.com/daltunay/filtergenie/blob/master/LICENSE)
@@ -10,18 +10,18 @@
 
 </div>
 
-<!-- Tech stack badges -->
+<!-- Tech stack -->
 <div align="center">
 
 [![FastAPI](https://img.shields.io/badge/FastAPI-009485.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
-[![Pydantic v2](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/pydantic/pydantic/main/docs/badge/v2.json)](https://docs.pydantic.dev/latest/contributing/#badges)
+[![Pydantic](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/pydantic/pydantic/main/docs/badge/v2.json)](https://docs.pydantic.dev/latest/contributing/#badges)
 [![Llama](https://img.shields.io/badge/Llama4-blue?logo=meta)](https://console.groq.com/docs/model/llama-4-scout-17b-16e-instruct)
 [![Redis](https://img.shields.io/badge/Redis-DC382D?logo=redis&logoColor=white)](https://redis.io/)
 
 </div>
 
-<!-- Social badge -->
+<!-- Social -->
 <div align="center">
 
 [![LinkedIn](https://custom-icon-badges.demolab.com/badge/LinkedIn-0A66C2?logo=linkedin-white&logoColor=fff)](https://www.linkedin.com/in/daltunay/)
@@ -168,45 +168,3 @@ docker run --rm \
 ```
 
 > Note: To use caching, you must have a running Redis server on `localhost:6379` and pass `CACHE_ENABLED=true` as an environment variable to the API.
-
-## Privacy Policy
-
-FilterGenie is designed with user privacy in mind. We are committed to protecting your data and being transparent about how information is handled.
-
-### What data does FilterGenie collect?
-
-- **Website Content Only:**
-  FilterGenie processes the content of web pages you visit on supported e-commerce sites (such as product titles, descriptions, and images) to provide its filtering functionality.
-  **No other data is collected.**
-
-### What data does FilterGenie NOT collect?
-
-- We do **not** collect, store, or transmit any of the following:
-  - Personally identifiable information (PII) such as your name, address, email, age, or identification numbers
-  - Health information
-  - Financial or payment information
-  - Authentication information (passwords, credentials, secret questions, or codes)
-  - Personal communications (emails, SMS, chat messages)
-  - Location data (IP address, GPS, or nearby points of interest)
-  - Web browsing history (list of pages visited, titles, or timestamps)
-  - User activity (network monitoring, clicks, mouse position, scroll or keystroke logging)
-
-### How is your data used?
-
-- The extension only analyzes the visible content of e-commerce listings to provide filtering results.
-- No user data is sold or transferred to third parties.
-- No user data is used for purposes unrelated to the core filtering functionality.
-- No user data is used for creditworthiness or lending purposes.
-
-### Data storage and transfer
-
-- All processing is performed locally in your browser or sent to the FilterGenie API (cloud or local, as configured by you) for analysis.
-- No personal or sensitive data is ever collected, stored, or transferred by FilterGenie.
-
-### Certification
-
-- We do **not** sell or transfer user data to third parties except as required for the core functionality.
-- We do **not** use or transfer user data for unrelated purposes.
-- We do **not** use or transfer user data for creditworthiness or lending.
-
-For any questions about privacy, please contact the developer at [daniel.altunay@gmail.com](mailto:daniel.altunay@gmail.com).
