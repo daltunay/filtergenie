@@ -2,6 +2,9 @@
 name = "filtergenie"
 version = "0.1.0"
 description = "FilterGenie: AI-powered filtering"
+authors = [
+    { name = "Daniel Altunay", email = "danie.altunay@gmail.com" }
+]
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
