@@ -10,11 +10,11 @@ dependencies = [
     "fastapi[standard]>=0.115.12",
     "groq>=0.25.0",
     "instructor>=1.8.2",
-    "pillow>=11.1.0",
+    "pillow>=11.2.1",
     "pydantic>=2.11.4",
     "pydantic-settings>=2.8.1",
+    "pyinstrument>=5.0.1",
     "redis>=6.1.0",
-    "requests>=2.32.3",
     "structlog>=25.3.0",
 ]
 
@@ -22,7 +22,6 @@ dependencies = [
 dev = [
     "ipykernel>=6.29.5",
     "pre-commit>=4.2.0",
-    "pyinstrument>=5.0.1",
     "pytest>=8.3.5",
     "pytest-cov>=6.1.1",
 ]

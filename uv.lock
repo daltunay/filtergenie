@@ -454,8 +454,8 @@ dependencies = [
     { name = "pillow" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
+    { name = "pyinstrument" },
     { name = "redis" },
-    { name = "requests" },
     { name = "structlog" },
 ]
 
@@ -463,7 +463,6 @@ dependencies = [
 dev = [
     { name = "ipykernel" },
     { name = "pre-commit" },
-    { name = "pyinstrument" },
     { name = "pytest" },
     { name = "pytest-cov" },
 ]
@@ -475,11 +474,11 @@ requires-dist = [
     { name = "fastapi", extras = ["standard"], specifier = ">=0.115.12" },
     { name = "groq", specifier = ">=0.25.0" },
     { name = "instructor", specifier = ">=1.8.2" },
-    { name = "pillow", specifier = ">=11.1.0" },
+    { name = "pillow", specifier = ">=11.2.1" },
     { name = "pydantic", specifier = ">=2.11.4" },
     { name = "pydantic-settings", specifier = ">=2.8.1" },
+    { name = "pyinstrument", specifier = ">=5.0.1" },
     { name = "redis", specifier = ">=6.1.0" },
-    { name = "requests", specifier = ">=2.32.3" },
     { name = "structlog", specifier = ">=25.3.0" },
 ]
 
@@ -487,7 +486,6 @@ requires-dist = [
 dev = [
     { name = "ipykernel", specifier = ">=6.29.5" },
     { name = "pre-commit", specifier = ">=4.2.0" },
-    { name = "pyinstrument", specifier = ">=5.0.1" },
     { name = "pytest", specifier = ">=8.3.5" },
     { name = "pytest-cov", specifier = ">=6.1.1" },
 ]

@@ -16,14 +16,8 @@ ENV UV_COMPILE_BYTECODE=1 \
     VIRTUAL_ENV=/app/.venv \
     PYTHONUNBUFFERED=1
 
-ARG DEV=false
-ENV DEV=${DEV}
-
 RUN --mount=type=cache,target=/root/.cache/uv \
-    if [ "$DEV" = "true" ]; \
-    then uv sync --no-install-project; \
-    else uv sync --no-install-project --no-dev; \
-    fi
+    uv sync --no-install-project --no-dev
 
 ENV PATH="/app/.venv/bin:$PATH"
 

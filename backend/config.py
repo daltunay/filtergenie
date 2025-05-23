@@ -1,5 +1,3 @@
-import os
-
 from pydantic import BaseModel, Field, computed_field, field_serializer, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -14,7 +12,7 @@ class ApiConfig(BaseModel):
         description="API key for authentication",
     )
     profile: bool = Field(
-        default=os.getenv("DEV", "false").lower() == "true",
+        default=True,
         description="Enable request profiling middleware",
     )
 

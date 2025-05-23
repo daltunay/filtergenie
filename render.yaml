@@ -15,8 +15,6 @@ services:
 
     # Environment variables
     envVars:
-      - key: DEV
-        value: true
       - key: API_KEY
         generateValue: true
       - key: CACHE_ENABLED
