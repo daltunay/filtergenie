@@ -20,7 +20,7 @@ const SPINNER_FRAMES = [
   "⠳",
   "⠓",
 ];
-let itemIntervals = new WeakMap();
+const itemIntervals = new WeakMap();
 
 export function showItemSpinner(targets) {
   targets.forEach((el) => {
@@ -33,29 +33,14 @@ export function showItemSpinner(targets) {
     }
     statusDiv.style.display = "";
     statusDiv.textContent = "";
-    if (itemIntervals.has(statusDiv)) {
-      clearInterval(itemIntervals.get(statusDiv));
-    }
-    let frame = 0;
-    const start = Date.now();
-    let lastFrameUpdate = 0;
-    let lastElapsedUpdate = 0;
-    const frameInterval = 350;
-    const elapsedInterval = 100;
-    const update = () => {
-      const now = Date.now();
-      if (now - lastFrameUpdate >= frameInterval) {
-        frame = (frame + 1) % SPINNER_FRAMES.length;
-        lastFrameUpdate = now;
-      }
-      if (now - lastElapsedUpdate >= elapsedInterval) {
-        const elapsed = (now - start) / 1000;
-        statusDiv.textContent = `${SPINNER_FRAMES[frame]} (${elapsed.toFixed(1)}s)`;
-        lastElapsedUpdate = now;
-      }
-    };
-    update();
-    const interval = setInterval(update, 30);
+    clearInterval(itemIntervals.get(statusDiv));
+    let frame = 0,
+      start = Date.now();
+    const interval = setInterval(() => {
+      const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+      statusDiv.textContent = `${SPINNER_FRAMES[frame]} (${elapsed}s)`;
+      frame = (frame + 1) % SPINNER_FRAMES.length;
+    }, 120);
     itemIntervals.set(statusDiv, interval);
   });
 }
@@ -89,16 +74,15 @@ export function showApiSpinner(container, message = "Filtering...") {
   spinnerWrap.appendChild(elapsed);
   container.appendChild(spinnerWrap);
   apiSpinnerInterval = setInterval(() => {
-    const t = ((Date.now() - apiSpinnerStart) / 1000).toFixed(1);
-    elapsed.textContent = `(${t}s)`;
+    elapsed.textContent = `(${((Date.now() - apiSpinnerStart) / 1000).toFixed(
+      1,
+    )}s)`;
   }, 100);
 }
 
 export function removeApiSpinner(container, doneTime = null) {
-  if (apiSpinnerInterval) {
-    clearInterval(apiSpinnerInterval);
-    apiSpinnerInterval = null;
-  }
+  if (apiSpinnerInterval) clearInterval(apiSpinnerInterval);
+  apiSpinnerInterval = null;
   apiSpinnerStart = null;
   container.innerHTML = "";
   if (doneTime !== null) {
