@@ -12,17 +12,17 @@ class Platform {
     hostPattern,
     searchPathPatterns,
     itemPathPattern,
-    itemContainerSelector,
     itemUrlSelector,
     getItemUrl,
+    getItemElements,
   }) {
     this.name = name;
     this.hostPattern = hostPattern;
     this.searchPathPatterns = searchPathPatterns;
     this.itemPathPattern = itemPathPattern;
-    this.itemContainerSelector = itemContainerSelector;
     this.itemUrlSelector = itemUrlSelector;
     this.getItemUrl = getItemUrl;
+    this.getItemElements = getItemElements;
   }
   isSupported(url) {
     const u = parseUrl(url);
@@ -30,14 +30,13 @@ class Platform {
   }
   isSearchPage(url) {
     const u = parseUrl(url);
-    return u && this.searchPathPatterns.some((pat) => pat.test(u.pathname));
+    if (!u) return false;
+    const fullPath = u.pathname + u.search;
+    return this.searchPathPatterns.some((pat) => pat.test(fullPath));
   }
   isItemPage(url) {
     const u = parseUrl(url);
     return u && this.itemPathPattern.test(u.pathname);
-  }
-  getItemElements() {
-    return document.querySelectorAll(this.itemContainerSelector);
   }
   async getItemHtml(itemContainer) {
     const url = this.getItemUrl(itemContainer);

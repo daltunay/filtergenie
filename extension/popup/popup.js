@@ -14,6 +14,7 @@ function sendToContent(msg) {
 
 import "../platforms/leboncoin.js";
 import "../platforms/vinted.js";
+import "../platforms/amazon.js";
 import {
   createFilterBadge,
   setDisclaimer,

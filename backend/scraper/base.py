@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 
 from bs4 import BeautifulSoup
 
+from backend.common.logging import log
+
 
 class BaseScraper(ABC):
     """Abstract base class for all platform scrapers."""
@@ -37,4 +39,5 @@ class BaseScraper(ABC):
             "images": [{"url": url} for url in cls.extract_images(soup)],
         }
         data.update(cls.extract_additionals(soup))
+        log.debug("Parsed html", **data)
         return data

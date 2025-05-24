@@ -8,7 +8,9 @@
     "https://*.leboncoin.fr/*",
     "https://*.vinted.fr/*",
     "https://leboncoin.fr/*",
-    "https://vinted.fr/*"
+    "https://vinted.fr/*",
+    "https://amazon.fr/*",
+    "https://www.amazon.fr/*"
   ],
   "background": {},
   "action": {
@@ -26,7 +28,9 @@
         "https://*.leboncoin.fr/*",
         "https://*.vinted.fr/*",
         "https://leboncoin.fr/*",
-        "https://vinted.fr/*"
+        "https://vinted.fr/*",
+        "https://amazon.fr/*",
+        "https://www.amazon.fr/*"
       ],
       "js": ["dist/content.bundle.js"],
       "run_at": "document_idle"

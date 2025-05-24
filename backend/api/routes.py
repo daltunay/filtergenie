@@ -66,7 +66,6 @@ async def analyze_item(
     analyzer: Analyzer = Depends(get_analyzer),
     redis=Depends(get_redis),
 ):
-    log.info("Received analysis request", filters_count=len(request.filters))
     try:
         item = await get_or_scrape_item(
             platform=request.item.platform,

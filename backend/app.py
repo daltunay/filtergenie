@@ -25,7 +25,6 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             path=request.url.path,
             client=request.client.host if request.client else "unknown",
         )
-
         start_time = time.perf_counter()
         response = await call_next(request)
         duration = time.perf_counter() - start_time
