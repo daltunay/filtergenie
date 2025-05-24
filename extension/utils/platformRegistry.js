@@ -12,14 +12,16 @@ class Platform {
     hostPattern,
     searchPathPatterns,
     itemPathPattern,
-    itemSelector,
+    itemContainerSelector,
+    itemUrlSelector,
     getItemUrl,
   }) {
     this.name = name;
     this.hostPattern = hostPattern;
     this.searchPathPatterns = searchPathPatterns;
     this.itemPathPattern = itemPathPattern;
-    this.itemSelector = itemSelector;
+    this.itemContainerSelector = itemContainerSelector;
+    this.itemUrlSelector = itemUrlSelector;
     this.getItemUrl = getItemUrl;
   }
   isSupported(url) {
@@ -35,10 +37,10 @@ class Platform {
     return u && this.itemPathPattern.test(u.pathname);
   }
   getItemElements() {
-    return document.querySelectorAll(this.itemSelector);
+    return document.querySelectorAll(this.itemContainerSelector);
   }
-  async getItemHtml(item) {
-    const url = this.getItemUrl(item);
+  async getItemHtml(itemContainer) {
+    const url = this.getItemUrl(itemContainer);
     if (!url) return "";
     try {
       const resp = await fetch(url, { credentials: "include" });
