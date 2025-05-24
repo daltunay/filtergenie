@@ -91,7 +91,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     renderApiStatusBadge();
   }
-
   function startElapsedTimer() {
     stopElapsedTimer();
     elapsedInterval = setInterval(() => {
@@ -105,16 +104,15 @@ document.addEventListener("DOMContentLoaded", () => {
     if (elapsedInterval)
       clearInterval(elapsedInterval), (elapsedInterval = null);
   }
-
   function renderApiStatusBadge() {
     const badge = ui.apiStatus;
-    let status = apiStatus.state;
-    let elapsedText =
+    const status = apiStatus.state;
+    const elapsedText =
       ["filtering", "checking", "done"].includes(status) &&
       typeof apiStatus.elapsed === "number"
         ? ` (${apiStatus.elapsed.toFixed(1)}s)`
         : "";
-    let text =
+    const text =
       {
         checking: "Checking...",
         available: "Ready",
@@ -289,87 +287,67 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function bindEvents() {
-    bindFilterEvents();
-    bindMatchEvents();
-    bindApiEvents();
-    bindApiKeyToggle();
-  }
-
-  function bindFilterEvents() {
-    ui.addFilter.onclick = onAddFilter;
-    ui.filterInput.oninput = onFilterInput;
-    ui.filterInput.onkeydown = onFilterInputKeydown;
-    ui.resetFilters.onclick = onResetFilters;
-    ui.applyFilters.onclick = onApplyFilters;
-  }
-
-  function onAddFilter() {
-    const value = ui.filterInput.value.trim();
-    if (value && state.addFilter(value)) {
-      ui.filterInput.value = "";
-      ui.addFilter.disabled = true;
-    }
-  }
-
-  function onFilterInput() {
-    ui.addFilter.disabled = !ui.filterInput.value.trim();
-  }
-
-  function onFilterInputKeydown(e) {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      onAddFilter();
-    }
-  }
-
-  function onResetFilters() {
-    state.resetFilters();
-    chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
-      const url = tab?.url;
-      const platform = url && platformRegistry.current(url);
-      if (platform && platform.isSearchPage(url)) {
-        sendToContent({ type: "RESET_FILTERS_ON_PAGE" });
+    ui.addFilter.onclick = () => {
+      const value = ui.filterInput.value.trim();
+      if (value && state.addFilter(value)) {
+        ui.filterInput.value = "";
+        ui.addFilter.disabled = true;
       }
-    });
-  }
-
-  function onApplyFilters() {
-    setApiStatus("filtering");
-    state.setMaxItems(+ui.maxItems.value);
-    state.setMaxImagesPerItem(+ui.maxImages.value);
-    ui.applyFilters.disabled = true;
-    const requestStart = Date.now();
-    const apiEndpoint =
-      state.apiMode === "local"
-        ? DEFAULT_LOCAL_API_ENDPOINT
-        : DEFAULT_REMOTE_API_ENDPOINT;
-    chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
-      sendToContent({
-        type: "APPLY_FILTERS",
-        activeFilters: state.filters,
-        minMatch: state.minMatch,
-        maxItems: state.maxItems,
-        maxImagesPerItem: state.maxImagesPerItem,
-        apiEndpoint,
-        apiKey: state.apiKey,
-      });
-      function apiListener(msg) {
-        if (msg.type === "FILTERS_APPLIED") {
-          setApiStatus(
-            msg.success ? "done" : "error",
-            msg.success
-              ? { doneTime: (Date.now() - requestStart) / 1000 }
-              : { error: msg.error },
-          );
-          ui.applyFilters.disabled = false;
-          chrome.runtime.onMessage.removeListener(apiListener);
+    };
+    ui.filterInput.oninput = () => {
+      ui.addFilter.disabled = !ui.filterInput.value.trim();
+    };
+    ui.filterInput.onkeydown = (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        ui.addFilter.onclick();
+      }
+    };
+    ui.resetFilters.onclick = () => {
+      state.resetFilters();
+      chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+        const url = tab?.url;
+        const platform = url && platformRegistry.current(url);
+        if (platform && platform.isSearchPage(url)) {
+          sendToContent({ type: "RESET_FILTERS_ON_PAGE" });
         }
-      }
-      chrome.runtime.onMessage.addListener(apiListener);
-    });
-  }
-
-  function bindMatchEvents() {
+      });
+    };
+    ui.applyFilters.onclick = () => {
+      setApiStatus("filtering");
+      state.setMaxItems(+ui.maxItems.value);
+      state.setMaxImagesPerItem(+ui.maxImages.value);
+      ui.applyFilters.disabled = true;
+      const requestStart = Date.now();
+      const apiEndpoint =
+        state.apiMode === "local"
+          ? DEFAULT_LOCAL_API_ENDPOINT
+          : DEFAULT_REMOTE_API_ENDPOINT;
+      chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+        sendToContent({
+          type: "APPLY_FILTERS",
+          activeFilters: state.filters,
+          minMatch: state.minMatch,
+          maxItems: state.maxItems,
+          maxImagesPerItem: state.maxImagesPerItem,
+          apiEndpoint,
+          apiKey: state.apiKey,
+        });
+        function apiListener(msg) {
+          if (msg.type === "FILTERS_APPLIED") {
+            setApiStatus(
+              msg.success ? "done" : "error",
+              msg.success
+                ? { doneTime: (Date.now() - requestStart) / 1000 }
+                : { error: msg.error },
+            );
+            ui.applyFilters.disabled = false;
+            chrome.runtime.onMessage.removeListener(apiListener);
+          }
+        }
+        chrome.runtime.onMessage.addListener(apiListener);
+      });
+    };
     const debounceHandler = (fn, key) =>
       debounce((v) => {
         state[key](+v);
@@ -395,9 +373,7 @@ document.addEventListener("DOMContentLoaded", () => {
         state.setMaxImagesPerItem.bind(state),
         "setMaxImagesPerItem",
       )(e.target.value);
-  }
 
-  function bindApiEvents() {
     if (ui.settingsToggle) {
       ui.settingsToggle.onclick = () => {
         const settings = ui.apiSettings;
@@ -440,9 +416,7 @@ document.addEventListener("DOMContentLoaded", () => {
           if (state.apiMode === "remote") {
             const authResp = await fetch(
               endpoint.replace(/\/+$/, "") + "/auth/check",
-              {
-                headers: state.apiKey ? { "X-API-Key": state.apiKey } : {},
-              },
+              { headers: state.apiKey ? { "X-API-Key": state.apiKey } : {} },
             );
             if (!authResp.ok) {
               ui.apiCheckStatus.textContent = "Auth failed";
@@ -511,18 +485,16 @@ document.addEventListener("DOMContentLoaded", () => {
         ui.apiClearCacheBtn.disabled = false;
       };
     }
-  }
-
-  function bindApiKeyToggle() {
-    if (!ui.apiKeyToggle || !ui.apiKey) return;
-    let visible = false;
-    ui.apiKeyToggle.onclick = () => {
-      visible = !visible;
-      ui.apiKey.type = visible ? "text" : "password";
-      ui.apiKeyToggle.innerHTML = visible
-        ? `<svg id="api-key-eye" class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.956 9.956 0 012.042-3.338m1.528-1.712A9.956 9.956 0 0112 5c4.477 0 8.268 2.943 9.542 7a9.956 9.956 0 01-4.293 5.411M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18" /></svg>`
-        : `<svg id="api-key-eye" class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>`;
-    };
+    if (ui.apiKeyToggle && ui.apiKey) {
+      let visible = false;
+      ui.apiKeyToggle.onclick = () => {
+        visible = !visible;
+        ui.apiKey.type = visible ? "text" : "password";
+        ui.apiKeyToggle.innerHTML = visible
+          ? `<svg id="api-key-eye" class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.956 9.956 0 012.042-3.338m1.528-1.712A9.956 9.956 0 0112 5c4.477 0 8.268 2.943 9.542 7a9.956 9.956 0 01-4.293 5.411M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18" /></svg>`
+          : `<svg id="api-key-eye" class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>`;
+      };
+    }
   }
 
   function loadPopupState(cb) {
@@ -563,7 +535,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  const orig = { ...state };
   [
     "addFilter",
     "removeFilter",
@@ -583,7 +554,7 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   });
 
-  function setupEvents(sendToContent) {
+  function setupEvents() {
     bindEvents();
     checkConnection();
     setInterval(checkConnection, 10000);
@@ -592,7 +563,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   loadPopupState(() => {
     checkApiStatus();
-    setupEvents(sendToContent);
+    setupEvents();
     updateSupportStatus();
   });
 

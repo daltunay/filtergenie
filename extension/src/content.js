@@ -5,20 +5,20 @@ import { showItemSpinner, removeItemSpinner } from "../utils/spinnerUtils.js";
 
 const platform = platformRegistry.current(window.location.href);
 
-function ensureStatusDiv(item) {
+const getStatusDiv = (item) => {
   let div = item.querySelector(".filtergenie-status");
   if (!div) {
     div = document.createElement("div");
     div.className = "filtergenie-status";
     item.appendChild(div);
   }
-  div.style.display = "none";
-}
+  return div;
+};
 
-async function fetchItemSource(item) {
+const fetchItemSource = async (item) => {
   const html = await platform.getItemHtml(item);
   const doc = new DOMParser().parseFromString(html, "text/html");
-  const images = Array.from(doc.querySelectorAll("img"))
+  const images = [...doc.querySelectorAll("img")]
     .map((img) => img.src)
     .filter(Boolean);
   return {
@@ -27,7 +27,7 @@ async function fetchItemSource(item) {
     html,
     images,
   };
-}
+};
 
 async function analyzeItems(
   filters,
@@ -39,9 +39,9 @@ async function analyzeItems(
   maxImagesPerItem,
 ) {
   if (!platform) return;
-  const items = Array.from(platform.getItemElements()).slice(0, maxItems);
+  const items = [...platform.getItemElements()].slice(0, maxItems);
   if (!items.length) return;
-  items.forEach(ensureStatusDiv);
+  items.forEach(getStatusDiv);
   showItemSpinner(items);
   const sortedFilters = [...filters].sort();
   chrome.runtime.sendMessage({ type: "API_STATUS", state: "filtering" });
@@ -66,13 +66,13 @@ async function analyzeItems(
   sendResponse?.({ apiResponse: { filters: results.map((r) => r.filters) } });
 }
 
-async function callApiAnalyzeSingle(
+const callApiAnalyzeSingle = async (
   itemSource,
   filters,
   apiEndpoint,
   apiKey,
   maxImagesPerItem,
-) {
+) => {
   const headers = { "Content-Type": "application/json" };
   if (apiKey) headers["X-API-Key"] = apiKey;
   apiEndpoint = apiEndpoint.replace(/\/+$/, "");
@@ -86,46 +86,22 @@ async function callApiAnalyzeSingle(
     }),
   });
   return resp.json();
-}
+};
 
 function updateItemStatus(items, filtersData, minMatch) {
   if (!document.getElementById("filtergenie-status-style")) {
     const style = document.createElement("style");
     style.id = "filtergenie-status-style";
     style.textContent = `
-      .filtergenie-status {
-        display: flex !important;
-        width: 100% !important;
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-        background: none !important;
-        border: none !important;
-        z-index: 10;
-        overflow: visible !important;
-        position: relative;
-        min-height: 0;
-      }
-      .filtergenie-status .filtergenie-status-block {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        align-items: flex-start;
-        width: 100%;
-        row-gap: 6px;
-      }
+      .filtergenie-status { display:flex!important;width:100%!important;box-sizing:border-box;margin:0;padding:0;background:none!important;border:none!important;z-index:10;overflow:visible!important;position:relative;min-height:0; }
+      .filtergenie-status .filtergenie-status-block { display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;width:100%;row-gap:6px; }
     `;
     document.head.appendChild(style);
   }
   items.forEach((item, idx) => {
     const filterResults = filtersData[idx] || {};
     const matchCount = Object.values(filterResults).filter(Boolean).length;
-    let statusDiv = item.querySelector(".filtergenie-status");
-    if (!statusDiv) {
-      statusDiv = document.createElement("div");
-      statusDiv.className = "filtergenie-status";
-      item.appendChild(statusDiv);
-    }
+    const statusDiv = getStatusDiv(item);
     const ordered = Object.entries(filterResults).sort(([a], [b]) =>
       a.localeCompare(b),
     );
@@ -144,8 +120,7 @@ function updateItemStatus(items, filtersData, minMatch) {
 
 function updateItemVisibility(minMatch, maxItems) {
   if (!platform) return;
-  const items = Array.from(platform.getItemElements()).slice(0, maxItems);
-  items.forEach((item) => {
+  [...platform.getItemElements()].slice(0, maxItems).forEach((item) => {
     const statusDiv = item.querySelector(".filtergenie-status");
     const matchCount = (statusDiv?.textContent.match(/✅/g) || []).length;
     item.style.display = matchCount >= minMatch ? "" : "none";
