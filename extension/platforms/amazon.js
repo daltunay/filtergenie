@@ -6,8 +6,11 @@ platformRegistry.register({
   searchPathPatterns: [/^\/gp/, /\/s\?k=/],
   itemPathPattern: /^\/dp\//,
   getItemElements() {
-    return document.querySelectorAll(
+    const allItems = document.querySelectorAll(
       'div[role=listitem][data-component-type="s-search-result"][data-cel-widget^="search_result_"]',
+    );
+    return Array.from(allItems).filter(
+      (el) => !el.querySelector('[data-component-type="s-impression-logger"]'),
     );
   },
   getItemUrl(itemContainer) {
