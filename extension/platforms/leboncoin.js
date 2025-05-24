@@ -18,3 +18,5 @@ platformRegistry.register({
     return href ? `https://www.leboncoin.fr${href}` : null;
   },
 });
+
+export default null;

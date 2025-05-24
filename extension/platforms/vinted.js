@@ -17,3 +17,5 @@ platformRegistry.register({
     return link ? link.getAttribute("href") : null;
   },
 });
+
+export default null;

@@ -21,3 +21,5 @@ platformRegistry.register({
     return href ? `https://www.amazon.fr${href}` : null;
   },
 });
+
+export default null;

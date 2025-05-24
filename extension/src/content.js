@@ -1,7 +1,7 @@
 import { platformRegistry } from "../utils/platformRegistry.js";
-import "../platforms/leboncoin.js";
-import "../platforms/vinted.js";
-import "../platforms/amazon.js";
+
+import "../platforms/*.js";
+
 import { showItemSpinner, removeItemSpinner } from "../utils/spinnerUtils.js";
 
 const platform = platformRegistry.current(window.location.href);

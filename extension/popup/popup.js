@@ -12,9 +12,8 @@ function sendToContent(msg) {
   });
 }
 
-import "../platforms/leboncoin.js";
-import "../platforms/vinted.js";
-import "../platforms/amazon.js";
+import "../platforms/*.js";
+
 import {
   createFilterBadge,
   setDisclaimer,
