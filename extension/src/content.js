@@ -3,11 +3,7 @@ import "../platforms/leboncoin.js";
 import "../platforms/vinted.js";
 import { showItemSpinner, removeItemSpinner } from "../utils/spinnerUtils.js";
 
-function getCurrentPlatform() {
-  const reg = platformRegistry;
-  const url = window.location.href;
-  return reg && reg._platforms?.length ? reg.getCurrentPlatform(url) : null;
-}
+const platform = platformRegistry.current(window.location.href);
 
 function ensureStatusDiv(item) {
   let div = item.querySelector(".filtergenie-status");
@@ -19,7 +15,7 @@ function ensureStatusDiv(item) {
   div.style.display = "none";
 }
 
-async function fetchItemSource(platform, item) {
+async function fetchItemSource(item) {
   const html = await platform.getItemHtml(item);
   const doc = new DOMParser().parseFromString(html, "text/html");
   const images = Array.from(doc.querySelectorAll("img"))
@@ -31,6 +27,43 @@ async function fetchItemSource(platform, item) {
     html,
     images,
   };
+}
+
+async function analyzeItems(
+  filters,
+  minMatch,
+  maxItems,
+  sendResponse,
+  apiEndpoint,
+  apiKey,
+  maxImagesPerItem,
+) {
+  if (!platform) return;
+  const items = Array.from(platform.getItemElements()).slice(0, maxItems);
+  if (!items.length) return;
+  items.forEach(ensureStatusDiv);
+  showItemSpinner(items);
+  const sortedFilters = [...filters].sort();
+  chrome.runtime.sendMessage({ type: "API_STATUS", state: "filtering" });
+  const itemSources = await Promise.all(items.map(fetchItemSource));
+  const results = await Promise.all(
+    itemSources.map((itemSource) =>
+      callApiAnalyzeSingle(
+        itemSource,
+        sortedFilters,
+        apiEndpoint,
+        apiKey,
+        maxImagesPerItem,
+      ),
+    ),
+  );
+  results.forEach((data, idx) => {
+    removeItemSpinner([items[idx]]);
+    updateItemStatus([items[idx]], [data.filters], minMatch);
+  });
+  chrome.runtime.sendMessage({ type: "API_STATUS", state: "done" });
+  chrome.runtime.sendMessage({ type: "FILTERS_APPLIED", success: true });
+  sendResponse?.({ apiResponse: { filters: results.map((r) => r.filters) } });
 }
 
 async function callApiAnalyzeSingle(
@@ -84,16 +117,14 @@ function updateItemStatus(items, filtersData, minMatch) {
     `;
     document.head.appendChild(style);
   }
-  const platform = getCurrentPlatform();
   items.forEach((item, idx) => {
     const filterResults = filtersData[idx] || {};
     const matchCount = Object.values(filterResults).filter(Boolean).length;
-    const container = platform ? platform.getItemContainer(item) : item;
-    let statusDiv = container.querySelector(".filtergenie-status");
+    let statusDiv = item.querySelector(".filtergenie-status");
     if (!statusDiv) {
       statusDiv = document.createElement("div");
       statusDiv.className = "filtergenie-status";
-      container.appendChild(statusDiv);
+      item.appendChild(statusDiv);
     }
     const ordered = Object.entries(filterResults).sort(([a], [b]) =>
       a.localeCompare(b),
@@ -111,56 +142,7 @@ function updateItemStatus(items, filtersData, minMatch) {
   });
 }
 
-async function analyzeItems(
-  filters,
-  minMatch,
-  platform,
-  maxItems,
-  sendResponse,
-  apiEndpoint,
-  apiKey,
-  maxImagesPerItem,
-) {
-  if (!platform) return;
-  const items = Array.from(platform.getItemElements()).slice(0, maxItems);
-  if (!items.length) return;
-  items.forEach(ensureStatusDiv);
-  showItemSpinner(items);
-  const sortedFilters = [...filters].sort();
-  chrome.runtime.sendMessage({ type: "API_STATUS", state: "filtering" });
-  const itemSources = await Promise.all(
-    items.map((item) => fetchItemSource(platform, item)),
-  );
-  const results = await Promise.all(
-    itemSources.map((itemSource) =>
-      callApiAnalyzeSingle(
-        itemSource,
-        sortedFilters,
-        apiEndpoint,
-        apiKey,
-        maxImagesPerItem,
-      ),
-    ),
-  );
-  results.forEach((data, idx) => {
-    removeItemSpinner([items[idx]]);
-    updateItemStatus([items[idx]], [data.filters], minMatch);
-  });
-  chrome.runtime.sendMessage({ type: "API_STATUS", state: "done" });
-  chrome.storage.local.set({
-    filtergenieLastAnalyzed: {
-      filtersData: results.map((r) => r.filters),
-      minMatch,
-      maxItems,
-      timestamp: Date.now(),
-    },
-  });
-  chrome.runtime.sendMessage({ type: "FILTERS_APPLIED", success: true });
-  sendResponse?.({ apiResponse: { filters: results.map((r) => r.filters) } });
-}
-
 function updateItemVisibility(minMatch, maxItems) {
-  const platform = getCurrentPlatform();
   if (!platform) return;
   const items = Array.from(platform.getItemElements()).slice(0, maxItems);
   items.forEach((item) => {
@@ -180,7 +162,6 @@ function handleMessage(msg, sender, sendResponse) {
       analyzeItems(
         msg.activeFilters,
         msg.minMatch,
-        getCurrentPlatform(),
         msg.maxItems,
         sendResponse,
         msg.apiEndpoint,
@@ -205,21 +186,7 @@ function handleMessage(msg, sender, sendResponse) {
 
 function initializeContentScript() {
   chrome.runtime.onMessage.addListener(handleMessage);
-  const platform = getCurrentPlatform();
-  if (platform && platform.isSearchPage(window.location.href)) {
-    chrome.storage.local.get("filtergenieLastAnalyzed", (res) => {
-      const last = res.filtergenieLastAnalyzed;
-      if (!last?.filtersData) return;
-      const maxItems = typeof last.maxItems === "number" ? last.maxItems : 10;
-      const items = Array.from(platform.getItemElements()).slice(0, maxItems);
-      if (!items.length) return;
-      updateItemStatus(items, last.filtersData, last.minMatch);
-    });
-    chrome.storage.local.set({ popupAppliedFilters: [] });
-    console.log(
-      "FilterGenie: Content script initialized successfully on supported website",
-    );
-  }
+  document.querySelectorAll(".filtergenie-status").forEach((el) => el.remove());
 }
 
 if (document.readyState === "loading") {

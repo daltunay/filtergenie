@@ -1,21 +1,13 @@
 import { platformRegistry } from "../utils/platformRegistry.js";
 
-const leboncoinConfig = {
+platformRegistry.register({
   name: "leboncoin",
   hostPattern: /leboncoin\.fr$/,
   searchPathPatterns: [/^\/recherche/, /^\/c\//],
   itemPathPattern: /\/ad\//,
-  itemSelector: 'article[data-test-id="ad"]',
-  itemLinkSelector: 'a.absolute.inset-0[href^="/ad/"]',
-  baseUrl: "https://www.leboncoin.fr",
+  itemSelector: 'a.absolute.inset-0[href^="/ad/"]',
   getItemUrl(item) {
-    const link = item.querySelector('a.absolute.inset-0[href^="/ad/"]');
-    const href = link?.getAttribute("href");
-    if (!href) return null;
-    return href.startsWith("http")
-      ? href
-      : `${this.baseUrl}${href.startsWith("/") ? href : `/${href}`}`;
+    const href = item.getAttribute("href");
+    return href ? `https://www.leboncoin.fr${href}` : null;
   },
-};
-
-platformRegistry.registerPlatform(leboncoinConfig);
+});

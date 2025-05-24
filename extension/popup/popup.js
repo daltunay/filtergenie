@@ -14,18 +14,17 @@ function sendToContent(msg) {
 
 import "../platforms/leboncoin.js";
 import "../platforms/vinted.js";
-import { createFilterBadge } from "./components/ui-components.js";
+import {
+  createFilterBadge,
+  setDisclaimer,
+} from "./components/ui-components.js";
 import {
   DEFAULT_REMOTE_API_ENDPOINT,
   DEFAULT_LOCAL_API_ENDPOINT,
 } from "../utils/apiSettings.js";
+import { platformRegistry } from "../utils/platformRegistry.js";
 
 document.addEventListener("DOMContentLoaded", () => {
-  const API_MODE_KEY = "popupApiMode";
-  const API_KEY_KEY = "popupApiKey"; // pragma: allowlist secret
-
-  let ignoreNextStorageUpdate = false;
-
   const ui = {};
   [
     "filters-form",
@@ -59,7 +58,6 @@ document.addEventListener("DOMContentLoaded", () => {
     ui[id.replace(/-([a-z])/g, (g) => g[1].toUpperCase())] =
       document.getElementById(id);
   });
-  ui.filtersSection = document.querySelector("section.card.p-4");
 
   let apiStatus = {
     state: "unknown",
@@ -158,132 +156,124 @@ document.addEventListener("DOMContentLoaded", () => {
     apiMode: "remote",
     apiKey: "",
     isConnected: false,
-    _listeners: [],
-    subscribe(fn) {
-      this._listeners.push(fn);
-    },
-    notify() {
-      this._listeners.forEach((fn) => fn());
-    },
     addFilter(filter) {
       if (!filter || this.filters.includes(filter)) return false;
       this.filters.push(filter);
-      saveState();
-      this.notify();
+      updateUI();
       return true;
     },
     removeFilter(index) {
       this.filters.splice(index, 1);
-      saveState();
-      this.notify();
+      updateUI();
     },
     editFilter(index, newValue) {
       if (!newValue || this.filters.includes(newValue)) return false;
       this.filters[index] = newValue;
-      saveState();
-      this.notify();
+      updateUI();
       return true;
     },
     resetFilters() {
       this.filters = [];
-      saveState();
-      this.notify();
+      updateUI();
     },
     setMinMatch(val) {
       this.minMatch = Math.max(0, Math.min(val, this.filters.length));
-      saveState();
-      this.notify();
+      updateUI();
     },
     setMaxItems(val) {
       this.maxItems = Math.max(1, Math.min(val, 50));
-      saveState();
-      this.notify();
+      updateUI();
     },
     setMaxImagesPerItem(val) {
       this.maxImagesPerItem = Math.max(0, Math.min(10, val));
-      saveState();
-      this.notify();
+      updateUI();
     },
     setApiMode(mode) {
       if (this.apiMode !== mode) {
         this.apiMode = mode;
-        ignoreNextStorageUpdate = true;
-        chrome.storage.local.set({ [API_MODE_KEY]: mode });
-        this.notify();
+        updateUI();
       }
     },
     setApiKey(key) {
       this.apiKey = key;
-      ignoreNextStorageUpdate = true;
-      chrome.storage.local.set({ [API_KEY_KEY]: key });
-      this.notify();
+      updateUI();
     },
     setConnection(isConnected) {
       this.isConnected = isConnected;
-      this.notify();
-    },
-    showNotification(isConnected) {
-      ui.notificationArea.innerHTML = "";
-      if (!isConnected) {
-        const notification = document.createElement("div");
-        notification.className =
-          "bg-amber-500/20 text-amber-300 rounded-md px-4 py-3 text-sm animate-fade-in";
-        notification.innerHTML = `
-          <div class="flex items-start">
-            <div class="flex-shrink-0">
-              <svg class="h-5 w-5 text-amber-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-              </svg>
-            </div>
-            <div class="ml-3">
-              <p class="text-sm">
-                FilterGenie can only run on <a href="https://github.com/daltunay/filtergenie?tab=readme-ov-file#supported-websites" target="_blank" rel="noopener noreferrer" class="underline text-amber-200 hover:text-amber-100">supported websites</a>.<br>
-              </p>
-            </div>
-          </div>
-        `;
-        ui.notificationArea.appendChild(notification);
-      }
+      updateUI();
     },
   };
 
-  function renderUI() {
-    if (ui.filtersSection)
-      ui.filtersSection.style.display = state.isConnected ? "" : "none";
+  function getSupportStatus(tabUrl) {
+    if (!tabUrl)
+      return {
+        supported: false,
+        onSearchPage: false,
+        message: "Unable to detect current page.",
+      };
+    const platform = platformRegistry.current(tabUrl);
+    if (!platform)
+      return {
+        supported: false,
+        onSearchPage: false,
+        message: "This website is not supported by FilterGenie.",
+      };
+    if (!platform.isSearchPage(tabUrl))
+      return {
+        supported: true,
+        onSearchPage: false,
+        message: "FilterGenie only works on search result pages.",
+      };
+    return { supported: true, onSearchPage: true, message: "" };
+  }
+
+  function updateSupportStatus() {
+    chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+      const url = tab?.url;
+      const { supported, onSearchPage, message } = getSupportStatus(url);
+      setDisclaimer(ui.notificationArea, message);
+      ui.applyFilters.disabled =
+        !supported ||
+        !onSearchPage ||
+        !state.filters.length ||
+        !state.isConnected;
+    });
+  }
+
+  function updateUI() {
     document.body.style.minHeight = state.isConnected ? "" : "0";
     document.body.style.height = state.isConnected ? "" : "auto";
     ui.filtersList.innerHTML = "";
-    state.filters.forEach((filter, index) => {
+    state.filters.forEach((filter, i) =>
       ui.filtersList.appendChild(
         createFilterBadge(
           filter,
-          () => state.removeFilter(index),
-          (newValue) => state.editFilter(index, newValue),
+          () => state.removeFilter(i),
+          (v) => state.editFilter(i, v),
         ),
-      );
-    });
+      ),
+    );
     ui.minMatch.max = state.filters.length;
     ui.minMatch.value = Math.min(state.minMatch, state.filters.length);
     ui.minMatch.disabled = !state.filters.length;
     ui.minMatchValue.textContent = ui.minMatch.value;
     ui.maxItems.value = state.maxItems;
     ui.maxImages.value = state.maxImagesPerItem;
-    ui.applyFilters.disabled = !state.filters.length || !state.isConnected;
     ui.resetFilters.disabled = !state.filters.length;
     ui.addFilter.disabled = !ui.filterInput.value.trim();
     ui.apiModeRemote.checked = state.apiMode === "remote";
     ui.apiModeLocal.checked = state.apiMode === "local";
     ui.apiKeyRow.style.display = state.apiMode === "remote" ? "" : "none";
     ui.apiKey.value = state.apiKey;
-    const statusIndicator =
-      ui.connectionStatus.querySelector("span:first-child");
-    if (statusIndicator)
-      statusIndicator.className =
+    const ind = ui.connectionStatus.querySelector("span:first-child");
+    if (ind)
+      ind.className =
         "inline-flex h-4 w-4 rounded-full " +
         (state.isConnected ? "bg-green-500" : "bg-red-500");
     ui.apiStatus.innerHTML = "";
     renderApiStatusBadge();
     ui.apiTotalTime.textContent = "";
+    updateSupportStatus();
   }
 
   function checkConnection() {
@@ -303,7 +293,6 @@ document.addEventListener("DOMContentLoaded", () => {
     bindMatchEvents();
     bindApiEvents();
     bindApiKeyToggle();
-    bindStorageEvents();
   }
 
   function bindFilterEvents() {
@@ -335,8 +324,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function onResetFilters() {
     state.resetFilters();
-    chrome.storage.local.remove("filtergenieLastAnalyzed");
-    sendToContent({ type: "RESET_FILTERS_ON_PAGE" });
+    chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+      const url = tab?.url;
+      const platform = url && platformRegistry.current(url);
+      if (platform && platform.isSearchPage(url)) {
+        sendToContent({ type: "RESET_FILTERS_ON_PAGE" });
+      }
+    });
   }
 
   function onApplyFilters() {
@@ -349,65 +343,58 @@ document.addEventListener("DOMContentLoaded", () => {
       state.apiMode === "local"
         ? DEFAULT_LOCAL_API_ENDPOINT
         : DEFAULT_REMOTE_API_ENDPOINT;
-    sendToContent({
-      type: "APPLY_FILTERS",
-      activeFilters: state.filters,
-      minMatch: state.minMatch,
-      maxItems: state.maxItems,
-      maxImagesPerItem: state.maxImagesPerItem,
-      apiEndpoint,
-      apiKey: state.apiKey,
-    });
-    function apiListener(msg) {
-      if (msg.type === "FILTERS_APPLIED") {
-        setApiStatus(
-          msg.success ? "done" : "error",
-          msg.success
-            ? { doneTime: (Date.now() - requestStart) / 1000 }
-            : { error: msg.error },
-        );
-        ui.applyFilters.disabled = false;
-        chrome.runtime.onMessage.removeListener(apiListener);
+    chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+      sendToContent({
+        type: "APPLY_FILTERS",
+        activeFilters: state.filters,
+        minMatch: state.minMatch,
+        maxItems: state.maxItems,
+        maxImagesPerItem: state.maxImagesPerItem,
+        apiEndpoint,
+        apiKey: state.apiKey,
+      });
+      function apiListener(msg) {
+        if (msg.type === "FILTERS_APPLIED") {
+          setApiStatus(
+            msg.success ? "done" : "error",
+            msg.success
+              ? { doneTime: (Date.now() - requestStart) / 1000 }
+              : { error: msg.error },
+          );
+          ui.applyFilters.disabled = false;
+          chrome.runtime.onMessage.removeListener(apiListener);
+        }
       }
-    }
-    chrome.runtime.onMessage.addListener(apiListener);
+      chrome.runtime.onMessage.addListener(apiListener);
+    });
   }
 
   function bindMatchEvents() {
-    const debouncedMinMatchHandler = debounce((value) => {
-      state.setMinMatch(+value);
-      ui.minMatchValue.textContent = state.minMatch;
-      sendToContent({
-        type: "UPDATE_MIN_MATCH",
-        minMatch: state.minMatch,
-        maxItems: state.maxItems,
-      });
-    }, 300);
-    const debouncedMaxItemsHandler = debounce((value) => {
-      let v = Math.min(+value, 50);
-      state.setMaxItems(v);
-      ui.maxItems.value = v;
-      sendToContent({
-        type: "UPDATE_MIN_MATCH",
-        minMatch: state.minMatch,
-        maxItems: state.maxItems,
-      });
-    }, 300);
-    const debouncedMaxImagesHandler = debounce((value) => {
-      state.setMaxImagesPerItem(+value);
-    }, 300);
-    ui.minMatch.oninput = (e) => {
-      ui.minMatchValue.textContent = e.target.value;
-      debouncedMinMatchHandler(e.target.value);
-    };
-    ui.maxItems.oninput = (e) => {
-      let v = Math.min(+e.target.value, 50);
-      e.target.value = v;
-      debouncedMaxItemsHandler(v);
-    };
-    ui.maxImages.oninput = (e) => {
-      debouncedMaxImagesHandler(e.target.value);
-    };
+    const debounceHandler = (fn, key) =>
+      debounce((v) => {
+        state[key](+v);
+        updateUI();
+        sendToContent({
+          type: "UPDATE_MIN_MATCH",
+          minMatch: state.minMatch,
+          maxItems: state.maxItems,
+        });
+      }, 300);
+    ui.minMatch.oninput = (e) =>
+      debounceHandler(
+        state.setMinMatch.bind(state),
+        "setMinMatch",
+      )(e.target.value);
+    ui.maxItems.oninput = (e) =>
+      debounceHandler(
+        state.setMaxItems.bind(state),
+        "setMaxItems",
+      )(e.target.value);
+    ui.maxImages.oninput = (e) =>
+      debounceHandler(
+        state.setMaxImagesPerItem.bind(state),
+        "setMaxImagesPerItem",
+      )(e.target.value);
   }
 
   function bindApiEvents() {
@@ -538,42 +525,7 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   }
 
-  function bindStorageEvents() {
-    chrome.storage.onChanged.addListener(() => {
-      if (ignoreNextStorageUpdate) {
-        ignoreNextStorageUpdate = false;
-        return;
-      }
-      loadState();
-    });
-  }
-
-  function saveState() {
-    ignoreNextStorageUpdate = true;
-    chrome.storage.local.set({
-      popupFilters: state.filters,
-      popupMinMatch: state.minMatch,
-      popupMaxItems: state.maxItems,
-      popupMaxImagesPerItem: state.maxImagesPerItem,
-    });
-  }
-
-  function loadDefaultsFromHtml() {
-    if (!state.filters.length) {
-      state.filters = Array.from(ui.filtersList.children)
-        .map((li) => li.textContent?.replace(/✖$/, "").trim())
-        .filter(Boolean);
-    }
-    if (!state.minMatch) state.minMatch = Number(ui.minMatch.value);
-    if (!state.maxItems) state.maxItems = Number(ui.maxItems.value);
-    if (!state.maxImagesPerItem && state.maxImagesPerItem !== 0)
-      state.maxImagesPerItem = Number(ui.maxImages.value) || 3;
-    if (!state.apiMode)
-      state.apiMode = ui.apiModeRemote.checked ? "remote" : "local";
-    if (!state.apiKey) state.apiKey = ui.apiKey.value;
-  }
-
-  function loadState(cb) {
+  function loadPopupState(cb) {
     chrome.storage.local.get(
       [
         "popupFilters",
@@ -582,10 +534,8 @@ document.addEventListener("DOMContentLoaded", () => {
         "popupMaxImagesPerItem",
         "popupApiMode",
         "popupApiKey",
-        "filtergenieApiStatus",
       ],
       (res) => {
-        loadDefaultsFromHtml();
         if (Array.isArray(res.popupFilters)) state.filters = res.popupFilters;
         if (typeof res.popupMinMatch === "number")
           state.minMatch = res.popupMinMatch;
@@ -596,23 +546,56 @@ document.addEventListener("DOMContentLoaded", () => {
         if (typeof res.popupApiMode === "string")
           state.apiMode = res.popupApiMode;
         if (typeof res.popupApiKey === "string") state.apiKey = res.popupApiKey; // pragma: allowlist secret
-        if (res.filtergenieApiStatus) apiStatus = res.filtergenieApiStatus;
-        renderUI();
+        updateUI();
         if (cb) cb();
       },
     );
   }
 
-  function setupEvents(sendToContent) {
-    bindEvents();
-    state.subscribe(renderUI);
-    checkConnection();
-    setInterval(checkConnection, 10000);
-    renderApiStatusBadge();
+  function savePopupState() {
+    chrome.storage.local.set({
+      popupFilters: state.filters,
+      popupMinMatch: state.minMatch,
+      popupMaxItems: state.maxItems,
+      popupMaxImagesPerItem: state.maxImagesPerItem,
+      popupApiMode: state.apiMode,
+      popupApiKey: state.apiKey,
+    });
   }
 
-  loadState(() => {
+  const orig = { ...state };
+  [
+    "addFilter",
+    "removeFilter",
+    "editFilter",
+    "resetFilters",
+    "setMinMatch",
+    "setMaxItems",
+    "setMaxImagesPerItem",
+    "setApiMode",
+    "setApiKey",
+  ].forEach((fn) => {
+    const origFn = state[fn];
+    state[fn] = function (...args) {
+      const result = origFn.apply(this, args);
+      savePopupState();
+      return result;
+    };
+  });
+
+  function setupEvents(sendToContent) {
+    bindEvents();
+    checkConnection();
+    setInterval(checkConnection, 10000);
+    updateSupportStatus();
+  }
+
+  loadPopupState(() => {
     checkApiStatus();
     setupEvents(sendToContent);
+    updateSupportStatus();
   });
+
+  chrome.tabs.onActivated?.addListener(updateSupportStatus);
+  chrome.tabs.onUpdated?.addListener(updateSupportStatus);
 });

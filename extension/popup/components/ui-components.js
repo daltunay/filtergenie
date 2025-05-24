@@ -1,8 +1,3 @@
-/**
- * FilterGenie UI Components
- * A minimal component library for the FilterGenie extension
- */
-
 export function createSpinner(size = "sm") {
   const spinnerSizes = {
     sm: "h-4 w-4",
@@ -228,3 +223,9 @@ export function createLabeledInput(
   }
   return container;
 }
+
+export const setDisclaimer = (container, message) => {
+  container.innerHTML = message
+    ? `<div class="bg-amber-500/20 text-amber-300 rounded-md px-4 py-3 text-sm animate-fade-in">${message}</div>`
+    : "";
+};
