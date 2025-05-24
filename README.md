@@ -49,8 +49,8 @@ FilterGenie is an AI-powered browser extension and API that filters e-commerce s
 | ---------- | ------------------------------------------------- | ------- |
 | leboncoin  | leboncoin.fr                                      | ✅ DONE |
 | vinted     | vinted.fr, vinted.com, vinted.it, vinted.de, ...  | ✅ DONE |
+| amazon     | amazon.fr, amazon.com, amazon.it, amazon.de, ...  | ✅ DONE |
 | ebay       | ebay.fr, ebay.com, ebay.it, ebay.de, ...          | 🛠️ WIP  |
-| amazon     | amazon.fr, amazon.com, amazon.it, amazon.de, ...  | 🛠️ WIP  |
 | aliexpress | aliexpress.fr, aliexpress.com, aliexpress.it, ... | 📝 TODO |
 | doctolib   | doctolib.fr                                       | 📝 TODO |
 | seloger    | seloger.fr                                        | 📝 TODO |
